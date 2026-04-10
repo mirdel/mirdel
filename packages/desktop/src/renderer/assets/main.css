@@ -1,0 +1,304 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import "highlight.js/styles/github.css";
+@import "katex/dist/katex.min.css";
+
+.p-\[1px\] {
+  padding: 1px;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-user-drag: none;
+}
+
+img, a {
+  -webkit-user-drag: none;
+}
+
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+button {
+  user-select: none;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+* {
+  outline: none;
+}
+
+/* View Transitions API：主题切换时以按钮为圆心的扩散动画
+ * 始终让 new 在上层，因我们对 new 做 clip-path 扩散，需可见 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+
+/* 确保所有 Portal 渲染的浮层都在 Modal 之上 */
+[data-reka-popper-content-wrapper] {
+  z-index: 200 !important;
+}
+
+/* Tooltip 最大宽度与自动折行，避免超出屏幕 */
+[role="tooltip"] {
+  max-width: min(280px, 90vw);
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Modal 遮罩层高斯模糊 */
+[data-slot="overlay"] {
+  backdrop-filter: blur(3px);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 引用链接样式 - 由自定义 link renderer 输出 */
+[data-citation-index] {
+  position: relative;
+  top: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin: 0 0.125rem;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--ui-text) !important;
+  background-color: var(--ui-color-neutral-100);
+  border-radius: 50px;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+  border: 0;
+  padding: 0 0.35rem;
+  appearance: none;
+}
+
+[data-citation-index]:hover {
+  color: var(--ui-color-neutral-900);
+  background-color: var(--ui-color-neutral-200);
+}
+
+[data-citation-index] span {
+  white-space: nowrap;
+}
+
+.dark [data-citation-index] {
+  color: var(--ui-color-neutral-400);
+  background-color: var(--ui-color-neutral-800);
+}
+
+.dark [data-citation-index]:hover {
+  color: var(--ui-color-neutral-100);
+  background-color: var(--ui-color-neutral-700);
+}
+
+/* 引用预览浮层 */
+.citation-preview {
+  position: fixed;
+  z-index: 1000;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  padding: 0.75rem;
+  background-color: white;
+  border: 1px solid var(--ui-color-neutral-200);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: citation-preview-fade-in 0.15s ease;
+}
+
+.dark .citation-preview {
+  background-color: var(--ui-color-neutral-900);
+  border-color: var(--ui-color-neutral-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* 编辑器代码块：与 lowlight 的 hljs token class 配合使用 */
+.tiptap pre {
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.tiptap pre code {
+  background: transparent;
+}
+
+.tiptap img {
+  cursor: pointer;
+}
+
+.tiptap img.ProseMirror-selectednode {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
+}
+
+/* TipTap task list (taskItem/taskList) baseline styles */
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-top: 0.15rem;
+  user-select: none;
+}
+
+.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  margin: 0;
+}
+
+.tiptap ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tiptap ul[data-type="taskList"] li > div > p {
+  margin: 0;
+}
+
+.tiptap ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin-top: 0.25rem;
+  padding-left: 1.5rem;
+}
+
+/* TipTap tables */
+.tiptap .tableWrapper {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid var(--ui-color-neutral-300);
+  min-width: 6rem;
+  padding: 0.5rem 0.625rem;
+  vertical-align: top;
+  position: relative;
+}
+
+.dark .tiptap th,
+.dark .tiptap td {
+  border-color: var(--ui-color-neutral-700);
+}
+
+.tiptap th {
+  background-color: var(--ui-color-neutral-100);
+  font-weight: 600;
+}
+
+.dark .tiptap th {
+  background-color: var(--ui-color-neutral-800);
+}
+
+.tiptap .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--ui-primary) 18%, transparent);
+  pointer-events: none;
+}
+
+.tiptap .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--ui-primary);
+  pointer-events: none;
+}
+
+@keyframes citation-preview-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* vue-stream-markdown 主题：复用 Nuxt UI 变量，与项目主题统一 */
+.stream-markdown.light,
+.stream-markdown-overlay.light {
+  --foreground: var(--ui-color-neutral-900);
+  --background: var(--ui-color-neutral-50);
+  --card: var(--ui-color-neutral-50);
+  --card-foreground: var(--ui-color-neutral-900);
+  --popover: var(--ui-color-neutral-50);
+  --popover-foreground: var(--ui-color-neutral-900);
+  --primary: var(--ui-primary);
+  --primary-foreground: var(--ui-color-neutral-50);
+  --secondary: var(--ui-color-neutral-100);
+  --secondary-foreground: var(--ui-color-neutral-900);
+  --muted: var(--ui-color-neutral-100);
+  --muted-foreground: var(--ui-color-neutral-500);
+  --accent: var(--ui-color-neutral-100);
+  --accent-foreground: var(--ui-color-neutral-900);
+  --destructive: var(--ui-color-error, #ef4444);
+  --border: var(--ui-color-neutral-200);
+  --input: var(--ui-color-neutral-200);
+  --ring: var(--ui-color-neutral-400);
+}
+
+.stream-markdown.dark,
+.stream-markdown-overlay.dark {
+  --foreground: var(--ui-color-neutral-100);
+  --background: var(--ui-color-neutral-950);
+  --card: var(--ui-color-neutral-900);
+  --card-foreground: var(--ui-color-neutral-100);
+  --popover: var(--ui-color-neutral-900);
+  --popover-foreground: var(--ui-color-neutral-100);
+  --primary: var(--ui-primary);
+  --primary-foreground: var(--ui-color-neutral-950);
+  --secondary: var(--ui-color-neutral-800);
+  --secondary-foreground: var(--ui-color-neutral-100);
+  --muted: var(--ui-color-neutral-800);
+  --muted-foreground: var(--ui-color-neutral-400);
+  --accent: var(--ui-color-neutral-800);
+  --accent-foreground: var(--ui-color-neutral-100);
+  --destructive: var(--ui-color-error, #f87171);
+  --border: var(--ui-color-neutral-700);
+  --input: var(--ui-color-neutral-700);
+  --ring: var(--ui-color-neutral-600);
+}

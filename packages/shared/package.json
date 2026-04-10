@@ -1,0 +1,15 @@
+{
+  "name": "@mirdel/shared",
+  "private": true,
+  "version": "0.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "echo \"(shared) lint: TODO\"",
+    "test": "echo \"(shared) test: TODO\"",
+    "format": "echo \"(shared) format: TODO\""
+  },
+  "dependencies": {
+    "ai": "^6.0.3",
+    "electron-log": "^5.4.0"
+  }
+}

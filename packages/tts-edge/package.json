@@ -1,0 +1,14 @@
+{
+  "name": "@mirdel/tts-edge",
+  "private": true,
+  "version": "0.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "echo \"(tts-edge) lint: TODO\"",
+    "test": "echo \"(tts-edge) test: TODO\"",
+    "format": "echo \"(tts-edge) format: TODO\""
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

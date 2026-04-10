@@ -1,0 +1,16 @@
+{
+  "name": "@mirdel/applet-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "echo \"(applet-core) lint: TODO\"",
+    "test": "echo \"(applet-core) test: TODO\"",
+    "format": "echo \"(applet-core) format: TODO\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

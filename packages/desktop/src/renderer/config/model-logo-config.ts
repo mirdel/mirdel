@@ -1,0 +1,41 @@
+/**
+ * 模型 ID 与 Logo 的映射配置
+ * pattern 为正则字符串，按顺序匹配，命中即返回对应 logo
+ * logo 与 provider logo 一致，走本地 public/lobe-icons
+ */
+export const MODEL_LOGO_CONFIG: { pattern: string; logo: string }[] = [
+  { pattern: "(qwen|qvq|wanx)", logo: "qwen-color" },
+  { pattern: "^z-image", logo: "qwen-color" },
+  { pattern: "^wan\\d", logo: "qwen-color" },
+  { pattern: "deepseek", logo: "deepseek-color" },
+  { pattern: "(glm-|chatglm-|zhipu)", logo: "zhipu-color" },
+  { pattern: "(cogview|cogvideo)", logo: "zhipu-color" },
+  { pattern: "gpt-", logo: "openai" },
+  { pattern: "^o[0-9]", logo: "openai" },
+  { pattern: "o[0-9]-", logo: "openai" },
+  { pattern: "claude", logo: "claude-color" },
+  { pattern: "gemini", logo: "gemini-color" },
+  { pattern: "^imagen-", logo: "gemini-color" },
+  { pattern: "gemma", logo: "gemma-color" },
+  { pattern: "grok", logo: "grok" },
+  { pattern: "mistral", logo: "mistral-color" },
+  { pattern: "dbrx", logo: "dbrx-color" },
+  { pattern: "(moonshot|kimi)", logo: "moonshot" },
+  { pattern: "(doubao|volc)", logo: "doubao-color" },
+  { pattern: "^yi-", logo: "yi-color" },
+  { pattern: "(llama|mixtral)", logo: "meta-color" },
+  { pattern: "command", logo: "cohere-color" },
+  { pattern: "ernie", logo: "baiducloud-color" },
+  { pattern: "wenxin", logo: "wenxin-color" },
+  { pattern: "hunyuan", logo: "hunyuan-color" },
+  { pattern: "yuanbao", logo: "yuanbao-color" },
+  { pattern: "sonar", logo: "perplexity-color" },
+  { pattern: "(minimax|abab)", logo: "minimax-color" },
+  { pattern: "baichuan", logo: "baichuan-color" },
+  { pattern: "voyage", logo: "voyage-color" },
+  { pattern: "(nvidia|nemotron)", logo: "nvidia-color" },
+  { pattern: "(sensenova|sensechat)", logo: "sensenova-color" },
+  { pattern: "(jina|jinaai)", logo: "jina" },
+  { pattern: "qingyan", logo: "qingyan-color" },
+  { pattern: "cerebras", logo: "cerebras-color" },
+];

@@ -1,0 +1,113 @@
+name: Desktop Release Matrix
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.id }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: mac-arm64
+            runner: macos-15
+            runtime_target: darwin-arm64
+            electron_builder_args: --mac dmg --arm64
+          - id: mac-x64
+            runner: macos-15-intel
+            runtime_target: darwin-x64
+            electron_builder_args: --mac dmg --x64
+          - id: win-x64
+            runner: windows-latest
+            runtime_target: win32-x64
+            electron_builder_args: --win nsis portable --x64
+          - id: win-arm64
+            runner: windows-11-arm
+            runtime_target: win32-arm64
+            electron_builder_args: --win nsis portable --arm64
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore llama runtime cache
+        uses: actions/cache@v4
+        with:
+          path: packages/desktop/.runtime/.cache/model-server
+          key: llama-runtime-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-model-server-runtime.mjs') }}
+
+      - name: Restore python runtime cache
+        uses: actions/cache@v4
+        with:
+          path: packages/desktop/.runtime/.cache/python
+          key: python-runtime-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-python-runtime.mjs') }}
+
+      - name: Restore sqlite extension cache
+        uses: actions/cache@v4
+        with:
+          path: packages/desktop/.runtime/.cache/sqlite-extensions
+          key: sqlite-extension-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-sqlite-extension-runtime.mjs') }}
+
+      - name: Validate tag matches app version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          APP_VERSION=$(node -p "require('./packages/desktop/package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$APP_VERSION" != "$TAG_VERSION" ]]; then
+            echo "Tag version ($TAG_VERSION) does not match app version ($APP_VERSION)"
+            exit 1
+          fi
+
+      - name: Package desktop app
+        env:
+          RUNTIME_TARGET: ${{ matrix.runtime_target }}
+          ELECTRON_BUILDER_ARGS: ${{ matrix.electron_builder_args }}
+          # Optional signing/notarization secrets. If unset, electron-builder falls back to unsigned/ad-hoc.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm --filter @mirdel/desktop run release:target
+
+      - name: Show packaged files
+        run: ls -lah packages/desktop/release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.id }}
+          if-no-files-found: error
+          path: |
+            packages/desktop/release/*.dmg
+            packages/desktop/release/*.exe
+            packages/desktop/release/*.yml

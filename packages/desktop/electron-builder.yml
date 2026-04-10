@@ -1,0 +1,147 @@
+# Electron Builder 配置
+# 文档: https://www.electron.build/configuration
+
+appId: ai.mirdel.desktop
+productName: Mirdel
+
+# 将 npm 运行时放到 asar 外，供发布版内置 skill 的 npm install 使用
+asarUnpack:
+  - node_modules/npm/**
+
+# 指定编译输出目录（electron-vite 编译后的产物）
+directories:
+  buildResources: build
+  output: release
+
+# 额外资源：打包时复制到 resources 目录
+extraResources:
+  # 内置轻应用（首次启动会同步到 userData/applets）
+  - from: builtin-applets
+    to: builtin-applets
+    filter:
+      - "**/*"
+  # 托盘图标（主进程运行时读取）
+  - from: build/tray
+    to: tray
+    filter:
+      - "**/*"
+  # 内置技能（Agent Skills，首次启动会拷贝到 userData/skills/.system）
+  - from: builtin-skills
+    to: builtin-skills
+    filter:
+      - "**/*"
+  # 内置 MCP 服务器脚本
+  - from: dist/main/builtin-servers/
+    to: builtin-servers/
+    filter:
+      - "**/*"
+  # 内置 MCP 脚本依赖的共享 chunks（filesystem.cjs 会 require ../chunks/*.cjs）
+  - from: dist/main/chunks/
+    to: chunks/
+    filter:
+      - "**/*"
+  # 内置 SearXNG 本地搜索服务（源码 + 配置）
+  - from: searxng/
+    to: searxng/
+    filter:
+      - "**/*"
+
+# macOS 配置
+mac:
+  target:
+    - dmg
+  category: public.app-category.developer-tools
+  icon: build/icon.icns
+  extraResources:
+    # 本地模型服务运行时（llama-server，可执行文件 + 动态库）
+    - from: .runtime/model-server/darwin-${arch}
+      to: .runtime/model-server
+      filter:
+        - "**/*"
+    # 仅携带当前 mac 架构所需运行时，避免把 win 资源打进 mac 包
+    - from: .runtime/sqlite-extensions/darwin-${arch}
+      to: .runtime/sqlite-extensions/darwin-${arch}
+      filter:
+        - "**/*"
+    - from: .runtime/python/darwin-${arch}
+      to: .runtime/python/darwin-${arch}
+      filter:
+        - "**/*"
+        # Python 运行时瘦身：移除与运行 SearXNG 无关的工具链/缓存
+        - "!**/__pycache__/**"
+        - "!**/*.pyc"
+        - "!**/*.pyo"
+        - "!include/**"
+        - "!share/man/**"
+        - "!lib/pkgconfig/**"
+        # keep ensurepip so skill venv can bootstrap pip in production builds
+        - "!lib/python*/idlelib/**"
+        - "!lib/python*/tkinter/**"
+        - "!lib/python*/turtledemo/**"
+        - "!lib/python*/site-packages/pip/**"
+        - "!lib/python*/site-packages/pip-*.dist-info/**"
+        - "!lib/tcl*/**"
+        - "!lib/tk*/**"
+        - "!lib/itcl*/**"
+        - "!lib/thread*/**"
+
+# Windows 配置
+win:
+  target:
+    - nsis
+    - portable
+  icon: build/icon.ico
+  extraResources:
+    # 本地模型服务运行时（llama-server，可执行文件 + 动态库）
+    - from: .runtime/model-server/win32-${arch}
+      to: .runtime/model-server
+      filter:
+        - "**/*"
+    # 仅携带当前 windows 架构所需运行时，避免把 mac 资源打进 win 包
+    - from: .runtime/sqlite-extensions/win32-${arch}
+      to: .runtime/sqlite-extensions/win32-${arch}
+      filter:
+        - "**/*"
+    - from: .runtime/python/win32-${arch}
+      to: .runtime/python/win32-${arch}
+      filter:
+        - "**/*"
+        # Python 运行时瘦身：移除与运行 SearXNG 无关的工具链/缓存
+        - "!**/__pycache__/**"
+        - "!**/*.pyc"
+        - "!**/*.pyo"
+        - "!include/**"
+        - "!share/man/**"
+        # keep ensurepip so skill venv can bootstrap pip in production builds
+        - "!Lib/idlelib/**"
+        - "!Lib/tkinter/**"
+        - "!Lib/turtledemo/**"
+        - "!Lib/site-packages/pip/**"
+        - "!Lib/site-packages/pip-*.dist-info/**"
+        - "!tcl/**"
+
+# NSIS 安装器配置 (Windows)
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# 仅打包运行期需要的内容，避免把源码/中间产物（如 .runtime）塞进 app.asar
+files:
+  - dist/**/*
+  - package.json
+  - THIRD_PARTY_NOTICES.md
+  - "!node_modules/.vite{,/**/*}"
+  - "!node_modules/**/.vite{,/**/*}"
+  - "!**/*.map"
+  - "!src{,/**/*}"
+  - "!docs{,/**/*}"
+  - "!scripts{,/**/*}"
+  - "!playground{,/**/*}"
+  - "!out{,/**/*}"
+  - "!.runtime{,/**/*}"
+  - "!searxng{,/**/*}"
+  - "!builtin-applets{,/**/*}"
+  - "!builtin-skills{,/**/*}"
+  - "!release{,/**/*}"

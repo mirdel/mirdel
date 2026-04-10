@@ -1,0 +1,84 @@
+use_default_settings:
+  engines:
+    keep_only:
+      - google
+      - bing
+      - duckduckgo
+      - brave
+      - baidu
+      - sogou
+      - 360search
+      - quark
+      - yandex
+      - naver
+      - qwant
+      - mojeek
+      - startpage
+      - wikipedia
+
+general:
+  debug: false
+  enable_metrics: false
+
+search:
+  formats:
+    - json
+    - html
+  default_lang: auto
+
+server:
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+outgoing:
+  request_timeout: 4.0
+  retries: 1
+  pool_connections: 32
+  pool_maxsize: 16
+  enable_http2: true
+
+engines:
+  - name: google
+    disabled: false
+
+  - name: bing
+    disabled: false
+
+  - name: duckduckgo
+    disabled: false
+
+  - name: brave
+    disabled: false
+
+  - name: baidu
+    disabled: false
+
+  - name: sogou
+    disabled: false
+
+  - name: 360search
+    disabled: false
+
+  - name: quark
+    disabled: false
+
+  - name: yandex
+    disabled: false
+
+  - name: naver
+    disabled: false
+
+  - name: qwant
+    disabled: false
+
+  - name: mojeek
+    disabled: false
+
+  - name: startpage
+    disabled: false
+
+  - name: wikipedia
+    disabled: false
+    display_type:
+      - list

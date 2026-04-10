@@ -1,0 +1,397 @@
+{
+  "version": "0.0.1",
+  "lastUpdated": "2025-12-26T10:00:00Z",
+  "updateUrl": "https://eshengsky.github.io/models-config/config.json",
+  "providers": {
+    "openai": {
+      "id": "openai",
+      "name": "OpenAI",
+      "description": "Official OpenAI API service",
+      "logo": "",
+      "apiHost": "https://api.openai.com",
+      "homeUrl": "https://platform.openai.com",
+      "requiresApiKey": true,
+      "models": [
+        {
+          "id": "gpt-4o",
+          "name": "GPT-4o",
+          "description": "Latest and most capable multimodal model",
+          "type": "chat",
+          "contextWindow": 128000,
+          "maxOutputTokens": 16384,
+          "capabilities": {
+            "vision": true,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.0000025,
+            "output": 0.00001
+          },
+          "tags": [
+            "recommended",
+            "fast",
+            "multimodal"
+          ]
+        },
+        {
+          "id": "gpt-4o-mini",
+          "name": "GPT-4o Mini",
+          "description": "Faster and cheaper GPT-4o variant",
+          "type": "chat",
+          "contextWindow": 128000,
+          "maxOutputTokens": 16384,
+          "capabilities": {
+            "vision": true,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.00000015,
+            "output": 0.0000006
+          },
+          "tags": [
+            "fast",
+            "cheap"
+          ]
+        },
+        {
+          "id": "o1",
+          "name": "o1",
+          "description": "Reasoning model for complex problem solving",
+          "type": "chat",
+          "contextWindow": 200000,
+          "maxOutputTokens": 100000,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": false,
+            "webSearch": false,
+            "streaming": false,
+            "reasoning": true,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.000015,
+            "output": 0.00006
+          },
+          "tags": [
+            "reasoning"
+          ]
+        },
+        {
+          "id": "text-embedding-3-large",
+          "name": "Text Embedding 3 Large",
+          "description": "Latest and most capable embedding model",
+          "type": "embedding",
+          "contextWindow": 8192,
+          "embeddingDimension": 3072,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": false,
+            "webSearch": false,
+            "streaming": false,
+            "reasoning": false
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.00000013,
+            "output": 0
+          },
+          "tags": [
+            "embedding"
+          ]
+        }
+      ]
+    },
+    "anthropic": {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "description": "Claude family of AI models",
+      "logo": "",
+      "apiHost": "https://api.anthropic.com",
+      "homeUrl": "https://console.anthropic.com",
+      "requiresApiKey": true,
+      "models": [
+        {
+          "id": "claude-sonnet-4-20250514",
+          "name": "Claude Sonnet 4",
+          "description": "Latest Claude 4 with extended thinking",
+          "type": "chat",
+          "contextWindow": 200000,
+          "maxOutputTokens": 8096,
+          "capabilities": {
+            "vision": true,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": true,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.000003,
+            "output": 0.000015
+          },
+          "tags": [
+            "recommended",
+            "reasoning"
+          ]
+        },
+        {
+          "id": "claude-opus-4-20250514",
+          "name": "Claude Opus 4",
+          "description": "Most powerful Claude model",
+          "type": "chat",
+          "contextWindow": 200000,
+          "maxOutputTokens": 8096,
+          "capabilities": {
+            "vision": true,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": true,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "USD",
+            "input": 0.000015,
+            "output": 0.000075
+          },
+          "tags": [
+            "premium",
+            "reasoning"
+          ]
+        }
+      ]
+    },
+    "dashscope": {
+      "id": "dashscope",
+      "name": "Alibaba Cloud Bailian",
+      "description": "Qwen series models from Alibaba Cloud",
+      "logo": "",
+      "apiHost": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "homeUrl": "https://bailian.console.aliyun.com",
+      "requiresApiKey": true,
+      "models": [
+        {
+          "id": "qwen-max",
+          "name": "Qwen Max",
+          "description": "Most capable Qwen model",
+          "type": "chat",
+          "contextWindow": 8192,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.00004,
+            "output": 0.00012
+          },
+          "tags": [
+            "recommended",
+            "chinese"
+          ]
+        },
+        {
+          "id": "qwen-plus",
+          "name": "Qwen Plus",
+          "description": "Balanced performance and cost",
+          "type": "chat",
+          "contextWindow": 131072,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.0000004,
+            "output": 0.000002
+          },
+          "tags": [
+            "cheap",
+            "chinese"
+          ]
+        },
+        {
+          "id": "qwen-vl-plus",
+          "name": "Qwen VL Plus",
+          "description": "Vision-language understanding model",
+          "type": "chat",
+          "contextWindow": 8192,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": true,
+            "functionCalling": true,
+            "webSearch": false,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.00008,
+            "output": 0.00008
+          },
+          "tags": [
+            "vision",
+            "chinese"
+          ]
+        },
+        {
+          "id": "text-embedding-v3",
+          "name": "Text Embedding v3",
+          "description": "General-purpose text embedding model",
+          "type": "embedding",
+          "contextWindow": 8192,
+          "embeddingDimension": 1536,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": false,
+            "webSearch": false,
+            "streaming": false,
+            "reasoning": false
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.0000007,
+            "output": 0
+          },
+          "tags": [
+            "embedding",
+            "chinese"
+          ]
+        },
+        {
+          "id": "deepseek-v3",
+          "name": "DeepSeek V3",
+          "description": "High-performance general-purpose model",
+          "type": "chat",
+          "contextWindow": 64000,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": true,
+            "webSearch": true,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.000001,
+            "output": 0.000002
+          },
+          "tags": [
+            "recommended",
+            "cheap"
+          ]
+        },
+        {
+          "id": "deepseek-r1",
+          "name": "DeepSeek R1",
+          "description": "Advanced reasoning model with chain-of-thought",
+          "type": "chat",
+          "contextWindow": 64000,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": false,
+            "webSearch": false,
+            "streaming": true,
+            "reasoning": true,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.000001,
+            "output": 0.000002
+          },
+          "tags": [
+            "reasoning"
+          ]
+        }
+      ]
+    },
+    "deepseek": {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "description": "DeepSeek AI models",
+      "logo": "",
+      "apiHost": "https://api.deepseek.com",
+      "homeUrl": "https://platform.deepseek.com",
+      "requiresApiKey": true,
+      "models": [
+        {
+          "id": "deepseek-chat",
+          "name": "DeepSeek Chat",
+          "description": "General-purpose conversational model",
+          "type": "chat",
+          "contextWindow": 64000,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": true,
+            "webSearch": false,
+            "streaming": true,
+            "reasoning": false,
+            "jsonMode": true
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.000001,
+            "output": 0.000002
+          },
+          "tags": [
+            "cheap",
+            "chinese"
+          ]
+        },
+        {
+          "id": "deepseek-reasoner",
+          "name": "DeepSeek Reasoner",
+          "description": "Reasoning model with chain-of-thought",
+          "type": "chat",
+          "contextWindow": 64000,
+          "maxOutputTokens": 8192,
+          "capabilities": {
+            "vision": false,
+            "functionCalling": false,
+            "webSearch": false,
+            "streaming": true,
+            "reasoning": true,
+            "jsonMode": false
+          },
+          "pricing": {
+            "currency": "CNY",
+            "input": 0.000001,
+            "output": 0.000002
+          },
+          "tags": [
+            "reasoning",
+            "chinese"
+          ]
+        }
+      ]
+    }
+  }
+}

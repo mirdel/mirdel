@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "embeddinggemma-300m",
+      "name": "embeddinggemma-300m-qat-Q8_0",
+      "modelType": "embedding",
+      "fileName": "embeddinggemma-300m-qat-Q8_0.gguf",
+      "sha256": "6fa0c02a9c302be6f977521d399b4de3a46310a4f2621ee0063747881b673f67",
+      "sizeBytes": 328577056,
+      "resourceRequirements": {
+        "minRamBytes": 805306368,
+        "recommendedRamBytes": 1073741824
+      },
+      "downloadUrls": [
+        "https://hf-mirror.com/ggml-org/embeddinggemma-300m-qat-q8_0-GGUF/resolve/main/embeddinggemma-300m-qat-Q8_0.gguf",
+        "https://huggingface.co/ggml-org/embeddinggemma-300m-qat-q8_0-GGUF/resolve/main/embeddinggemma-300m-qat-Q8_0.gguf"
+      ]
+    },
+    {
+      "id": "qwen3.5-0.8b",
+      "name": "Qwen3.5-0.8B-Q4_K_M",
+      "modelType": "generative",
+      "fileName": "Qwen3.5-0.8B-Q4_K_M.gguf",
+      "sha256": "f5b14da98939b60bbe1019a964eba656407e1e0b64f1fe3003ff6d650e93bfec",
+      "sizeBytes": 527502816,
+      "projector": {
+        "fileName": "mmproj-Qwen3.5-0.8B-BF16.gguf",
+        "sha256": "6fdd1b4bdc3d2ae8bd15d783e23260dd07dcf83f45604a21dabfd6efad8f8bc5",
+        "sizeBytes": 207345952,
+        "downloadUrls": [
+          "https://hf-mirror.com/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-Qwen3.5-0.8B-BF16.gguf",
+          "https://huggingface.co/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-Qwen3.5-0.8B-BF16.gguf"
+        ]
+      },
+      "resourceRequirements": {
+        "minRamBytes": 1073741824,
+        "recommendedRamBytes": 1610612736
+      },
+      "downloadUrls": [
+        "https://hf-mirror.com/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf",
+        "https://huggingface.co/lmstudio-community/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+      ]
+    },
+    {
+      "id": "qwen3.5-9b",
+      "name": "Qwen3.5-9B-Q4_K_M",
+      "modelType": "generative",
+      "fileName": "Qwen3.5-9B-Q4_K_M.gguf",
+      "sha256": "cd76ec205963b3b33350093e6904d9de16c4e666fd104e1f632d25c7f15f2a13",
+      "sizeBytes": 5627044256,
+      "projector": {
+        "fileName": "mmproj-Qwen3.5-9B-BF16.gguf",
+        "sha256": "330d17547bfdbcd0e7a0cb3f4b06b4ceeac0aaa1e449122d9d66ef957aeb74b3",
+        "sizeBytes": 921704480,
+        "downloadUrls": [
+          "https://hf-mirror.com/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/mmproj-Qwen3.5-9B-BF16.gguf",
+          "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/mmproj-Qwen3.5-9B-BF16.gguf"
+        ]
+      },
+      "resourceRequirements": {
+        "minRamBytes": 6442450944,
+        "recommendedRamBytes": 8589934592
+      },
+      "downloadUrls": [
+        "https://hf-mirror.com/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf",
+        "https://huggingface.co/lmstudio-community/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf"
+      ]
+    }
+  ]
+}

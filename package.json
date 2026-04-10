@@ -1,0 +1,27 @@
+{
+  "name": "mirdel",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @mirdel/desktop dev",
+    "applet:playground": "pnpm --filter @mirdel/desktop applet:playground",
+    "build": "pnpm --filter @mirdel/desktop build",
+    "release": "pnpm --filter @mirdel/desktop dist",
+    "release:local": "pnpm --filter @mirdel/desktop dist:local",
+    "preview": "pnpm --filter @mirdel/desktop preview",
+    "lint": "pnpm -r lint",
+    "test:desktop:data": "pnpm --filter @mirdel/desktop run test:data",
+    "test:desktop:store": "pnpm --filter @mirdel/desktop run test:store",
+    "test:desktop:service": "pnpm --filter @mirdel/desktop run test:service",
+    "test:desktop:router": "pnpm --filter @mirdel/desktop run test:router",
+    "test:desktop": "pnpm --filter @mirdel/desktop run test",
+    "test": "pnpm -r test",
+    "format": "pnpm -r format"
+  }
+}

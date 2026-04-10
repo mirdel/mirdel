@@ -1,0 +1,13 @@
+{
+  "name": "@mirdel/markdown-to-plain",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "echo \"(markdown-to-plain) lint: TODO\"",
+    "test": "echo \"(markdown-to-plain) test: TODO\"",
+    "format": "echo \"(markdown-to-plain) format: TODO\""
+  },
+  "dependencies": {}
+}

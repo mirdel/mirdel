@@ -1,0 +1,6047 @@
+{
+  "version": "0.0.3",
+  "providers": [
+    {
+      "id": "local",
+      "name": {
+        "default": "Local Models",
+        "zhCn": "本地模型"
+      },
+      "helpLabel": {
+        "default": "Run locally on your machine with zero API cost.",
+        "zhCn": "本地部署，本机运行，零 API 成本。"
+      },
+      "logo": "",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "",
+      "defaultHeaders": {},
+      "models": [
+        {
+          "id": "embeddinggemma-300m",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen3.5-0.8b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen3.5-9b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "logo": "openai",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.openai.com/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "web_search_options": {}
+        }
+      },
+      "helpUrl": "https://platform.openai.com/api-keys",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "gpt-5.2",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "gpt-5",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "gpt-5-mini",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "gpt-5-nano",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "gpt-4.1",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4.1-mini",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4o",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4o-mini",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "o3",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "o4-mini",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "gpt-image-1",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text",
+            "image",
+            "mask"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1024x1024",
+                  "1536x1024",
+                  "1024x1536"
+                ],
+                "default": "1024x1024"
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "default": "medium",
+                "providerKey": "quality"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 10,
+                "default": 1
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 10
+              },
+              "mask": {
+                "enabled": true
+              }
+            },
+            "edit": {
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1024x1024",
+                  "1536x1024",
+                  "1024x1536"
+                ],
+                "default": "1024x1024"
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "default": "medium",
+                "providerKey": "quality"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 10,
+                "default": 1
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 10
+              },
+              "mask": {
+                "enabled": true
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_to_image",
+            "image_edit",
+            "inpaint"
+          ]
+        },
+        {
+          "id": "text-embedding-3-large",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "text-embedding-3-small",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "logo": "anthropic",
+      "type": "anthropic",
+      "isBuiltin": true,
+      "baseUrl": "https://api.anthropic.com/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "sdkNative": {
+          "strategy": "anthropic_web_search",
+          "args": {
+            "maxUses": 5
+          }
+        }
+      },
+      "helpUrl": "https://console.anthropic.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "claude-opus-4-5",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "standard": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "medium"
+            },
+            "deep": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "high"
+            },
+            "ultra": {
+              "thinking": {
+                "type": "adaptive"
+              },
+              "effort": "max"
+            }
+          }
+        },
+        {
+          "id": "claude-sonnet-4-5",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "standard": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 2048
+              }
+            },
+            "deep": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 8192
+              }
+            },
+            "ultra": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 16384
+              }
+            }
+          }
+        },
+        {
+          "id": "claude-haiku-4-5",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "standard": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 2048
+              }
+            },
+            "deep": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 8192
+              }
+            },
+            "ultra": {
+              "thinking": {
+                "type": "enabled",
+                "budgetTokens": 16384
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dashscope",
+      "name": {
+        "default": "Alibaba Cloud Bailian",
+        "zhCn": "阿里云百炼"
+      },
+      "logo": "bailian-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "imageBaseUrl": "https://dashscope.aliyuncs.com",
+      "videoBaseUrl": "https://dashscope.aliyuncs.com",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "enable_search": true
+        }
+      },
+      "helpUrl": "https://bailian.console.aliyun.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "qwen3-max",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen3.5-plus",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "nativeWebSearch": true,
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        },
+        {
+          "id": "qwen-plus",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        },
+        {
+          "id": "qwen-turbo",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        },
+        {
+          "id": "qwen-long",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen3-coder-plus",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen3-coder-next",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen-vl-max",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "qwen-vl-plus",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "deepseek-v3",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "deepseek-r1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "qwen-image-2.0-pro",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024*1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, the model default resolution is 1024*1024. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时默认 1024*1024，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              }
+            },
+            "edit": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, output resolution follows the last input image. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时输出分辨率跟随最后一张输入图，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ]
+        },
+        {
+          "id": "qwen-image-2.0",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024*1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, the model default resolution is 1024*1024. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时默认 1024*1024，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              }
+            },
+            "edit": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, output resolution follows the last input image. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时输出分辨率跟随最后一张输入图，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ]
+        },
+        {
+          "id": "qwen-image-max",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1328*1328",
+                  "1664*928",
+                  "928*1664",
+                  "1472*1104",
+                  "1104*1472"
+                ],
+                "default": "1328*1328"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 1,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "qwen-image-plus",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1328*1328",
+                  "1664*928",
+                  "928*1664",
+                  "1472*1104",
+                  "1104*1472"
+                ],
+                "default": "1664*928"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 1,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "providerKey": "prompt_extend",
+                "default": true
+              },
+              "watermark": {
+                "enabled": true,
+                "providerKey": "watermark",
+                "default": false
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "qwen-image",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1328*1328",
+                  "1664*928",
+                  "928*1664",
+                  "1472*1104",
+                  "1104*1472"
+                ],
+                "default": "1664*928"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 1,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "promptExtend": {
+                "enabled": true,
+                "providerKey": "prompt_extend",
+                "default": true
+              },
+              "watermark": {
+                "enabled": true,
+                "providerKey": "watermark",
+                "default": false
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "qwen-image-edit-max",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, output resolution follows the last input image. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时输出分辨率跟随最后一张输入图，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit"
+          ]
+        },
+        {
+          "id": "qwen-image-edit-plus",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom width*height. Total pixels must be within [512*512, 2048*2048]. If omitted, output resolution follows the last input image. See the official docs for exact capabilities.",
+                "zhCn": "支持自定义 width*height，像素总量范围 [512*512, 2048*2048]。未传时输出分辨率跟随最后一张输入图，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 6,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              },
+              "promptExtend": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit"
+          ]
+        },
+        {
+          "id": "qwen-image-edit",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 1,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit"
+          ]
+        },
+        {
+          "id": "wan2.6-t2i",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1280*1280",
+                  "1472*1104",
+                  "1104*1472",
+                  "1696*960",
+                  "960*1696"
+                ],
+                "default": "1280*1280"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports width*height. Total pixels must be within [1280*1280, 1440*1440], with an aspect ratio between [1:4, 4:1]. See the official docs for exact capabilities.",
+                "zhCn": "支持 width*height，像素总量范围 [1280*1280, 1440*1440]，宽高比范围 [1:4, 4:1]，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "parameters.negative_prompt"
+              },
+              "promptExtend": {
+                "enabled": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "providerKey": "watermark"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wan2.5-t2i-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports width*height. Total pixels must be within [1280*1280, 1440*1440], with an aspect ratio between [1:4, 4:1]. See the official docs for exact capabilities.",
+                "zhCn": "支持 width*height，像素总量范围 [1280*1280, 1440*1440]，宽高比范围 [1:4, 4:1]，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wan2.2-t2i-plus",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports width*height. Total pixels must be within [512*512, 1440*1440], with an aspect ratio between [1:4, 4:1]. See the official docs for exact capabilities.",
+                "zhCn": "支持 width*height，像素总量范围 [512*512, 1440*1440]，宽高比范围 [1:4, 4:1]，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wan2.2-t2i-flash",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports width*height. Total pixels must be within [512*512, 1440*1440], with an aspect ratio between [1:4, 4:1]. See the official docs for exact capabilities.",
+                "zhCn": "支持 width*height，像素总量范围 [512*512, 1440*1440]，宽高比范围 [1:4, 4:1]，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wanx2.1-t2i-plus",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wanx2.1-t2i-turbo",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wanx2.0-t2i-turbo",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "wan2.6-image",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1280*1280",
+                  "1024*1024",
+                  "800*1200",
+                  "1200*800",
+                  "960*1280",
+                  "1280*960",
+                  "720*1280",
+                  "1280*720",
+                  "1344*576"
+                ],
+                "default": "1280*1280"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports width*height. Total pixels must be within [768*768, 2048*2048], with an aspect ratio between [1:4, 4:1]. See the official docs for exact capabilities.",
+                "zhCn": "支持 width*height，像素总量范围 [768*768, 2048*2048]，宽高比范围 [1:4, 4:1]，具体能力以官方文档为准"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "parameters.negative_prompt"
+              },
+              "promptExtend": {
+                "enabled": true,
+                "providerKey": "prompt_extend"
+              },
+              "watermark": {
+                "enabled": true,
+                "providerKey": "watermark"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit"
+          ]
+        },
+        {
+          "id": "wan2.5-i2i-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              },
+              "negativePrompt": {
+                "enabled": true,
+                "providerKey": "input.negative_prompt"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 3
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit"
+          ]
+        },
+        {
+          "id": "wanx2.1-imageedit",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image",
+            "mask"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 4
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              },
+              "mask": {
+                "enabled": true
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit",
+            "inpaint"
+          ]
+        },
+        {
+          "id": "wanx-x-painting",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image",
+            "mask"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "edit": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              },
+              "mask": {
+                "enabled": true
+              }
+            }
+          },
+          "imageTasks": [
+            "image_edit",
+            "inpaint"
+          ]
+        },
+        {
+          "id": "z-image-turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 1,
+                "default": 1
+              },
+              "seed": {
+                "enabled": true,
+                "min": 0,
+                "max": 2147483647
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "text-embedding-v3",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                5,
+                10
+              ],
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "id": "wan2.6-t2v",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            }
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                5,
+                10
+              ],
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "id": "wan2.5-t2v-preview",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            }
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 15,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          },
+          "id": "wan2.6-i2v",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "audio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate audio track for I2V/R2V output."
+            }
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 15,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          },
+          "id": "wan2.6-i2v-flash",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "audio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate audio track for I2V/R2V output."
+            }
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 10,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 5
+            }
+          },
+          "id": "wan2.6-r2v",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "audio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate audio track for I2V/R2V output."
+            }
+          ]
+        },
+        {
+          "modelType": "generative",
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16",
+                "1:1",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "960x960",
+                "1920x1080",
+                "1080x1920"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 10,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 5
+            }
+          },
+          "id": "wan2.6-r2v-flash",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "videoOptionSchema": [
+            {
+              "key": "promptExtend",
+              "label": "Prompt Extend",
+              "type": "boolean",
+              "default": true,
+              "description": "Enable prompt rewriting before generation."
+            },
+            {
+              "key": "shotType",
+              "label": "Shot Type",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Single",
+                  "value": "single"
+                },
+                {
+                  "label": "Multi",
+                  "value": "multi"
+                }
+              ],
+              "default": "single",
+              "description": "single for a single-shot clip, multi for multi-shot narrative."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "audio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate audio track for I2V/R2V output."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "logo": "deepseek-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.deepseek.com/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://platform.deepseek.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "deepseek-chat",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "deepseek-reasoner",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "name": "Google Gemini",
+      "logo": "google-color",
+      "type": "google-generative-ai",
+      "isBuiltin": true,
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "sdkNative": {
+          "strategy": "google_search"
+        }
+      },
+      "helpUrl": "https://aistudio.google.com/apikey",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "gemini-2.5-pro",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "thinkingConfig": {
+                "thinkingBudget": 2048
+              }
+            },
+            "deep": {
+              "thinkingConfig": {
+                "thinkingBudget": 8192
+              }
+            },
+            "ultra": {
+              "thinkingConfig": {
+                "thinkingBudget": 24576
+              }
+            }
+          }
+        },
+        {
+          "id": "gemini-2.5-flash",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinkingConfig": {
+                "thinkingBudget": 0
+              }
+            },
+            "standard": {
+              "thinkingConfig": {
+                "thinkingBudget": 1024
+              }
+            },
+            "deep": {
+              "thinkingConfig": {
+                "thinkingBudget": 8192
+              }
+            },
+            "ultra": {
+              "thinkingConfig": {
+                "thinkingBudget": 24576
+              }
+            }
+          }
+        },
+        {
+          "id": "gemini-2.5-flash-lite",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinkingConfig": {
+                "thinkingBudget": 0
+              }
+            },
+            "standard": {
+              "thinkingConfig": {
+                "thinkingBudget": 512
+              }
+            },
+            "deep": {
+              "thinkingConfig": {
+                "thinkingBudget": 4096
+              }
+            },
+            "ultra": {
+              "thinkingConfig": {
+                "thinkingBudget": 16384
+              }
+            }
+          }
+        },
+        {
+          "id": "gemini-2.0-flash",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gemini-2.0-flash-lite",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "imagen-4.0-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "imagen-4.0-fast-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "imagen-4.0-ultra-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "gemini-2.5-flash-image",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              }
+            },
+            "edit": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ]
+        },
+        {
+          "id": "gemini-3-pro-image-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              }
+            },
+            "edit": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 14
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ],
+          "imageOptionSchema": [
+            {
+              "key": "imageConfig.imageSize",
+              "label": "Image Size",
+              "type": "select",
+              "options": [
+                {
+                  "label": "1K",
+                  "value": "1K"
+                },
+                {
+                  "label": "2K",
+                  "value": "2K"
+                },
+                {
+                  "label": "4K",
+                  "value": "4K"
+                }
+              ],
+              "default": "1K"
+            }
+          ]
+        },
+        {
+          "id": "gemini-3.1-flash-image-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              }
+            },
+            "edit": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "2:3",
+                  "3:2",
+                  "3:4",
+                  "4:3",
+                  "4:5",
+                  "5:4",
+                  "9:16",
+                  "16:9",
+                  "21:9"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": false
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ]
+        },
+        {
+          "id": "veo-3.1-generate",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                4,
+                6,
+                8
+              ],
+              "default": 4
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        },
+        {
+          "id": "veo-3.1-fast-generate-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                4,
+                6,
+                8
+              ],
+              "default": 4
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        },
+        {
+          "id": "veo-3.1-generate-preview",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                4,
+                6,
+                8
+              ],
+              "default": 4
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        },
+        {
+          "id": "veo-3.0-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                4,
+                6,
+                8
+              ],
+              "default": 4
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        },
+        {
+          "id": "veo-3.0-fast-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                4,
+                6,
+                8
+              ],
+              "default": 4
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        },
+        {
+          "id": "veo-2.0-generate-001",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "1920x1080",
+                "3840x2160"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 5,
+              "max": 8,
+              "default": 5
+            },
+            "n": {
+              "enabled": true,
+              "min": 1,
+              "max": 4,
+              "default": 1
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "negativePrompt": {
+              "enabled": true,
+              "providerKey": "negativePrompt"
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "personGeneration",
+              "label": "Person Generation",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Allow Adult",
+                  "value": "allow_adult"
+                },
+                {
+                  "label": "Allow All",
+                  "value": "allow_all"
+                },
+                {
+                  "label": "Don't Allow",
+                  "value": "dont_allow"
+                }
+              ],
+              "default": "allow_adult",
+              "description": "Control whether people are allowed in generated videos."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xai",
+      "name": "xAI Grok",
+      "logo": "xai",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.x.ai/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "tools": [
+          {
+            "type": "web_search"
+          }
+        ]
+      },
+      "helpUrl": "https://console.x.ai/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "grok-4-1-fast-reasoning",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "grok-4-fast-reasoning",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "grok-4",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "grok-3",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "grok-3-mini",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "low"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "grok-imagine-image",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4",
+                  "3:2",
+                  "2:3",
+                  "2:1",
+                  "1:2",
+                  "19.5:9",
+                  "9:19.5",
+                  "20:9",
+                  "9:20",
+                  "auto"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 10,
+                "default": 1
+              }
+            },
+            "edit": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4",
+                  "3:2",
+                  "2:3",
+                  "2:1",
+                  "1:2",
+                  "19.5:9",
+                  "9:19.5",
+                  "20:9",
+                  "9:20",
+                  "auto"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 10,
+                "default": 1
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_edit"
+          ]
+        },
+        {
+          "id": "grok-imagine-video",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "9:16"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "854x480"
+              ],
+              "default": "1280x720"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 1,
+              "max": 15,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": false
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral AI",
+      "logo": "mistral-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.mistral.ai/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://console.mistral.ai/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "mistral-large-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "mistral-medium-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "mistral-small-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "magistral-medium-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "magistral-small-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "devstral-small-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "codestral-latest",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "groq",
+      "name": "Groq",
+      "logo": "groq",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "compound_custom": {
+            "tools": {
+              "enabled_tools": [
+                "web_search"
+              ]
+            }
+          }
+        }
+      },
+      "helpUrl": "https://console.groq.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "groq/compound",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "groq/compound-mini",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "llama-3.3-70b-versatile",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "llama-3.1-8b-instant",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "openai/gpt-oss-120b",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cohere",
+      "name": "Cohere",
+      "logo": "cohere-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.cohere.ai/compatibility/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://dashboard.cohere.com/api-keys",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "command-a",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "command-a-reasoning",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "command-r7b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "together",
+      "name": "Together AI",
+      "logo": "together-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.together.xyz/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://api.together.ai/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "deepseek-ai/DeepSeek-V3.1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-R1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "openai/gpt-oss-120b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zhipu",
+      "name": {
+        "default": "Zhipu AI",
+        "zhCn": "智谱 AI"
+      },
+      "logo": "zhipu-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "tools": [
+          {
+            "type": "web_search",
+            "web_search": {
+              "enable": true,
+              "search_result": true
+            }
+          }
+        ]
+      },
+      "helpUrl": "https://open.bigmodel.cn/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "glm-5",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "glm-4.7",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "glm-4.6",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "glm-4.5",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "glm-4.5-air",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "thinking": {
+                "type": "disabled"
+              }
+            },
+            "on": {
+              "thinking": {
+                "type": "enabled"
+              }
+            }
+          }
+        },
+        {
+          "id": "glm-image",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1280x1280",
+                  "1568x1056",
+                  "1056x1568",
+                  "1472x1088",
+                  "1088x1472",
+                  "1728x960",
+                  "960x1728"
+                ],
+                "default": "1280x1280"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "embedding-3",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "cogview-4-250304",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024x1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom widthxheight. Width and height must be in [512, 2048], with aspect ratio between [1:4, 4:1].",
+                "zhCn": "支持自定义 widthxheight，宽高范围 [512, 2048]，宽高比范围 [1:4, 4:1]。"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "cogview-4",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024x1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom widthxheight. Width and height must be in [512, 2048], with aspect ratio between [1:4, 4:1].",
+                "zhCn": "支持自定义 widthxheight，宽高范围 [512, 2048]，宽高比范围 [1:4, 4:1]。"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 4,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "cogview-3-flash",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024x1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom widthxheight. The minimum is 768x768 and the maximum edge can reach 1344.",
+                "zhCn": "支持自定义 widthxheight，最小 768x768，最大边可达 1344。"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 10,
+                "default": 1
+              },
+              "quality": {
+                "enabled": true,
+                "options": [
+                  "standard",
+                  "hd"
+                ],
+                "default": "standard",
+                "providerKey": "quality"
+              },
+              "watermark": {
+                "enabled": true,
+                "default": true,
+                "providerKey": "watermark_enabled"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "cogvideox-3",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "1280x720",
+                "720x1280",
+                "1024x1024",
+                "1920x1080",
+                "1080x1920",
+                "2048x1080",
+                "3840x2160"
+              ],
+              "default": "1920x1080"
+            },
+            "duration": {
+              "enabled": true,
+              "options": [
+                5,
+                10
+              ],
+              "default": 5
+            },
+            "fps": {
+              "enabled": true,
+              "options": [
+                30,
+                60
+              ],
+              "min": 30,
+              "max": 60,
+              "default": 30
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": false
+            },
+            "negativePrompt": {
+              "enabled": false
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 2
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "quality",
+              "label": "Quality Mode",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Speed",
+                  "value": "speed"
+                },
+                {
+                  "label": "Quality",
+                  "value": "quality"
+                }
+              ],
+              "default": "speed",
+              "description": "Trade off generation speed and quality."
+            },
+            {
+              "key": "generateAudio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate synchronized audio."
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": true,
+              "description": "Control watermark on generated video."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moonshot",
+      "name": {
+        "default": "Moonshot Kimi",
+        "zhCn": "月之暗面 Kimi"
+      },
+      "logo": "moonshot",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "tools": [
+          {
+            "type": "builtin_function",
+            "function": {
+              "name": "$web_search"
+            }
+          }
+        ]
+      },
+      "helpUrl": "https://platform.moonshot.cn/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "kimi-k2",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "kimi-k2-thinking",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "kimi-k2-thinking-turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "moonshot-v1-1m",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "moonshot-v1-128k",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doubao",
+      "name": {
+        "default": "Doubao",
+        "zhCn": "字节豆包"
+      },
+      "logo": "doubao-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "tools": [
+          {
+            "type": "web_search",
+            "web_search": {
+              "enable": true,
+              "search_mode": "auto"
+            }
+          }
+        ]
+      },
+      "helpUrl": "https://console.volcengine.com/ark",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "doubao-seedream-4-5-251128",
+          "modelType": "generative",
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1K",
+                  "2K",
+                  "4K",
+                  "1024x1024",
+                  "2048x2048"
+                ],
+                "default": "2048x2048"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports 1K/2K/4K or custom widthxheight. Total pixels range [1280x720, 4096x4096], aspect ratio range [1/16, 16].",
+                "zhCn": "支持 1K/2K/4K 或自定义 widthxheight。总像素范围 [1280x720, 4096x4096]，宽高比范围 [1/16, 16]。"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 15,
+                "default": 1
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 14
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_to_image"
+          ]
+        },
+        {
+          "id": "doubao-seedream-4-0-250828",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "options": [
+                  "1K",
+                  "2K",
+                  "4K",
+                  "1024x1024",
+                  "2048x2048"
+                ],
+                "default": "2048x2048"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports 1K/2K/4K or custom widthxheight. Total pixels range [1280x720, 4096x4096], aspect ratio range [1/16, 16].",
+                "zhCn": "支持 1K/2K/4K 或自定义 widthxheight。总像素范围 [1280x720, 4096x4096]，宽高比范围 [1/16, 16]。"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 15,
+                "default": 1
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 14
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_to_image"
+          ]
+        },
+        {
+          "id": "doubao-seedream-3-0-t2i-250415",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "size",
+              "size": {
+                "enabled": true,
+                "default": "1024x1024"
+              },
+              "allowCustomSize": true,
+              "customSizeHint": {
+                "default": "Supports custom widthxheight only. Single image size should be in [512, 2048].",
+                "zhCn": "仅支持自定义 widthxheight。单图尺寸范围 [512, 2048]。"
+              },
+              "n": {
+                "enabled": false
+              },
+              "seed": {
+                "enabled": true,
+                "min": -1,
+                "max": 2147483647,
+                "default": -1
+              },
+              "watermark": {
+                "enabled": true,
+                "default": false,
+                "providerKey": "watermark"
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        },
+        {
+          "id": "seedance-1-5-pro-251215",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "4:3",
+                "1:1",
+                "3:4",
+                "9:16",
+                "21:9",
+                "adaptive"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 12,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "cameraFixed",
+              "label": "Camera Fixed",
+              "type": "boolean",
+              "default": false,
+              "description": "Keep camera fixed during generation."
+            },
+            {
+              "key": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Default",
+                  "value": "default"
+                },
+                {
+                  "label": "Flex",
+                  "value": "flex"
+                }
+              ],
+              "default": "default",
+              "description": "default for online inference, flex for lower-cost queue mode."
+            },
+            {
+              "key": "generateAudio",
+              "label": "Generate Audio",
+              "type": "boolean",
+              "default": false,
+              "description": "Generate synchronized audio (Seedance 1.5 Pro)."
+            },
+            {
+              "key": "draft",
+              "label": "Draft Mode",
+              "type": "boolean",
+              "default": false,
+              "description": "Enable low-cost 480p draft generation (Seedance 1.5 Pro)."
+            }
+          ]
+        },
+        {
+          "id": "seedance-1-0-pro-250528",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "4:3",
+                "1:1",
+                "3:4",
+                "9:16",
+                "21:9",
+                "adaptive"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 12,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "cameraFixed",
+              "label": "Camera Fixed",
+              "type": "boolean",
+              "default": false,
+              "description": "Keep camera fixed during generation."
+            },
+            {
+              "key": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Default",
+                  "value": "default"
+                },
+                {
+                  "label": "Flex",
+                  "value": "flex"
+                }
+              ],
+              "default": "default",
+              "description": "default for online inference, flex for lower-cost queue mode."
+            }
+          ]
+        },
+        {
+          "id": "seedance-1-0-pro-fast-251015",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "4:3",
+                "1:1",
+                "3:4",
+                "9:16",
+                "21:9",
+                "adaptive"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 12,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 1
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "cameraFixed",
+              "label": "Camera Fixed",
+              "type": "boolean",
+              "default": false,
+              "description": "Keep camera fixed during generation."
+            },
+            {
+              "key": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Default",
+                  "value": "default"
+                },
+                {
+                  "label": "Flex",
+                  "value": "flex"
+                }
+              ],
+              "default": "default",
+              "description": "default for online inference, flex for lower-cost queue mode."
+            }
+          ]
+        },
+        {
+          "id": "seedance-1-0-lite-t2v-250428",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "4:3",
+                "1:1",
+                "3:4",
+                "9:16",
+                "21:9",
+                "adaptive"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 12,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "referenceImages": {
+              "enabled": false
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "cameraFixed",
+              "label": "Camera Fixed",
+              "type": "boolean",
+              "default": false,
+              "description": "Keep camera fixed during generation."
+            },
+            {
+              "key": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Default",
+                  "value": "default"
+                },
+                {
+                  "label": "Flex",
+                  "value": "flex"
+                }
+              ],
+              "default": "default",
+              "description": "default for online inference, flex for lower-cost queue mode."
+            }
+          ]
+        },
+        {
+          "id": "seedance-1-0-lite-i2v-250428",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "video"
+          ],
+          "video": {
+            "aspectRatio": {
+              "enabled": true,
+              "options": [
+                "16:9",
+                "4:3",
+                "1:1",
+                "3:4",
+                "9:16",
+                "21:9",
+                "adaptive"
+              ],
+              "default": "16:9"
+            },
+            "resolution": {
+              "enabled": true,
+              "options": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            },
+            "duration": {
+              "enabled": true,
+              "min": 2,
+              "max": 12,
+              "default": 5
+            },
+            "n": {
+              "enabled": false
+            },
+            "seed": {
+              "enabled": true,
+              "min": 0,
+              "max": 2147483647
+            },
+            "referenceImages": {
+              "enabled": true,
+              "max": 4
+            }
+          },
+          "videoOptionSchema": [
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "type": "boolean",
+              "default": false,
+              "description": "Add watermark to generated video."
+            },
+            {
+              "key": "cameraFixed",
+              "label": "Camera Fixed",
+              "type": "boolean",
+              "default": false,
+              "description": "Keep camera fixed during generation."
+            },
+            {
+              "key": "serviceTier",
+              "label": "Service Tier",
+              "type": "select",
+              "options": [
+                {
+                  "label": "Default",
+                  "value": "default"
+                },
+                {
+                  "label": "Flex",
+                  "value": "flex"
+                }
+              ],
+              "default": "default",
+              "description": "default for online inference, flex for lower-cost queue mode."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qianfan",
+      "name": {
+        "default": "Baidu Qianfan",
+        "zhCn": "百度千帆"
+      },
+      "logo": "baiducloud-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://qianfan.baidubce.com/v2",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "web_search": {
+            "enable": true
+          }
+        }
+      },
+      "helpUrl": "https://console.bce.baidu.com/qianfan/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "ernie-4.5-turbo-32k",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "ernie-x1-turbo-32k",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "deepseek-v3",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "deepseek-r1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hunyuan",
+      "name": {
+        "default": "Tencent Hunyuan",
+        "zhCn": "腾讯混元"
+      },
+      "logo": "hunyuan-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.hunyuan.cloud.tencent.com/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "enable_enhancement": true
+        }
+      },
+      "helpUrl": "https://cloud.tencent.com/product/hunyuan",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "hunyuan-turbos-latest",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "hunyuan-t1-latest",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "hunyuan-lite",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lingyiwanwu",
+      "name": {
+        "default": "01.AI",
+        "zhCn": "零一万物"
+      },
+      "logo": "yi-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.lingyiwanwu.com/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://platform.lingyiwanwu.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "yi-large",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "yi-large-turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "yi-medium",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "yi-spark",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "siliconflow",
+      "name": {
+        "default": "SiliconFlow",
+        "zhCn": "硅基流动"
+      },
+      "logo": "siliconcloud-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.siliconflow.cn/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://cloud.siliconflow.cn/account/ak",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-R1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "thinking_budget": 2048
+            },
+            "deep": {
+              "thinking_budget": 8192
+            },
+            "ultra": {
+              "thinking_budget": 16384
+            }
+          }
+        },
+        {
+          "id": "moonshotai/Kimi-K2.5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "moonshotai/Kimi-K2-Thinking",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "Pro/MiniMaxAI/MiniMax-M2.1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Pro/zai-org/GLM-4.7",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        },
+        {
+          "id": "zai-org/GLM-4.6",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "enable_thinking": false
+            },
+            "on": {
+              "enable_thinking": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "minimax",
+      "name": "Minimax",
+      "logo": "minimax-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.minimaxi.com/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "tools": [
+          {
+            "type": "web_search"
+          }
+        ]
+      },
+      "helpUrl": "https://platform.minimaxi.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "MiniMax-M2.5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "MiniMax-M2.5-highspeed",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "MiniMax-M2.1",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "MiniMax-M2.1-lightning",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "MiniMax-M2",
+          "modelType": "generative",
+          "nativeWebSearch": true,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "image-01",
+          "modelType": "generative",
+          "showInModelListByDefault": true,
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4",
+                  "2:3",
+                  "3:2"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 9,
+                "default": 1
+              },
+              "referenceImages": {
+                "enabled": true,
+                "max": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image",
+            "image_to_image"
+          ]
+        },
+        {
+          "id": "image-01-live",
+          "modelType": "generative",
+          "showInModelListByDefault": false,
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text",
+            "image"
+          ],
+          "outputModalities": [
+            "image"
+          ],
+          "image": {
+            "generate": {
+              "sizeMode": "aspectRatio",
+              "aspectRatio": {
+                "enabled": true,
+                "options": [
+                  "1:1",
+                  "16:9",
+                  "9:16",
+                  "4:3",
+                  "3:4",
+                  "2:3",
+                  "3:2"
+                ],
+                "default": "1:1"
+              },
+              "n": {
+                "enabled": true,
+                "min": 1,
+                "max": 9,
+                "default": 1
+              }
+            }
+          },
+          "imageTasks": [
+            "text_to_image"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "baichuan",
+      "name": {
+        "default": "Baichuan AI",
+        "zhCn": "百川智能"
+      },
+      "logo": "baichuan-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.baichuan-ai.com/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "with_search_enhance": true
+        }
+      },
+      "helpUrl": "https://platform.baichuan-ai.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "Baichuan-M3-Plus",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Baichuan-M3",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Baichuan4-Turbo",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Baichuan4-Air",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Baichuan3-Turbo-128K",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "Baichuan-Text-Embedding",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "logo": "openrouter",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "plugins": [
+            {
+              "id": "web"
+            }
+          ]
+        }
+      },
+      "helpUrl": "https://openrouter.ai/keys",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "openai/gpt-5.2",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "openai/gpt-5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "anthropic/claude-opus-4.5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning": {
+                "effort": "none"
+              }
+            },
+            "standard": {
+              "reasoning": {
+                "effort": "medium"
+              }
+            },
+            "deep": {
+              "reasoning": {
+                "effort": "high"
+              }
+            },
+            "ultra": {
+              "reasoning": {
+                "effort": "xhigh"
+              }
+            }
+          }
+        },
+        {
+          "id": "anthropic/claude-sonnet-4.5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "google/gemini-2.5-pro",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "google/gemini-2.5-flash",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "deepseek/deepseek-v3.2",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning": {
+                "enabled": false
+              }
+            },
+            "on": {
+              "reasoning": {
+                "enabled": true
+              }
+            }
+          }
+        },
+        {
+          "id": "moonshotai/kimi-k2.5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning": {
+                "enabled": false
+              }
+            },
+            "on": {
+              "reasoning": {
+                "enabled": true
+              }
+            }
+          }
+        },
+        {
+          "id": "qwen/qwen3-coder-next",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "x-ai/grok-4.1-fast",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning": {
+                "enabled": false
+              }
+            },
+            "on": {
+              "reasoning": {
+                "enabled": true
+              }
+            },
+            "standard": {
+              "reasoning": {
+                "enabled": true,
+                "effort": "medium"
+              }
+            },
+            "deep": {
+              "reasoning": {
+                "enabled": true,
+                "effort": "high"
+              }
+            }
+          }
+        },
+        {
+          "id": "openrouter/auto",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "openrouter/free",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning": {
+                "enabled": false
+              }
+            },
+            "on": {
+              "reasoning": {
+                "enabled": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "perplexity",
+      "name": "Perplexity",
+      "logo": "perplexity-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.perplexity.ai/v2",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "enable_search_classifier": true,
+          "disable_search": false
+        }
+      },
+      "helpUrl": "https://www.perplexity.ai/settings/api",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "sonar",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "sonar-pro",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "sonar-reasoning-pro",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "sonar-deep-research",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fireworks",
+      "name": "Fireworks AI",
+      "logo": "fireworks-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "https://api.fireworks.ai/inference/v1",
+      "defaultHeaders": {},
+      "helpUrl": "https://fireworks.ai/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "fireworks/deepseek-v3p2",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning_effort": false
+            },
+            "on": {
+              "reasoning_effort": true
+            }
+          }
+        },
+        {
+          "id": "fireworks/deepseek-r1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {}
+        },
+        {
+          "id": "fireworks/gpt-oss-120b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "fireworks/gpt-oss-20b",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "fireworks/kimi-k2p5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning_effort": false
+            },
+            "on": {
+              "reasoning_effort": true
+            }
+          }
+        },
+        {
+          "id": "fireworks/minimax-m2p1",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "standard": {
+              "reasoning_effort": "medium"
+            },
+            "deep": {
+              "reasoning_effort": "high"
+            }
+          }
+        },
+        {
+          "id": "fireworks/mistral-large-3-fp8",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "fireworks/llama-v3p3-70b-instruct",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "fireworks/qwen3-vl-32b-instruct",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ],
+          "thinking": {
+            "off": {
+              "reasoning_effort": "none"
+            },
+            "standard": {
+              "reasoning_effort": 1024
+            },
+            "deep": {
+              "reasoning_effort": 4096
+            },
+            "ultra": {
+              "reasoning_effort": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "azure-openai",
+      "name": "Azure OpenAI",
+      "logo": "azure-color",
+      "type": "openai-compatible",
+      "isBuiltin": true,
+      "baseUrl": "",
+      "defaultHeaders": {},
+      "nativeWebSearchDefaults": {
+        "providerOptions": {
+          "web_search_options": {}
+        }
+      },
+      "helpUrl": "https://portal.azure.com/",
+      "helpLabel": {
+        "default": "Get API Key",
+        "zhCn": "点击获取 API Key"
+      },
+      "models": [
+        {
+          "id": "gpt-5",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-5-mini",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-5-nano",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4.1",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4.1-mini",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4o",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-4o-mini",
+          "modelType": "generative",
+          "nativeWebSearch": false,
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "o3",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "o4-mini",
+          "modelType": "generative",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "text-embedding-3-large",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        },
+        {
+          "id": "text-embedding-3-small",
+          "modelType": "embedding",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModalities": [
+            "text"
+          ]
+        }
+      ]
+    }
+  ]
+}
