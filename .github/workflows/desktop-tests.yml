@@ -6,8 +6,11 @@ on:
       - ".github/workflows/desktop-tests.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "packages/applet-core/**"
       - "packages/desktop/**"
+      - "packages/markdown-to-plain/**"
       - "packages/shared/**"
+      - "packages/tts-edge/**"
   push:
     branches:
       - main
@@ -15,8 +18,15 @@ on:
       - ".github/workflows/desktop-tests.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "packages/applet-core/**"
       - "packages/desktop/**"
+      - "packages/markdown-to-plain/**"
       - "packages/shared/**"
+      - "packages/tts-edge/**"
+
+concurrency:
+  group: desktop-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -41,7 +51,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Restore sqlite extension cache
+        uses: actions/cache@v4
+        with:
+          path: packages/desktop/.runtime/.cache/sqlite-extensions
+          key: sqlite-extension-darwin-arm64-${{ hashFiles('packages/desktop/scripts/prepare-sqlite-extension-runtime.mjs') }}
+
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm install --frozen-lockfile
 
       - name: Run desktop tests

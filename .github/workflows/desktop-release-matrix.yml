@@ -6,6 +6,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -54,6 +58,8 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm install --frozen-lockfile
 
       - name: Restore llama runtime cache
