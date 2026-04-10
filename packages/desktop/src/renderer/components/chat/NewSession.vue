@@ -11,22 +11,15 @@
           {{ isTemporary ? t('chat.sessionList.tempSession') : t('chat.sessionList.newSession') }}
         </h1>
       </div>
-      <div v-if="isTemporary" class="text-sm mt-4 text-amber-600 dark:text-amber-400 max-w-md mx-auto leading-relaxed">
-        {{ t('chat.newSession.temporaryHint') }}
-      </div>
-    </div>
-    
-    <div class="w-4xl max-w-full px-4 md:px-8 flex flex-col gap-8">
-      <!-- 项目选择：临时会话不显示 -->
-      <div v-if="!isTemporary" class="flex flex-col gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="text-sm text-muted">{{ t('chat.newSession.selectCategory') }}</span>
-        </div>
+      <div v-if="!isTemporary" class="mt-2 flex justify-center">
         <USelect
           v-model="selectedProjectId"
           :items="projectOptions"
           value-key="value"
-          size="md"
+          size="lg"
+          variant="none"
+          class="max-w-full text-left"
+          :ui="{ content: 'min-w-fit' }"
           @update:model-value="handleProjectSelect"
         >
           <template #leading>
@@ -49,7 +42,12 @@
           </template>
         </USelect>
       </div>
-
+      <div v-if="isTemporary" class="text-sm mt-4 text-amber-600 dark:text-amber-400 max-w-md mx-auto leading-relaxed">
+        {{ t('chat.newSession.temporaryHint') }}
+      </div>
+    </div>
+    
+    <div class="w-4xl max-w-full px-4 md:px-8 flex flex-col gap-8">
       <!-- 场景列表 - 横向滚动 -->
       <div class="flex flex-col gap-3">
         <div class="flex items-center gap-1.5">

@@ -59,6 +59,7 @@ async function main() {
 
   await run("pnpm", ["run", "build"]);
   await run("pnpm", ["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
+  await run("pnpm", ["run", "prepare:electron-native"]);
 
   const finalBuilderArgs = [...builderArgs];
   if (!finalBuilderArgs.includes("--publish")) {
