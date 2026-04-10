@@ -6,7 +6,6 @@ out/
 .env.*
 *.log
 coverage/
-pnpm-lock.yaml
 .devtools/
 packages/desktop/.runtime/
 release/
