@@ -3,17 +3,20 @@
     v-if="tooltip" 
     mode="hover"
     :open-delay="300"
-    :close-delay="200"
-    v-model:open="popoverOpen"
+    :close-delay="0"
+    :ui="{ content: 'pointer-events-none select-none' }"
+    :open="popoverOpen"
+    @update:open="handlePopoverOpenChange"
   >
     <div 
       ref="elementRef" 
       :class="[truncate && 'truncate', contentClass]"
+      @mouseleave="handleTriggerMouseLeave"
     >
       <span :class="textClass">{{ text }}</span>
     </div>
     <template #content>
-      <div :class="['p-2 max-w-80 break-words text-sm', popoverClass]">
+      <div :class="['p-2 max-w-80 break-words text-sm', popoverClass, 'pointer-events-none select-none']">
         {{ tooltipText || text }}
       </div>
     </template>
@@ -27,8 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import { useTooltipOnTruncate } from '@/composables/useTooltipOnTruncate'
+import { ref } from 'vue'
 
 interface UTextProps {
   text: string
@@ -40,7 +42,7 @@ interface UTextProps {
   popoverClass?: string
 }
 
-const props = withDefaults(defineProps<UTextProps>(), {
+withDefaults(defineProps<UTextProps>(), {
   truncate: true,
   tooltip: true,
   contentClass: '',
@@ -48,19 +50,23 @@ const props = withDefaults(defineProps<UTextProps>(), {
   popoverClass: ''
 })
 
-const { elementRef, shouldShowTooltip, checkTruncation } = useTooltipOnTruncate()
-
+const elementRef = ref<HTMLElement>()
 const popoverOpen = ref(false)
 
-watch(popoverOpen, (val) => {
-  if (val && !shouldShowTooltip.value) {
-    popoverOpen.value = false
+const isElementTruncated = () => {
+  const element = elementRef.value
+  if (!element) {
+    return false
   }
-})
 
-watch(() => props.text, () => {
-  nextTick(() => {
-    checkTruncation()
-  })
-})
+  return element.scrollWidth > element.clientWidth
+}
+
+const handlePopoverOpenChange = (open: boolean) => {
+  popoverOpen.value = open && isElementTruncated()
+}
+
+const handleTriggerMouseLeave = () => {
+  popoverOpen.value = false
+}
 </script>

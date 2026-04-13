@@ -25,7 +25,6 @@ import { getDefaultModelByType, getAppLanguagePreference } from '../settings/set
 import { embed, embedMany } from 'ai';
 import { getEmbeddingModel } from '../providers/llmProviderFactory';
 import { resolveModelInvocation } from '../providers/modelInvocation';
-import { app } from 'electron';
 import type { 
   SearchResult, 
   SearchWithContentResult,
@@ -39,12 +38,13 @@ import type {
 import type { BuiltinSearchEngineOption } from './engines/SearxngEngine';
 import { loggerServiceMain, resolveAppLocale } from '@shared';
 import { tMain } from '../../i18n';
+import { getSystemLocale } from '../../i18n/systemLocale';
 import { generateSearchPlan } from './searchPlannerService';
 
 const logger = loggerServiceMain.withContext('WebSearchService');
 
 function resolveSearchLanguageByLocale(): 'auto' | 'zh-CN' | 'en' {
-  const locale = resolveAppLocale(getAppLanguagePreference(), app.getLocale());
+  const locale = resolveAppLocale(getAppLanguagePreference(), getSystemLocale());
   if (locale === 'en') return 'en';
   if (locale === 'zh-CN' || locale === 'zh-TW') return 'zh-CN';
   return 'auto';

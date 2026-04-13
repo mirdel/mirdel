@@ -142,6 +142,7 @@ import { lazyMcpManager } from "../services/mcp/LazyMcpManager";
 import { getLatestDebugInfoByTurnId } from "../services/chat/debugInfoData";
 import { rebuildChatSearchIndex } from "../services/chat/chatSearchIndex";
 import { rebuildGlobalSearchIndex, searchAll } from "../services/search/searchService";
+import { getSystemLocale } from "../i18n/systemLocale";
 import { 
   getWebSearchConfig, 
   setWebSearchConfig, 
@@ -679,7 +680,7 @@ export const router = ipcRouter({
   },
   "settings:getAppLanguage": async () => {
     const preference = getAppLanguagePreference();
-    const systemLocale = app.getLocale();
+    const systemLocale = getSystemLocale();
     return {
       preference,
       systemLocale,
@@ -688,9 +689,10 @@ export const router = ipcRouter({
   },
   "settings:setAppLanguage": async (_event, input: { preference: AppLanguagePreference }) => {
     setAppLanguagePreference(input.preference);
-    const systemLocale = app.getLocale();
+    const systemLocale = getSystemLocale();
     return {
       ok: true,
+      systemLocale,
       resolved: resolveAppLocale(input.preference, systemLocale)
     };
   },

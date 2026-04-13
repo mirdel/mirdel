@@ -354,6 +354,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function setAppLanguage(value: AppLanguagePreference) {
     const result = await window.ipc('settings:setAppLanguage', { preference: value })
+    systemLocale.value = typeof result?.systemLocale === 'string' && result.systemLocale
+      ? result.systemLocale
+      : systemLocale.value
     languagePreference.value = value
     resolvedLanguage.value = result?.resolved || resolveAppLocale(languagePreference.value, systemLocale.value)
     await loadProviders()

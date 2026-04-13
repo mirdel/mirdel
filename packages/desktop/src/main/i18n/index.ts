@@ -1,4 +1,3 @@
-import { app } from "electron";
 import {
   DEFAULT_APP_LANGUAGE_PREFERENCE,
   resolveAppLocale,
@@ -6,6 +5,7 @@ import {
 } from "@shared";
 import { getAppLanguagePreference } from "../services/settings/settingsData";
 import { mainMessages } from "./messages";
+import { getSystemLocale } from "./systemLocale";
 
 type TranslateParams = Record<string, string | number>;
 
@@ -20,7 +20,7 @@ function formatMessage(template: string, params?: TranslateParams): string {
 
 export function getMainAppLocale(): SupportedAppLocale {
   try {
-    return resolveAppLocale(getAppLanguagePreference(), app.getLocale());
+    return resolveAppLocale(getAppLanguagePreference(), getSystemLocale());
   } catch {
     return resolveAppLocale(DEFAULT_APP_LANGUAGE_PREFERENCE, "en");
   }
