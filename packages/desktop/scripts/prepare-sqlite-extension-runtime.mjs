@@ -4,10 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 const desktopRoot = path.resolve(__dirname, "..");
 const sqliteExtensionsRoot = path.join(desktopRoot, ".runtime", "sqlite-extensions");
 const sqliteExtensionsCacheRoot = path.join(desktopRoot, ".runtime", ".cache", "sqlite-extensions");
@@ -35,6 +37,21 @@ const TARGET_ASSET_MAP = {
     assetName: "libsimple-windows-x64.zip",
     sha256: "7f03cc28cf307721f5621b5a52ef3bcb26c5215de012b09900492eb34d5bed0b",
     libraryCandidates: ["simple.dll", "libsimple.dll"],
+  },
+};
+
+const SQLITE_VEC_EXTENSION_MAP = {
+  "darwin-arm64": {
+    packageName: "sqlite-vec-darwin-arm64",
+    libraryName: "vec0.dylib",
+  },
+  "darwin-x64": {
+    packageName: "sqlite-vec-darwin-x64",
+    libraryName: "vec0.dylib",
+  },
+  "win32-x64": {
+    packageName: "sqlite-vec-windows-x64",
+    libraryName: "vec0.dll",
   },
 };
 
@@ -214,6 +231,10 @@ function hasSimpleLibraryAtTopLevel(targetDir, libraryCandidates) {
   }
 }
 
+function hasSqliteVecLibraryAtTopLevel(targetDir, sqliteVecConfig) {
+  return fs.existsSync(path.join(targetDir, sqliteVecConfig.libraryName));
+}
+
 function findLibraryRecursive(rootDir, libraryCandidates) {
   const normalizedCandidates = new Set(libraryCandidates.map((item) => item.toLowerCase()));
   const stack = [rootDir];
@@ -312,6 +333,41 @@ async function promoteLibraryToTopLevel(targetDir, libraryCandidates) {
   await fs.promises.copyFile(found, destination);
 }
 
+function resolveSqliteVecPackageDir(packageName) {
+  const sqliteVecEntrypoint = require.resolve("sqlite-vec", {
+    paths: [desktopRoot],
+  });
+  const sqliteVecNodeModules = path.dirname(path.dirname(sqliteVecEntrypoint));
+  const packageDir = path.join(sqliteVecNodeModules, packageName);
+  if (fs.existsSync(packageDir)) {
+    return packageDir;
+  }
+
+  const resolvedPackageJson = require.resolve(`${packageName}/package.json`, {
+    paths: [sqliteVecNodeModules, desktopRoot],
+  });
+  return path.dirname(resolvedPackageJson);
+}
+
+async function copySqliteVecExtension(runtimeTarget, targetDir) {
+  const sqliteVecConfig = SQLITE_VEC_EXTENSION_MAP[runtimeTarget];
+  if (!sqliteVecConfig) {
+    const supported = Object.keys(SQLITE_VEC_EXTENSION_MAP).join(", ");
+    throw new Error(
+      `sqlite-vec does not provide a loadable extension for ${runtimeTarget}. Supported package targets: ${supported}`
+    );
+  }
+
+  const packageDir = resolveSqliteVecPackageDir(sqliteVecConfig.packageName);
+  const sourcePath = path.join(packageDir, sqliteVecConfig.libraryName);
+  if (!fs.existsSync(sourcePath)) {
+    throw new Error(`sqlite-vec extension not found: ${sourcePath}`);
+  }
+
+  await fs.promises.mkdir(targetDir, { recursive: true });
+  await fs.promises.copyFile(sourcePath, path.join(targetDir, sqliteVecConfig.libraryName));
+}
+
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
   const runtimeTarget = String(args.target || process.env.RUNTIME_TARGET || getDefaultRuntimeTarget()).trim();
@@ -322,6 +378,14 @@ async function main() {
   }
 
   const { assetName, sha256, libraryCandidates } = assetConfig;
+  const sqliteVecConfig = SQLITE_VEC_EXTENSION_MAP[runtimeTarget];
+  if (!sqliteVecConfig) {
+    const supported = Object.keys(SQLITE_VEC_EXTENSION_MAP).join(", ");
+    throw new Error(
+      `Unsupported sqlite-vec runtime target: ${runtimeTarget}. Supported: ${supported}`
+    );
+  }
+
   const archivePath = path.join(sqliteExtensionsCacheRoot, assetName);
   const targetDir = path.join(sqliteExtensionsRoot, runtimeTarget);
   const manifestPath = path.join(sqliteExtensionsCacheRoot, `${runtimeTarget}.manifest.json`);
@@ -339,8 +403,22 @@ async function main() {
     && manifest.assetName === assetName
     && manifest.sha256 === sha256
     && hasSimpleLibraryAtTopLevel(targetDir, libraryCandidates)
+    && hasSqliteVecLibraryAtTopLevel(targetDir, sqliteVecConfig)
   ) {
     console.log(`[sqlite-extension] already prepared: ${targetDir}`);
+    return;
+  }
+
+  if (
+    manifest
+    && manifest.repo === SIMPLE_REPO
+    && manifest.release === SIMPLE_RELEASE
+    && manifest.assetName === assetName
+    && manifest.sha256 === sha256
+    && hasSimpleLibraryAtTopLevel(targetDir, libraryCandidates)
+  ) {
+    await copySqliteVecExtension(runtimeTarget, targetDir);
+    console.log(`[sqlite-extension] prepared sqlite-vec extension: ${targetDir}`);
     return;
   }
 
@@ -364,9 +442,13 @@ async function main() {
     await fs.promises.mkdir(targetDir, { recursive: true });
     await copyDirectoryContents(sourceRoot, targetDir);
     await promoteLibraryToTopLevel(targetDir, libraryCandidates);
+    await copySqliteVecExtension(runtimeTarget, targetDir);
 
     if (!hasSimpleLibraryAtTopLevel(targetDir, libraryCandidates)) {
       throw new Error(`Simple extension library not found at target root: ${targetDir}`);
+    }
+    if (!hasSqliteVecLibraryAtTopLevel(targetDir, sqliteVecConfig)) {
+      throw new Error(`sqlite-vec extension library not found at target root: ${targetDir}`);
     }
 
     await fs.promises.writeFile(
@@ -378,6 +460,8 @@ async function main() {
           target: runtimeTarget,
           assetName,
           sha256,
+          sqliteVecPackage: sqliteVecConfig.packageName,
+          sqliteVecLibrary: sqliteVecConfig.libraryName,
           preparedAt: new Date().toISOString(),
         },
         null,

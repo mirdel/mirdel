@@ -101,6 +101,50 @@ function isSimpleSearchExtensionPath(extensionPath: string) {
   return stem === "simple" || stem === "libsimple";
 }
 
+function isSqliteVecAvailable(database: Database.Database) {
+  try {
+    database.prepare("SELECT vec_version() AS version").get();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveBundledSqliteVecExtensionPath() {
+  const extension = getSqliteExtensionFileExtension();
+  const platformDir = getSqliteExtensionPlatformDir();
+  const candidates = [
+    path.join(process.resourcesPath, ".runtime", "sqlite-extensions", platformDir, `vec0${extension}`),
+    path.join(app.getAppPath(), ".runtime", "sqlite-extensions", platformDir, `vec0${extension}`),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || "";
+}
+
+function loadSqliteVecExtension(database: Database.Database) {
+  if (isSqliteVecAvailable(database)) return;
+
+  try {
+    sqliteVec.load(database);
+    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn("sqlite-vec package extension load failed, trying bundled runtime", { message });
+  }
+
+  if (isSqliteVecAvailable(database)) return;
+
+  const extensionPath = resolveBundledSqliteVecExtensionPath();
+  if (!extensionPath) {
+    throw new Error(
+      "sqlite-vec extension is required but was not found; check .runtime/sqlite-extensions packaging"
+    );
+  }
+
+  database.loadExtension(extensionPath);
+  loadedSqliteExtensionPaths.add(extensionPath);
+}
+
 export function hasSimpleSearchExtension() {
   for (const extensionPath of loadedSqliteExtensionPaths) {
     if (isSimpleSearchExtensionPath(extensionPath)) {
@@ -125,7 +169,7 @@ export function getDb() {
   db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   loadConfiguredSqliteExtensions(db);
-  sqliteVec.load(db);
+  loadSqliteVecExtension(db);
   return db;
 }
 

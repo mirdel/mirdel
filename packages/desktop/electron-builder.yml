@@ -36,7 +36,9 @@ extraResources:
     filter:
       - "**/*"
   # 内置 MCP 脚本依赖的共享 chunks（filesystem.cjs 会 require ../chunks/*.cjs）
-  - from: dist/main/chunks/
+  # 这里不能直接复用 dist/main/chunks 作为 extraResources 源，否则 electron-builder 会把它从 app.asar 中挪走，
+  # 导致主进程入口的 require("./chunks/*.cjs") 在发布版崩溃。
+  - from: .pack-resources/chunks/
     to: chunks/
     filter:
       - "**/*"

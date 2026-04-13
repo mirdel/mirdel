@@ -8,5 +8,6 @@ out/
 coverage/
 .devtools/
 packages/desktop/.runtime/
+packages/desktop/.pack-resources/
 release/
 AGENTS.md

@@ -58,6 +58,7 @@ async function main() {
   console.log("[release] electron-builder args:", builderArgs.join(" ") || "(default from config)");
 
   await run("pnpm", ["run", "build"]);
+  await run("pnpm", ["run", "prepare:packaged-main-chunks"]);
   await run("pnpm", ["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
   await run("pnpm", ["run", "prepare:electron-native"]);
 

@@ -33,10 +33,6 @@ jobs:
             runner: windows-latest
             runtime_target: win32-x64
             electron_builder_args: --win nsis portable --x64
-          - id: win-arm64
-            runner: windows-11-arm
-            runtime_target: win32-arm64
-            electron_builder_args: --win nsis portable --arm64
 
     defaults:
       run:
@@ -44,15 +40,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.15.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
@@ -63,19 +59,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore llama runtime cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: packages/desktop/.runtime/.cache/model-server
           key: llama-runtime-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-model-server-runtime.mjs') }}
 
       - name: Restore python runtime cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: packages/desktop/.runtime/.cache/python
           key: python-runtime-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-python-runtime.mjs') }}
 
       - name: Restore sqlite extension cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: packages/desktop/.runtime/.cache/sqlite-extensions
           key: sqlite-extension-${{ matrix.runtime_target }}-${{ hashFiles('packages/desktop/scripts/prepare-sqlite-extension-runtime.mjs') }}
@@ -109,7 +105,7 @@ jobs:
         run: ls -lah packages/desktop/release
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-${{ matrix.id }}
           if-no-files-found: error
