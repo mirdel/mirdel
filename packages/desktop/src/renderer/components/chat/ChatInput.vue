@@ -1213,11 +1213,15 @@ function handleSend() {
     manualSkillId: manualSkillId.value
   })
   manualSkillId.value = null
-  
-  // 发送后自动聚焦输入框
-  nextTick(() => {
-    focus()
-  })
+
+  // 发送后：展开态自动收起；非展开态保持聚焦输入框
+  if (isExpanded.value) {
+    handleCollapse()
+  } else {
+    nextTick(() => {
+      focus()
+    })
+  }
 }
 
 function handleAbort() {
