@@ -50,6 +50,11 @@ describe("systemPrompt", () => {
       sessionStateEnabled: true,
       crossSessionEnabled: true,
       longTermEnabled: true,
+      historicalEnabled: false,
+      historicalEmbeddingModel: "",
+      historicalEmbeddingDimension: null,
+      historicalMaxRecall: 3,
+      historicalMinScore: 0.58,
     });
   });
 
@@ -128,6 +133,11 @@ describe("systemPrompt", () => {
       sessionStateEnabled: false,
       crossSessionEnabled: false,
       longTermEnabled: false,
+      historicalEnabled: false,
+      historicalEmbeddingModel: "",
+      historicalEmbeddingDimension: null,
+      historicalMaxRecall: 3,
+      historicalMinScore: 0.58,
     });
 
     const disabledResolved = await resolveSystemPromptEnvelope({

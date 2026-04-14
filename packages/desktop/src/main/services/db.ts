@@ -869,6 +869,35 @@ export function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_long_term_memory_updatedAt ON long_term_memory(updatedAt DESC);
   `);
+
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS historical_memory_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS historical_memory_chunks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sessionId TEXT NOT NULL,
+      turnId TEXT NOT NULL,
+      userMessageId TEXT,
+      assistantMessageId TEXT,
+      chunkIndex INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      sourceHash TEXT NOT NULL,
+      embeddingModel TEXT NOT NULL,
+      embeddingDimension INTEGER NOT NULL,
+      accessCount INTEGER NOT NULL DEFAULT 0,
+      lastAccessedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      UNIQUE(turnId, chunkIndex)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_turnId ON historical_memory_chunks(turnId);
+    CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_sessionId ON historical_memory_chunks(sessionId);
+    CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_updatedAt ON historical_memory_chunks(updatedAt DESC);
+  `);
 }
 
 /** 将 kbId 转为安全的 SQL 表名（仅字母数字下划线） */
@@ -904,5 +933,36 @@ export function kbVectorTableExists(kbId: string): boolean {
   const row = d.prepare(`
     SELECT name FROM sqlite_master WHERE type='table' AND name=?
   `).get(tableName) as { name: string } | undefined;
+  return !!row;
+}
+
+const HISTORICAL_MEMORY_VECTOR_TABLE = "historical_memory_vec";
+
+export function getHistoricalMemoryVectorTableName(): string {
+  return HISTORICAL_MEMORY_VECTOR_TABLE;
+}
+
+export function createHistoricalMemoryVectorTable(dimension: number): void {
+  const dim = Math.max(1, Math.floor(dimension));
+  if (dim > 10000) throw new Error(tMain("embedding.dimensionOutOfRange"));
+  const d = getDb();
+  d.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS "${HISTORICAL_MEMORY_VECTOR_TABLE}" USING vec0(
+      id INTEGER PRIMARY KEY,
+      embedding float[${dim}] distance_metric=cosine
+    )
+  `);
+}
+
+export function dropHistoricalMemoryVectorTable(): void {
+  const d = getDb();
+  d.exec(`DROP TABLE IF EXISTS "${HISTORICAL_MEMORY_VECTOR_TABLE}"`);
+}
+
+export function historicalMemoryVectorTableExists(): boolean {
+  const d = getDb();
+  const row = d.prepare(`
+    SELECT name FROM sqlite_master WHERE type='table' AND name=?
+  `).get(HISTORICAL_MEMORY_VECTOR_TABLE) as { name: string } | undefined;
   return !!row;
 }

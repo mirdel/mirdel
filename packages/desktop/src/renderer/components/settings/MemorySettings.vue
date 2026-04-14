@@ -48,6 +48,104 @@
         </div>
       </div>
 
+      <!-- 历史对话记忆 -->
+      <div class="rounded-xl border border-default bg-elevated/30 p-4">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-default">{{ t("settings.memory.historical.title") }}</div>
+            <div class="mt-1 text-sm text-muted">
+              {{ t("settings.memory.historical.description") }}
+            </div>
+          </div>
+          <USwitch
+            :model-value="memorySettings.historicalEnabled"
+            @update:model-value="(v) => handleChange('historicalEnabled', v)"
+            class="shrink-0"
+          />
+        </div>
+
+        <div v-if="memorySettings.historicalEnabled" class="mt-4 flex flex-col gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">{{ t("settings.memory.historical.embeddingModel") }}</label>
+            <ModelSelector
+              v-model="memorySettings.historicalEmbeddingModel"
+              :show-default="false"
+              model-type="embedding"
+              @update:model-value="(value) => handleChange('historicalEmbeddingModel', value)"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <UFormField
+              :label="t('settings.memory.historical.embeddingDimension')"
+              :help="t('settings.memory.historical.embeddingDimensionHelp')"
+            >
+              <UInput
+                :model-value="historicalEmbeddingDimensionInput"
+                type="number"
+                :min="1"
+                :placeholder="t('settings.memory.historical.dimensionPlaceholder')"
+                class="w-full"
+                @update:model-value="handleHistoricalDimensionInput"
+                @blur="saveHistoricalAdvancedSettings"
+              />
+            </UFormField>
+
+            <UFormField :label="t('settings.memory.historical.maxRecall')">
+              <UInput
+                v-model.number="memorySettings.historicalMaxRecall"
+                type="number"
+                :min="1"
+                :max="10"
+                class="w-full"
+                @blur="saveHistoricalAdvancedSettings"
+              />
+            </UFormField>
+
+            <UFormField :label="t('settings.memory.historical.minScore')">
+              <UInput
+                v-model.number="memorySettings.historicalMinScore"
+                type="number"
+                :min="0"
+                :max="1"
+                step="0.01"
+                class="w-full"
+                @blur="saveHistoricalAdvancedSettings"
+              />
+            </UFormField>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-default bg-default p-3">
+            <div class="text-sm text-toned">
+              {{ t("settings.memory.historical.indexStats", {
+                count: historicalStats.chunkCount,
+                dimension: historicalStats.vectorDimension ?? t("settings.memory.historical.unknown"),
+                last: formatStatsTime(historicalStats.lastIndexedAt)
+              }) }}
+            </div>
+            <div class="flex items-center gap-2">
+              <UButton
+                icon="i-lucide-refresh-cw"
+                variant="soft"
+                color="neutral"
+                :loading="isRebuildingHistoricalIndex"
+                @click="handleRebuildHistoricalIndex"
+              >
+                {{ t("settings.memory.historical.rebuild") }}
+              </UButton>
+              <UButton
+                icon="i-lucide-trash-2"
+                variant="outline"
+                color="neutral"
+                @click="handleClearHistoricalIndex"
+              >
+                {{ t("settings.memory.historical.clear") }}
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 长期记忆 -->
       <div class="rounded-xl border border-default bg-elevated/30 p-4">
         <div class="flex items-start justify-between gap-4">
@@ -168,6 +266,7 @@ import { useRouter } from "vue-router";
 import { loggerServiceRenderer } from "@shared";
 import { useConfirm } from "@/composables/useConfirm";
 import { useMyToast } from "@/composables/useMyToast";
+import ModelSelector from "@/components/ModelSelector.vue";
 
 const logger = loggerServiceRenderer.withContext("settings:memory");
 const router = useRouter();
@@ -183,9 +282,23 @@ const memorySettings = ref({
   sessionStateEnabled: true,
   crossSessionEnabled: true,
   longTermEnabled: true,
+  historicalEnabled: false,
+  historicalEmbeddingModel: "",
+  historicalEmbeddingDimension: null as number | null,
+  historicalMaxRecall: 3,
+  historicalMinScore: 0.58,
 });
 
 const longTermItems = ref<{ id: string; category: string; key: string; value: string; sessionId?: string | null; messageId?: string | null; sessionTitle?: string | null; createdAt: number; updatedAt: number }[]>([]);
+const historicalStats = ref<{ chunkCount: number; vectorReady: boolean; embeddingModel: string | null; vectorDimension: number | null; lastIndexedAt: number | null }>({
+  chunkCount: 0,
+  vectorReady: false,
+  embeddingModel: null,
+  vectorDimension: null,
+  lastIndexedAt: null,
+});
+const historicalEmbeddingDimensionInput = ref<string | number>("");
+const isRebuildingHistoricalIndex = ref(false);
 const showMemoryModal = ref(false);
 const formValue = ref("");
 const editingItem = ref<{ key: string; value: string } | null>(null);
@@ -196,7 +309,13 @@ async function loadSettings() {
     sessionStateEnabled: data.sessionStateEnabled,
     crossSessionEnabled: data.crossSessionEnabled,
     longTermEnabled: data.longTermEnabled,
+    historicalEnabled: data.historicalEnabled,
+    historicalEmbeddingModel: data.historicalEmbeddingModel,
+    historicalEmbeddingDimension: data.historicalEmbeddingDimension,
+    historicalMaxRecall: data.historicalMaxRecall,
+    historicalMinScore: data.historicalMinScore,
   };
+  historicalEmbeddingDimensionInput.value = data.historicalEmbeddingDimension ?? "";
 }
 
 async function loadLongTermItems() {
@@ -204,9 +323,13 @@ async function loadLongTermItems() {
   longTermItems.value = items;
 }
 
+async function loadHistoricalStats() {
+  historicalStats.value = await window.ipc("historicalMemory:getStats");
+}
+
 async function handleChange(
-  key: "sessionStateEnabled" | "crossSessionEnabled" | "longTermEnabled",
-  value: boolean
+  key: keyof typeof memorySettings.value,
+  value: boolean | string | number | null
 ) {
   const next = { ...memorySettings.value, [key]: value };
   try {
@@ -216,6 +339,67 @@ async function handleChange(
   } catch (error) {
     logger.error("Failed to update memory setting", { error });
     toast.error({ title: t("settings.memory.saveFailed"), description: String(error) });
+  }
+}
+
+function handleHistoricalDimensionInput(value: string | number) {
+  historicalEmbeddingDimensionInput.value = value;
+  const raw = String(value ?? "").trim();
+  const parsed = Number(raw);
+  memorySettings.value.historicalEmbeddingDimension = raw && Number.isFinite(parsed)
+    ? Math.max(1, Math.floor(parsed))
+    : null;
+}
+
+async function saveHistoricalAdvancedSettings() {
+  await handleChange("historicalEmbeddingDimension", memorySettings.value.historicalEmbeddingDimension);
+  await handleChange("historicalMaxRecall", memorySettings.value.historicalMaxRecall);
+  await handleChange("historicalMinScore", memorySettings.value.historicalMinScore);
+}
+
+function formatStatsTime(value: number | null) {
+  if (!value) return t("settings.memory.historical.never");
+  return new Date(value).toLocaleString();
+}
+
+async function handleRebuildHistoricalIndex() {
+  isRebuildingHistoricalIndex.value = true;
+  try {
+    const res = await window.ipc("historicalMemory:rebuild");
+    const hasFailures = res.result.failedTurns > 0;
+    toast[hasFailures ? "warn" : "success"]({
+      title: hasFailures
+        ? t("settings.memory.historical.rebuildPartial")
+        : t("settings.memory.historical.rebuildDone"),
+      description: t("settings.memory.historical.rebuildDoneDescription", {
+        turns: res.result.indexedTurns,
+        chunks: res.result.indexedChunks,
+        failed: res.result.failedTurns,
+      }),
+    });
+    await loadHistoricalStats();
+  } catch (error) {
+    toast.error({ title: t("settings.memory.historical.rebuildFailed"), description: String(error) });
+  } finally {
+    isRebuildingHistoricalIndex.value = false;
+  }
+}
+
+async function handleClearHistoricalIndex() {
+  const confirmed = await confirm({
+    title: t("settings.memory.historical.clearConfirmTitle"),
+    content: t("settings.memory.historical.clearConfirmContent"),
+    confirmText: t("settings.memory.historical.clear"),
+    cancelText: t("common.cancel"),
+    confirmColor: "error",
+    confirmIcon: "i-lucide-trash-2"
+  });
+  if (!confirmed) return;
+
+  const res = await window.ipc("historicalMemory:clear");
+  if (res.ok) {
+    toast.success({ title: t("settings.memory.historical.cleared") });
+    await loadHistoricalStats();
   }
 }
 
@@ -275,6 +459,7 @@ async function handleRemove(item: { key: string; value: string }) {
 onMounted(() => {
   loadSettings();
   loadLongTermItems();
+  loadHistoricalStats();
 });
 
 watch(

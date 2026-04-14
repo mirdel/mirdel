@@ -245,6 +245,7 @@ export const mainZhCN = {
     "embedding.invalidModelFormat": "无效的 embedding 模型格式",
     "embedding.defaultModelMissing": "尚未配置默认嵌入模型，请先到 设置 > 默认模型 中配置",
     "embedding.dimensionOutOfRange": "embedding dimension 超出范围",
+    "historicalMemory.embeddingModelMissing": "请先在 设置 > 记忆系统 > 历史对话记忆 中选择嵌入模型",
     "embedding.dimensionMismatch": "该模型输出维度为 {actual}，与设置 {expected} 不符",
     "embedding.dimensionUnsupported": "该模型不支持维度 {expected}",
     "embedding.providerUnsupported": "该 Provider 不支持 Embedding",

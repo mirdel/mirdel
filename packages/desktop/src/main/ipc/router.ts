@@ -661,7 +661,16 @@ export const router = ipcRouter({
     return getMemorySettings();
   },
 
-  "settings:setMemorySettings": async (_event, input: { sessionStateEnabled?: boolean; crossSessionEnabled?: boolean; longTermEnabled?: boolean }) => {
+  "settings:setMemorySettings": async (_event, input: {
+    sessionStateEnabled?: boolean;
+    crossSessionEnabled?: boolean;
+    longTermEnabled?: boolean;
+    historicalEnabled?: boolean;
+    historicalEmbeddingModel?: string;
+    historicalEmbeddingDimension?: number | null;
+    historicalMaxRecall?: number;
+    historicalMinScore?: number;
+  }) => {
     setMemorySettings(input);
     return { ok: true };
   },
@@ -1572,6 +1581,22 @@ export const router = ipcRouter({
     const { removeLongTermMemoryByKey } = await import("../services/chat/longTermMemoryData");
     const ok = removeLongTermMemoryByKey(input.key);
     return { ok };
+  },
+
+  "historicalMemory:getStats": async () => {
+    const { getHistoricalMemoryStats } = await import("../services/chat/historicalMemoryService");
+    return getHistoricalMemoryStats();
+  },
+
+  "historicalMemory:rebuild": async () => {
+    const { rebuildHistoricalMemoryIndex } = await import("../services/chat/historicalMemoryService");
+    return { ok: true, result: await rebuildHistoricalMemoryIndex() };
+  },
+
+  "historicalMemory:clear": async () => {
+    const { clearHistoricalMemoryIndex } = await import("../services/chat/historicalMemoryService");
+    clearHistoricalMemoryIndex();
+    return { ok: true };
   },
 
   // ==================== 翻译 ====================

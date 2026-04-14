@@ -243,6 +243,7 @@ export const mainEn = {
     "embedding.invalidModelFormat": "Invalid embedding model format",
     "embedding.defaultModelMissing": "No default embedding model is configured. Configure it in Settings > Default Models first.",
     "embedding.dimensionOutOfRange": "The embedding dimension is out of range",
+    "historicalMemory.embeddingModelMissing": "Select an embedding model in Settings > Memory > Historical Conversation Memory first.",
     "embedding.dimensionMismatch": "The model output dimension is {actual}, which does not match the configured {expected}",
     "embedding.dimensionUnsupported": "The model does not support dimension {expected}",
     "embedding.providerUnsupported": "This provider does not support embeddings",

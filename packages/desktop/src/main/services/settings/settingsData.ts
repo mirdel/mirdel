@@ -18,6 +18,11 @@ const KEY_SEND_SHORTCUT = "sendShortcut";
 const KEY_MEMORY_SESSION_STATE_ENABLED = "memory:sessionStateEnabled";
 const KEY_MEMORY_CROSS_SESSION_ENABLED = "memory:crossSessionEnabled";
 const KEY_MEMORY_LONG_TERM_ENABLED = "memory:longTermEnabled";
+const KEY_MEMORY_HISTORICAL_ENABLED = "memory:historicalEnabled";
+const KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL = "memory:historicalEmbeddingModel";
+const KEY_MEMORY_HISTORICAL_EMBEDDING_DIMENSION = "memory:historicalEmbeddingDimension";
+const KEY_MEMORY_HISTORICAL_MAX_RECALL = "memory:historicalMaxRecall";
+const KEY_MEMORY_HISTORICAL_MIN_SCORE = "memory:historicalMinScore";
 const KEY_AI_DEVTOOLS_ENABLED = "ai:devtools:enabled";
 const KEY_MODEL_FAVORITES = "modelFavorites";
 const KEY_APP_LANGUAGE = "appLanguage";
@@ -194,6 +199,11 @@ export interface MemorySettings {
   sessionStateEnabled: boolean;
   crossSessionEnabled: boolean;
   longTermEnabled: boolean;
+  historicalEnabled: boolean;
+  historicalEmbeddingModel: string;
+  historicalEmbeddingDimension: number | null;
+  historicalMaxRecall: number;
+  historicalMinScore: number;
 }
 
 export function getMemorySettings(): MemorySettings {
@@ -201,10 +211,31 @@ export function getMemorySettings(): MemorySettings {
   const sessionStateRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_SESSION_STATE_ENABLED) as { value: string } | undefined;
   const crossSessionRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_CROSS_SESSION_ENABLED) as { value: string } | undefined;
   const longTermRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_LONG_TERM_ENABLED) as { value: string } | undefined;
+  const historicalRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_HISTORICAL_ENABLED) as { value: string } | undefined;
+  const historicalEmbeddingModelRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL) as { value: string } | undefined;
+  const historicalEmbeddingDimensionRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_HISTORICAL_EMBEDDING_DIMENSION) as { value: string } | undefined;
+  const historicalMaxRecallRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_HISTORICAL_MAX_RECALL) as { value: string } | undefined;
+  const historicalMinScoreRow = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_MEMORY_HISTORICAL_MIN_SCORE) as { value: string } | undefined;
+  const parsedDimension = historicalEmbeddingDimensionRow?.value ? Number(historicalEmbeddingDimensionRow.value) : null;
+  const parsedMaxRecall = historicalMaxRecallRow?.value ? Number(historicalMaxRecallRow.value) : NaN;
+  const parsedMinScore = historicalMinScoreRow?.value ? Number(historicalMinScoreRow.value) : NaN;
   return {
     sessionStateEnabled: sessionStateRow?.value !== "false",
     crossSessionEnabled: crossSessionRow?.value !== "false",
     longTermEnabled: longTermRow?.value !== "false",
+    historicalEnabled: historicalRow?.value === "true",
+    historicalEmbeddingModel: historicalEmbeddingModelRow?.value && historicalEmbeddingModelRow.value !== "__default__"
+      ? historicalEmbeddingModelRow.value
+      : "",
+    historicalEmbeddingDimension: Number.isFinite(parsedDimension) && parsedDimension !== null && parsedDimension > 0
+      ? Math.floor(parsedDimension)
+      : null,
+    historicalMaxRecall: Number.isFinite(parsedMaxRecall)
+      ? Math.max(1, Math.min(10, Math.floor(parsedMaxRecall)))
+      : 3,
+    historicalMinScore: Number.isFinite(parsedMinScore)
+      ? Math.max(0, Math.min(1, parsedMinScore))
+      : 0.58,
   };
 }
 
@@ -221,6 +252,49 @@ export function setMemorySettings(v: Partial<MemorySettings>) {
   if (v.longTermEnabled !== undefined) {
     db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
                 ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_LONG_TERM_ENABLED, v.longTermEnabled ? "true" : "false");
+  }
+  if (v.historicalEnabled !== undefined) {
+    db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_ENABLED, v.historicalEnabled ? "true" : "false");
+  }
+  if (v.historicalEmbeddingModel !== undefined) {
+    const model = String(v.historicalEmbeddingModel || "").trim();
+    if (!model || model === "__default__") {
+      db.prepare(`DELETE FROM settings WHERE key = ?`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL);
+    } else {
+      db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                  ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL, model);
+    }
+  }
+  if (v.historicalEmbeddingDimension !== undefined) {
+    if (v.historicalEmbeddingDimension === null) {
+      db.prepare(`DELETE FROM settings WHERE key = ?`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_DIMENSION);
+    } else {
+      const parsed = Number(v.historicalEmbeddingDimension);
+      if (Number.isFinite(parsed)) {
+        const dimension = Math.max(1, Math.floor(parsed));
+        db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                    ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_DIMENSION, String(dimension));
+      } else {
+        db.prepare(`DELETE FROM settings WHERE key = ?`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_DIMENSION);
+      }
+    }
+  }
+  if (v.historicalMaxRecall !== undefined) {
+    const parsed = Number(v.historicalMaxRecall);
+    const maxRecall = Number.isFinite(parsed)
+      ? Math.max(1, Math.min(10, Math.floor(parsed)))
+      : 3;
+    db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_MAX_RECALL, String(maxRecall));
+  }
+  if (v.historicalMinScore !== undefined) {
+    const parsed = Number(v.historicalMinScore);
+    const minScore = Number.isFinite(parsed)
+      ? Math.max(0, Math.min(1, parsed))
+      : 0.58;
+    db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_MIN_SCORE, String(minScore));
   }
 }
 

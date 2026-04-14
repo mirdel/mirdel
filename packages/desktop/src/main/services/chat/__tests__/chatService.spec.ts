@@ -57,8 +57,14 @@ vi.mock("../../settings/settingsData", async () => {
   return {
     ...actual,
     getMemorySettings: vi.fn(() => ({
-      enabled: false,
+      sessionStateEnabled: false,
+      crossSessionEnabled: false,
       longTermEnabled: false,
+      historicalEnabled: false,
+      historicalEmbeddingModel: "",
+      historicalEmbeddingDimension: null,
+      historicalMaxRecall: 3,
+      historicalMinScore: 0.58,
     })),
     getSessionPreferences: vi.fn(() => ({
       generateSuggestions: false,

@@ -9,6 +9,7 @@ import { appendDebugRunSteps, createDebugRun, finalizeDebugRun, getLatestDebugRu
 import { touchSession, getSession, listSessionsForDigest, getEffectiveWorkingDirs, type ChatMode, type WebSearchMode } from "./sessionData";
 import { enqueueSummaryTask } from "./memorySummaryService";
 import { enqueueLongTermMemoryTask } from "./longTermMemoryService";
+import { enqueueHistoricalMemoryIndexTask } from "./historicalMemoryService";
 import { getScenario } from "../scenarios/scenarioData";
 import { resolveSystemPromptEnvelope } from "./systemPrompt";
 import { aggregateMcpTools } from "../mcp/mcpToolsAdapter";
@@ -632,6 +633,7 @@ async function buildFinalMessages(params: {
   mode: ChatMode;
   citationRequired: boolean;
   responseLocale: ReturnType<typeof resolveTargetResponseLocale>;
+  currentUserText: string;
   skillId?: string | null;
   messages: Array<Pick<AppUIMessage, 'role' | 'parts'>>;
   prebuiltModelMessages?: ModelMessage[];
@@ -641,6 +643,7 @@ async function buildFinalMessages(params: {
     mode,
     citationRequired,
     responseLocale,
+    currentUserText,
     skillId,
     messages,
     prebuiltModelMessages,
@@ -651,6 +654,7 @@ async function buildFinalMessages(params: {
     mode,
     citationRequired,
     responseLocale,
+    currentUserText,
     skillId: skillId ?? null,
   });
   const finalMessages: ModelMessage[] = [...systemMessages, ...contextDataMessages];
@@ -1010,6 +1014,7 @@ async function executeChatCore(params: {
     mode,
     citationRequired,
     responseLocale,
+    currentUserText,
     skillId,
     messages,
     prebuiltModelMessages,
@@ -1937,6 +1942,16 @@ async function executeChatCore(params: {
         endedAt: Date.now()
       });
     }
+  }
+
+  if (
+    shouldRunMemory &&
+    memorySettings.historicalEnabled &&
+    streamFinishReason === 'stop' &&
+    !hasPendingApproval &&
+    turnId
+  ) {
+    enqueueHistoricalMemoryIndexTask({ turnId });
   }
 
   // 根据结束原因发送不同事件

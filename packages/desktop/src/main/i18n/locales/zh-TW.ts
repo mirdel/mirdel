@@ -243,6 +243,7 @@ export const mainZhTW = {
     "embedding.invalidModelFormat": "無效的 embedding 模型格式",
     "embedding.defaultModelMissing": "尚未設定預設嵌入模型，請先到 設定 > 預設模型 中設定",
     "embedding.dimensionOutOfRange": "embedding dimension 超出範圍",
+    "historicalMemory.embeddingModelMissing": "請先在 設定 > 記憶系統 > 歷史對話記憶 中選擇嵌入模型",
     "embedding.dimensionMismatch": "該模型輸出維度為 {actual}，與設定 {expected} 不符",
     "embedding.dimensionUnsupported": "該模型不支援維度 {expected}",
     "embedding.providerUnsupported": "該 Provider 不支援 Embedding",
