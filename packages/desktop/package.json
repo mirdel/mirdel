@@ -107,7 +107,6 @@
     "monaco-editor": "^0.55.1",
     "pinia": "^3.0.4",
     "shiki": "^3.13.0",
-    "splitpanes": "^4.0.4",
     "tsx": "^4.21.0",
     "typed-electron-ipc": "2.0.0-alpha.2",
     "vite": "6.0.7",

@@ -1,13 +1,9 @@
 <template>
   <div class="flex items-center gap-0.5 w-full pl-1.5">
-    <!-- 分支图标 -->
-    <!-- <UIcon v-if="isBranch" name="i-lucide-git-branch" class="w-4 h-4 flex-none text-muted" /> -->
-
-    <!-- 已收藏：仅展示 icon，不可点击 -->
     <UIcon
       v-if="!isEditing && item.isFavorite"
       name="i-heroicons-star-solid"
-      class="absolute left-1 top-1 flex-none w-3 h-3 shrink-0 text-warning"
+      class="flex-none w-4 h-4 shrink-0 text-warning"
     />
 
     <!-- 编辑模式 -->
@@ -29,20 +25,13 @@
     
     <!-- 显示模式 -->
     <div v-else class="flex-1 min-w-0">
-      <div class="relative inline-block max-w-full align-top pr-2">
-        <WaveSweep :active="isStreaming" class="min-w-0">
-          <UText
-            :text="item.title"
-            content-class="text-sm inline-block max-w-full align-top"
-            text-class="wave-sweep-text"
-          />
-        </WaveSweep>
-        <span
-          v-if="hasCompletedUnread"
-          class="absolute right-0 top-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 pointer-events-none"
-          aria-hidden="true"
+      <WaveSweep :active="isStreaming" class="min-w-0">
+        <UText
+          :text="item.title"
+          content-class="text-sm inline-block max-w-full align-top"
+          text-class="wave-sweep-text"
         />
-      </div>
+      </WaveSweep>
     </div>
   </div>
 </template>
@@ -64,14 +53,12 @@ interface SessionItemProps {
   isEditing?: boolean
   isBranch?: boolean
   isStreaming?: boolean
-  hasCompletedUnread?: boolean
 }
 
 const props = withDefaults(defineProps<SessionItemProps>(), {
   isEditing: false,
   isBranch: false,
   isStreaming: false,
-  hasCompletedUnread: false
 })
 
 const emit = defineEmits<{

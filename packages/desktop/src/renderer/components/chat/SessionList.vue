@@ -97,7 +97,6 @@
             :item="item"
             :is-editing="editingSessionId === item.id"
             :is-streaming="chatStore.isSessionStreaming(item.id)"
-            :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
             class="pl-1.5"
             @save="handleSaveTitle(item.id, $event)"
             @cancel="handleCancelEdit"
@@ -108,10 +107,16 @@
         <template #item-trailing="{ item }">
           <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end">
             <div
-              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+              class="flex items-center transition-opacity group-hover:opacity-0"
               :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
             >
-              {{ formatCompactListUpdatedAt(item.updatedAt) }}
+              <span
+                v-if="chatStore.hasCompletedUnreadSession(item.id)"
+                class="w-2 h-2 rounded-full bg-emerald-500"
+              />
+              <span v-else class="text-xs text-muted tabular-nums">
+                {{ formatCompactListUpdatedAt(item.updatedAt) }}
+              </span>
             </div>
 
             <div
@@ -150,7 +155,6 @@
             :is-editing="editingSessionId === item.id"
             :is-branch="true"
             :is-streaming="chatStore.isSessionStreaming(item.id)"
-            :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
             @save="handleSaveTitle(item.id, $event)"
             @cancel="handleCancelEdit"
             @toggle-favorite="handleToggleFavorite(item.id)"
@@ -160,10 +164,16 @@
         <template #child-item-trailing="{ item }">
           <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end w-[60px]">
             <div
-              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+              class="flex items-center transition-opacity group-hover:opacity-0"
               :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
             >
-              {{ formatCompactListUpdatedAt(item.updatedAt) }}
+              <span
+                v-if="chatStore.hasCompletedUnreadSession(item.id)"
+                class="w-2 h-2 rounded-full bg-emerald-500"
+              />
+              <span v-else class="text-xs text-muted tabular-nums">
+                {{ formatCompactListUpdatedAt(item.updatedAt) }}
+              </span>
             </div>
 
             <div
