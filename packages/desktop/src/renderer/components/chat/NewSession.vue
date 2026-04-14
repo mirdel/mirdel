@@ -1,104 +1,106 @@
 <template>
-  <div class="flex flex-col items-center py-8">
-    <!-- 标题 -->
-    <div class="mb-8 text-center">
-      <div class="flex items-center justify-center gap-2 mb-2">
-        <UIcon 
-          :name="isTemporary ? 'i-lucide-message-circle-dashed' : 'i-lucide-message-circle'" 
-          class="w-6 h-6" 
-        />
-        <h1 class="text-2xl font-semibold text-default">
-          {{ isTemporary ? t('chat.sessionList.tempSession') : t('chat.sessionList.newSession') }}
-        </h1>
-      </div>
-      <div v-if="!isTemporary" class="mt-2 flex justify-center">
-        <USelect
-          v-model="selectedProjectId"
-          :items="projectOptions"
-          value-key="value"
-          size="lg"
-          variant="none"
-          class="max-w-full text-left"
-          :ui="{ content: 'min-w-fit' }"
-          @update:model-value="handleProjectSelect"
-        >
-          <template #leading>
-            <UIcon
-              :name="selectedProjectDisplay.icon"
-              class="w-4 h-4 shrink-0"
-              :style="{ color: selectedProjectDisplay.color }"
-            />
-          </template>
-          <template #item="{ item }">
-            <div class="flex items-center gap-2 w-full">
-              <UIcon
-                :name="item.icon || DEFAULT_ICON"
-                class="w-4 h-4 shrink-0"
-                :style="{ color: item.color || DEFAULT_COLOR }"
-              />
-              <span class="truncate">{{ item.label }}</span>
-              <UIcon v-if="item.value === selectedProjectId" name="i-lucide-check" class="w-4 h-4 ml-auto" />
-            </div>
-          </template>
-        </USelect>
-      </div>
-      <div v-if="isTemporary" class="text-sm mt-4 text-amber-600 dark:text-amber-400 max-w-md mx-auto leading-relaxed">
-        {{ t('chat.newSession.temporaryHint') }}
-      </div>
-    </div>
-    
-    <div class="w-4xl max-w-full px-4 md:px-8 flex flex-col gap-8">
-      <!-- 场景列表 - 横向滚动 -->
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="text-sm text-muted">{{ t('chat.newSession.selectScenario') }}</span>
-          <UTooltip 
-            :text="t('chat.newSession.scenarioHint')"
-          >
-            <UIcon 
-              name="i-lucide-info" 
-              class="w-3.5 h-3.5 text-muted hover:text-default cursor-help transition-colors" 
-            />
-          </UTooltip>
-          <UTooltip :text="t('settings.scenario.create')">
-            <UButton
-              icon="i-lucide-plus"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              square
-              class="-ms-0.5"
-              @click="handleOpenCreateScenario"
-            />
-          </UTooltip>
+  <div class="flex-1 min-h-0 flex overflow-y-auto">
+    <div class="w-full m-auto flex flex-col items-center py-8">
+      <!-- 标题 -->
+      <div class="mb-8 text-center">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <UIcon 
+            :name="isTemporary ? 'i-lucide-message-circle-dashed' : 'i-lucide-message-circle'" 
+            class="w-6 h-6" 
+          />
+          <h1 class="text-2xl font-semibold text-default">
+            {{ isTemporary ? t('chat.sessionList.tempSession') : t('chat.sessionList.newSession') }}
+          </h1>
         </div>
-        <UInput
-          v-model="scenarioSearchQuery"
-          :placeholder="t('settings.scenario.listSearchPlaceholder')"
-          icon="i-lucide-search"
-          size="sm"
-          :ui="{ root: 'w-60' }"
-        />
-        <div class="max-h-[240px]" ref="scenarioListContainer">
-          <div
-            v-if="showScenarioSearchEmpty"
-            class="flex min-h-[160px] items-center justify-center"
+        <div v-if="!isTemporary" class="mt-2 flex justify-center">
+          <USelect
+            v-model="selectedProjectId"
+            :items="projectOptions"
+            value-key="value"
+            size="lg"
+            variant="none"
+            class="max-w-full text-left"
+            :ui="{ content: 'min-w-fit' }"
+            @update:model-value="handleProjectSelect"
           >
-            <UEmpty
-              :title="t('common.listSearchNoResults')"
-              icon="i-lucide-search"
-              size="sm"
-              variant="naked"
+            <template #leading>
+              <UIcon
+                :name="selectedProjectDisplay.icon"
+                class="w-4 h-4 shrink-0"
+                :style="{ color: selectedProjectDisplay.color }"
+              />
+            </template>
+            <template #item="{ item }">
+              <div class="flex items-center gap-2 w-full">
+                <UIcon
+                  :name="item.icon || DEFAULT_ICON"
+                  class="w-4 h-4 shrink-0"
+                  :style="{ color: item.color || DEFAULT_COLOR }"
+                />
+                <span class="truncate">{{ item.label }}</span>
+                <UIcon v-if="item.value === selectedProjectId" name="i-lucide-check" class="w-4 h-4 ml-auto" />
+              </div>
+            </template>
+          </USelect>
+        </div>
+        <div v-if="isTemporary" class="text-sm mt-4 text-amber-600 dark:text-amber-400 max-w-md mx-auto leading-relaxed">
+          {{ t('chat.newSession.temporaryHint') }}
+        </div>
+      </div>
+
+      <div class="w-4xl max-w-full px-4 md:px-8 flex flex-col gap-8">
+        <!-- 场景列表 - 横向滚动 -->
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm text-muted">{{ t('chat.newSession.selectScenario') }}</span>
+            <UTooltip 
+              :text="t('chat.newSession.scenarioHint')"
+            >
+              <UIcon 
+                name="i-lucide-info" 
+                class="w-3.5 h-3.5 text-muted hover:text-default cursor-help transition-colors" 
+              />
+            </UTooltip>
+            <UTooltip :text="t('settings.scenario.create')">
+              <UButton
+                icon="i-lucide-plus"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                square
+                class="-ms-0.5"
+                @click="handleOpenCreateScenario"
+              />
+            </UTooltip>
+          </div>
+          <UInput
+            v-model="scenarioSearchQuery"
+            :placeholder="t('settings.scenario.listSearchPlaceholder')"
+            icon="i-lucide-search"
+            size="sm"
+            :ui="{ root: 'w-60' }"
+          />
+          <div class="max-h-[240px]" ref="scenarioListContainer">
+            <div
+              v-if="showScenarioSearchEmpty"
+              class="flex min-h-[160px] items-center justify-center"
+            >
+              <UEmpty
+                :title="t('common.listSearchNoResults')"
+                icon="i-lucide-search"
+                size="sm"
+                variant="naked"
+              />
+            </div>
+            <ScenarioList
+              v-else
+              direction="horizontal"
+              :selected-scenario-id="chatStore.selectedScenarioId"
+              :search-query="scenarioSearchQuery"
+              @click="handleScenarioSelect"
+              @edit="handleScenarioEdit"
             />
           </div>
-          <ScenarioList
-            v-else
-            direction="horizontal"
-            :selected-scenario-id="chatStore.selectedScenarioId"
-            :search-query="scenarioSearchQuery"
-            @click="handleScenarioSelect"
-            @edit="handleScenarioEdit"
-          />
         </div>
       </div>
     </div>

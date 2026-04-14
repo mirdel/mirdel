@@ -15,7 +15,6 @@
       <section 
         class="flex-1 min-w-[550px] h-full bg-default rounded-l-xl overflow-hidden flex flex-col relative"
         :class="{
-          'justify-center': shouldShowCenterView,
           'rounded-r-xl': !showTocSidebar && !showNoteSidebar
         }"
       >

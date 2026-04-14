@@ -1,45 +1,43 @@
 <template>
-  <div class="py-2 bg-default">
+  <div ref="rootRef" class="py-2 bg-default" :style="rootPlaceholderStyle">
     <!-- 与消息列表相同的宽度限制 -->
     <div class="w-4xl max-w-full mx-auto px-4 md:px-8">
       <!-- 圆角边框阴影的外层容器 -->
-      <div 
-        ref="inputContainerRef"
-        :class="[
-          'rounded-3xl bg-default overflow-hidden transition-all duration-300',
-          'border border-default',
-          chatStore.isTemporarySession && 'border-dashed',
-          isDragOver && 'border-primary',
-          { 'fixed z-50': isExpanded },
-          { 'shadow-sm': isFocused }
-        ]"
-        :style="isExpanded ? {
-          bottom: expandedPosition.bottom + 'px',
-          left: expandedPosition.left + 'px',
-          width: expandedPosition.width + 'px',
-          height: '80vh',
-          display: 'flex',
-          flexDirection: 'column'
-        } : {}"
-        @dragenter.prevent="handleDragEnter"
-        @dragover.prevent="handleDragOver"
-        @dragleave.prevent="handleDragLeave"
-        @drop.prevent="handleDropFiles"
-      >
+      <div ref="inputPlaceholderRef" :style="inputPlaceholderStyle">
+        <div 
+          ref="inputContainerRef"
+          :class="[
+            'rounded-3xl bg-default overflow-hidden transition-[height] duration-300',
+            'border border-default',
+            chatStore.isTemporarySession && 'border-dashed',
+            isDragOver && 'border-primary',
+            { 'fixed z-50 shadow-lg': isExpanded },
+            { 'shadow-sm': isFocused && !isExpanded }
+          ]"
+          :style="expandedInputStyle"
+          @dragenter.prevent="handleDragEnter"
+          @dragover.prevent="handleDragOver"
+          @dragleave.prevent="handleDragLeave"
+          @drop.prevent="handleDropFiles"
+        >
         <!-- 右上角交互区域 -->
         <div class="relative">
           <!-- 小弧度 - 圆形边框的右上角弧线 -->
-          <!-- <UTooltip :text="isExpanded ? '收起' : '展开'">
+          <UTooltip :text="isExpanded ? '收起' : '展开'" :kbds="['meta', 'e']" :content="{ side: 'top' }">
             <div 
               class="group absolute w-3.5 h-3.5 cursor-pointer z-10 overflow-hidden"
               :class="isExpanded ? 'top-2 right-2' : 'top-1 right-1'"
-              @click="isExpanded ? handleCollapse() : handleExpand()"
+              role="button"
+              tabindex="0"
+              @click="handleExpandArcClick"
+              @keydown.enter.prevent="handleExpandArcClick"
+              @keydown.space.prevent="handleExpandArcClick"
             >
               <div 
-                class="absolute -bottom-4 -left-4 w-7.5 h-7.5 rounded-full border-2 border-default transition-colors duration-200"
+                class="absolute -bottom-4 -left-4 w-7.5 h-7.5 rounded-full border-2 border-accented opacity-70 transition-opacity duration-200 group-hover:opacity-100"
               ></div>
             </div>
-          </UTooltip> -->
+          </UTooltip>
         </div>
 
         <!-- 引用预览区 -->
@@ -216,22 +214,16 @@
         </Transition>
 
         <!-- 输入框区域 -->
-        <div :class="isExpanded ? 'flex-1' : ''">
-          <UTextarea
+        <div :class="isExpanded ? 'flex-1 min-h-0 flex' : ''">
+          <textarea
             ref="textareaRef"
             v-model="inputText"
             :placeholder="isExpanded ? t('chat.input.placeholder.expanded') : t('chat.input.placeholder.default')"
-            size="xl"
             :rows="isExpanded ? 20 : 2"
-            :maxrows="isExpanded ? 50 : 10"
-            variant="none"
-            autoresize
-            :highlight="false"
-            class="w-full"
-            :ui="{
-              root: 'flex',
-              base: 'px-4 pt-3 pb-0'
-            }"
+            :class="[
+              'w-full resize-none bg-transparent px-4 pt-3 pb-0 text-base leading-6 text-default outline-none placeholder:text-dimmed',
+              isExpanded ? 'h-full min-h-0 overflow-y-auto' : 'overflow-y-auto'
+            ]"
             @keydown="handleInputKeydown"
             @focus="isFocused = true"
             @blur="isFocused = false"
@@ -241,7 +233,7 @@
         <!-- 底部工具栏 -->
         <div 
           :class="[
-            'flex items-end justify-between p-2.5',
+            'flex shrink-0 items-end justify-between p-2.5',
             { 'mt-auto': isExpanded }
           ]"
         >
@@ -413,6 +405,7 @@
             </UTooltip>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- 提示文案 -->
@@ -493,7 +486,8 @@
     >
       <div 
         v-if="isExpanded"
-        class="absolute inset-0 bg-black/30 z-40"
+        class="absolute left-0 right-0 bottom-0 z-40 bg-black/5 dark:bg-white/5"
+        :style="collapseOverlayStyle"
         @click="handleCollapse"
       />
     </Transition>
@@ -558,7 +552,9 @@ const toast = useMyToast()
 const { loadNotes: loadAllNotes } = useNotes()
 const { knowledgeBases, loadKnowledgeBases } = useKnowledge()
 const inputText = ref('')
-const textareaRef = ref()
+const rootRef = ref<HTMLElement>()
+const inputPlaceholderRef = ref<HTMLElement>()
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const inputContainerRef = ref<HTMLElement>()
 const isFocused = ref(false)
 const isDragOver = ref(false)
@@ -733,7 +729,48 @@ const sendShortcutOptions = computed(() => [
 
 // 展开状态管理
 const isExpanded = ref(false)
-const expandedPosition = ref({ bottom: 0, left: 0, width: 0 })
+const collapsedInputContainerHeight = ref(0)
+const collapsedInputBlockHeight = ref(0)
+const expandedPosition = ref({ bottom: 0, left: 0, width: 0, height: 0 })
+const EXPANDED_INPUT_TOP_MARGIN = 72
+const INPUT_EXPAND_TRANSITION_MS = 300
+let expandFrame: number | null = null
+let collapseTimer: ReturnType<typeof setTimeout> | null = null
+let expandedLayoutFrame: number | null = null
+let expandedLayoutObserver: ResizeObserver | null = null
+
+const inputPlaceholderStyle = computed(() => {
+  if (!isExpanded.value || collapsedInputContainerHeight.value <= 0) return {}
+  return { height: `${collapsedInputContainerHeight.value}px` }
+})
+
+const rootPlaceholderStyle = computed(() => {
+  if (!isExpanded.value || collapsedInputBlockHeight.value <= 0) return {}
+  return { height: `${collapsedInputBlockHeight.value}px` }
+})
+
+const expandedInputStyle = computed(() => {
+  if (!isExpanded.value) return {}
+  return {
+    bottom: `${expandedPosition.value.bottom}px`,
+    left: `${expandedPosition.value.left}px`,
+    width: `${expandedPosition.value.width}px`,
+    height: `${expandedPosition.value.height}px`,
+    display: 'flex',
+    flexDirection: 'column'
+  }
+})
+
+const shouldShowChatTopBar = computed(() => {
+  if (!chatStore.currentSessionId) return false
+  return !(chatStore.isTemporarySession && chatStore.messages.length === 0)
+})
+
+const collapseOverlayStyle = computed(() => {
+  return {
+    top: `${shouldShowChatTopBar.value ? 56 : 0}px`
+  }
+})
 
 // localStorage key 生成
 const getExpandStateKey = (sessionId: string | null) => {
@@ -1098,6 +1135,12 @@ defineShortcuts({
   'meta_.': {
     handler: toggleMode,
     usingInput: true
+  },
+  'meta_e': {
+    usingInput: true,
+    handler: () => {
+      handleExpandArcClick()
+    }
   }
 })
 
@@ -1226,18 +1269,85 @@ async function handleShortcutChange(mode: string) {
   })
 }
 
+function handleExpandArcClick() {
+  if (isExpanded.value) {
+    handleCollapse()
+  } else {
+    handleExpand()
+  }
+}
+
+function computeExpandedGeometry(rect: DOMRect) {
+  const bottom = Math.max(0, window.innerHeight - rect.bottom)
+  const availableHeight = Math.max(rect.height, window.innerHeight - EXPANDED_INPUT_TOP_MARGIN - bottom)
+  const expandedHeight = Math.max(rect.height, Math.min(window.innerHeight * 0.8, availableHeight))
+  return {
+    bottom,
+    left: rect.left,
+    width: rect.width,
+    expandedHeight
+  }
+}
+
+function syncExpandedPosition() {
+  if (!isExpanded.value) return
+  const anchorRect = inputPlaceholderRef.value?.getBoundingClientRect()
+  if (!anchorRect) return
+  const geometry = computeExpandedGeometry(anchorRect)
+  expandedPosition.value = {
+    bottom: geometry.bottom,
+    left: geometry.left,
+    width: geometry.width,
+    height: geometry.expandedHeight
+  }
+}
+
+function scheduleSyncExpandedPosition() {
+  if (!isExpanded.value) return
+  if (expandedLayoutFrame !== null) return
+  expandedLayoutFrame = requestAnimationFrame(() => {
+    expandedLayoutFrame = null
+    syncExpandedPosition()
+  })
+}
+
 // 展开输入框
 function handleExpand() {
-  const rect = inputContainerRef.value?.getBoundingClientRect()
-  if (rect) {
-    // 固定从页面底部位置展开
-    expandedPosition.value = {
-      bottom: 42,
-      left: rect.left,
-      width: rect.width
-    }
+  if (isExpanded.value) return
+  if (collapseTimer) {
+    clearTimeout(collapseTimer)
+    collapseTimer = null
   }
+  if (expandFrame !== null) {
+    cancelAnimationFrame(expandFrame)
+    expandFrame = null
+  }
+
+  const rect = inputContainerRef.value?.getBoundingClientRect()
+  if (!rect) return
+
+  collapsedInputContainerHeight.value = rect.height
+  collapsedInputBlockHeight.value = rootRef.value?.getBoundingClientRect().height ?? rect.height
+
+  const geometry = computeExpandedGeometry(rect)
+
+  expandedPosition.value = {
+    bottom: geometry.bottom,
+    left: geometry.left,
+    width: geometry.width,
+    height: rect.height
+  }
+
   isExpanded.value = true
+  expandFrame = requestAnimationFrame(() => {
+    expandFrame = null
+    expandedPosition.value = {
+      bottom: geometry.bottom,
+      left: geometry.left,
+      width: geometry.width,
+      height: geometry.expandedHeight
+    }
+  })
   // 展开后自动聚焦
   nextTick(() => {
     focus()
@@ -1246,14 +1356,31 @@ function handleExpand() {
 
 // 收起输入框
 function handleCollapse() {
-  isExpanded.value = false
+  if (!isExpanded.value) return
+  if (expandFrame !== null) {
+    cancelAnimationFrame(expandFrame)
+    expandFrame = null
+  }
+  if (collapseTimer) {
+    clearTimeout(collapseTimer)
+    collapseTimer = null
+  }
+
+  expandedPosition.value = {
+    ...expandedPosition.value,
+    height: collapsedInputContainerHeight.value || inputContainerRef.value?.getBoundingClientRect().height || expandedPosition.value.height
+  }
+  collapseTimer = setTimeout(() => {
+    collapseTimer = null
+    isExpanded.value = false
+  }, INPUT_EXPAND_TRANSITION_MS)
   // 收起后自动聚焦
   nextTick(() => {
     focus()
   })
 }
 
-// ESC 键收起
+// 全局键盘：Esc 仅收起（不切换）
 function handleKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape' && isExpanded.value) {
     handleCollapse()
@@ -1263,13 +1390,29 @@ function handleKeyDown(e: KeyboardEvent) {
 // 监听键盘事件
 onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('resize', scheduleSyncExpandedPosition)
   // 监听全局聚焦输入框事件
   emitter.on('chat:focus-input', focus)
   // 监听快捷追问填充文本事件
   emitter.on('chat:fill-input', fillText)
+  if (typeof ResizeObserver !== 'undefined') {
+    expandedLayoutObserver = new ResizeObserver(() => {
+      scheduleSyncExpandedPosition()
+    })
+    if (rootRef.value) {
+      expandedLayoutObserver.observe(rootRef.value)
+    }
+    if (inputPlaceholderRef.value && inputPlaceholderRef.value !== rootRef.value) {
+      expandedLayoutObserver.observe(inputPlaceholderRef.value)
+    }
+  }
   
   // 初始化：读取当前会话的展开状态（包括新建会话）
-  isExpanded.value = loadExpandState(chatStore.currentSessionId)
+  if (loadExpandState(chatStore.currentSessionId)) {
+    nextTick(() => {
+      handleExpand()
+    })
+  }
   
   // 初始化：读取当前会话的草稿
   inputText.value = loadDraft(chatStore.currentSessionId)
@@ -1312,8 +1455,25 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('resize', scheduleSyncExpandedPosition)
   emitter.off('chat:focus-input', focus)
   emitter.off('chat:fill-input', fillText)
+  if (expandFrame !== null) {
+    cancelAnimationFrame(expandFrame)
+    expandFrame = null
+  }
+  if (collapseTimer) {
+    clearTimeout(collapseTimer)
+    collapseTimer = null
+  }
+  if (expandedLayoutFrame !== null) {
+    cancelAnimationFrame(expandedLayoutFrame)
+    expandedLayoutFrame = null
+  }
+  if (expandedLayoutObserver) {
+    expandedLayoutObserver.disconnect()
+    expandedLayoutObserver = null
+  }
   if (pasteListenerTarget) {
     pasteListenerTarget.removeEventListener('paste', handleTextareaPaste)
     pasteListenerTarget = null
@@ -1330,7 +1490,7 @@ watch(inputText, (val) => {
   saveDraftDebounced(chatStore.currentSessionId, val)
 })
 
-watch(() => textareaRef.value?.textareaRef, () => {
+watch(textareaRef, () => {
   bindTextareaPasteListener()
 })
 
@@ -1349,7 +1509,14 @@ watch(() => chatStore.currentSessionId, (newSessionId, oldSessionId) => {
     saveQuoteDraft(oldSessionId, chatStore.pendingQuote)
   }
   // 恢复新会话的状态（包括切换到新建会话）
-  isExpanded.value = loadExpandState(newSessionId)
+  if (loadExpandState(newSessionId)) {
+    isExpanded.value = false
+    nextTick(() => {
+      handleExpand()
+    })
+  } else {
+    isExpanded.value = false
+  }
   // 恢复新会话的草稿
   inputText.value = loadDraft(newSessionId)
   chatStore.pendingQuote = loadQuoteDraft(newSessionId)
@@ -1376,7 +1543,7 @@ watch(sessionMode, (mode) => {
 // 聚焦输入框
 function focus() {
   setTimeout(() => {
-    textareaRef.value?.textareaRef?.focus()
+    textareaRef.value?.focus()
   }, 300)
 }
 
@@ -1391,7 +1558,7 @@ function fillText(text: string) {
   }
   
   setTimeout(() => {
-    const textarea = textareaRef.value?.textareaRef
+    const textarea = textareaRef.value
     if (textarea) {
       textarea.focus()
       // 光标移到末尾
@@ -1493,7 +1660,7 @@ function normalizeClipboardFiles(dataTransfer?: DataTransfer | null): File[] {
 }
 
 function bindTextareaPasteListener() {
-  const textarea = textareaRef.value?.textareaRef as HTMLTextAreaElement | undefined
+  const textarea = textareaRef.value
   if (pasteListenerTarget && pasteListenerTarget !== textarea) {
     pasteListenerTarget.removeEventListener('paste', handleTextareaPaste)
     pasteListenerTarget = null
