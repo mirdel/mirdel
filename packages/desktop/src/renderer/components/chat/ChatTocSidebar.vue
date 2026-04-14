@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="h-full w-[300px] bg-default rounded-r-xl flex flex-col overflow-hidden border-l border-default"
+    class="h-full w-full bg-default rounded-r-xl flex flex-col overflow-hidden border-l border-default"
   >
     <!-- 标题栏 -->
     <div class="h-14 flex items-center justify-between px-4 py-3 border-b border-default shrink-0">

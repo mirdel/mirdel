@@ -1,75 +1,92 @@
 <template>
   <div class="h-full flex gap-0 relative">
-    <section class="w-50 h-full bg-default rounded-xl overflow-hidden flex flex-col">
-      <div class="px-2 pt-3 pb-2">
-        <div class="mb-3 text-sm font-medium text-toned flex items-center">
-          <span class="ml-3 select-none whitespace-nowrap">{{ t('image.workspace.sidebar') }}</span>
+    <section
+      :style="workspaceSidebarWidthStyle"
+      class="relative shrink-0 h-full"
+    >
+      <div class="h-full bg-default rounded-xl overflow-hidden flex flex-col">
+        <div class="px-2 pt-3 pb-2">
+          <div class="mb-3 text-sm font-medium text-toned flex items-center">
+            <span class="ml-3 select-none whitespace-nowrap">{{ t('image.workspace.sidebar') }}</span>
+          </div>
+        </div>
+
+        <UList
+          :items="workspaces"
+          :model-value="activeWorkspaceId"
+          value-key="id"
+          label-key="name"
+          padding="md"
+          gap="none"
+          size="lg"
+          class="flex-1"
+          @select="(item) => handleSelectWorkspace(item.id)"
+        >
+          <template #item="{ item }">
+            <div class="flex items-center gap-2 w-full min-w-0">
+              <UInput
+                v-if="renamingWorkspaceId === item.id"
+                v-model="renamingWorkspaceName"
+                variant="none"
+                autofocus
+                size="md"
+                class="w-full"
+                :ui="{ base: 'px-0 py-0.5' }"
+                @click.stop
+                @keydown.enter="saveWorkspaceName(item.id)"
+                @keydown.esc="cancelRenameWorkspace"
+                @blur="saveWorkspaceName(item.id)"
+              />
+              <div v-else class="min-w-0 flex-1">
+                <UText :text="item.name" class="text-sm" />
+                <div class="text-xs text-toned mt-0.5">{{ workspaceSecondaryLine(item) }}</div>
+              </div>
+            </div>
+          </template>
+
+          <template #item-trailing="{ item }">
+            <div v-if="renamingWorkspaceId !== item.id" class="relative flex items-center justify-end">
+              <div
+                class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+                :class="{ 'opacity-0': openMenuWorkspaceId === item.id }"
+              >
+                {{ formatWorkspaceUpdatedAt(item.updatedAt) }}
+              </div>
+              <div
+                class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                :class="{ 'opacity-100': openMenuWorkspaceId === item.id }"
+              >
+                <UDropdownMenu
+                  :items="getWorkspaceMenuItems(item.id)"
+                  size="md"
+                  @update:open="setWorkspaceMenuOpen(item.id, $event)"
+                >
+                  <UButton icon="i-lucide-more-horizontal" variant="ghost" color="neutral" size="sm" square @click.stop />
+                </UDropdownMenu>
+              </div>
+            </div>
+          </template>
+        </UList>
+
+        <div class="px-2 pt-2 pb-3 border-t border-default">
+          <UButton block size="lg" variant="soft" color="neutral" class="w-full" @click="createWorkspace">
+            <UIcon name="i-lucide-plus" class="w-4 h-4 shrink-0" />
+            <span class="whitespace-nowrap">{{ t('image.workspace.newWorkspace') }}</span>
+          </UButton>
         </div>
       </div>
 
-      <UList
-        :items="workspaces"
-        :model-value="activeWorkspaceId"
-        value-key="id"
-        label-key="name"
-        padding="md"
-        gap="none"
-        size="lg"
-        class="flex-1"
-        @select="(item) => handleSelectWorkspace(item.id)"
-      >
-        <template #item="{ item }">
-          <div class="flex items-center gap-2 w-full min-w-0">
-            <UInput
-              v-if="renamingWorkspaceId === item.id"
-              v-model="renamingWorkspaceName"
-              variant="none"
-              autofocus
-              size="md"
-              class="w-full"
-              :ui="{ base: 'px-0 py-0.5' }"
-              @click.stop
-              @keydown.enter="saveWorkspaceName(item.id)"
-              @keydown.esc="cancelRenameWorkspace"
-              @blur="saveWorkspaceName(item.id)"
-            />
-            <div v-else class="min-w-0 flex-1">
-              <UText :text="item.name" class="text-sm" />
-              <div class="text-xs text-toned mt-0.5">{{ workspaceSecondaryLine(item) }}</div>
-            </div>
-          </div>
-        </template>
-
-        <template #item-trailing="{ item }">
-          <div v-if="renamingWorkspaceId !== item.id" class="relative flex items-center justify-end">
-            <div
-              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
-              :class="{ 'opacity-0': openMenuWorkspaceId === item.id }"
-            >
-              {{ formatWorkspaceUpdatedAt(item.updatedAt) }}
-            </div>
-            <div
-              class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              :class="{ 'opacity-100': openMenuWorkspaceId === item.id }"
-            >
-              <UDropdownMenu
-                :items="getWorkspaceMenuItems(item.id)"
-                size="md"
-                @update:open="setWorkspaceMenuOpen(item.id, $event)"
-              >
-                <UButton icon="i-lucide-more-horizontal" variant="ghost" color="neutral" size="sm" square @click.stop />
-              </UDropdownMenu>
-            </div>
-          </div>
-        </template>
-      </UList>
-
-      <div class="px-2 pt-2 pb-3 border-t border-default">
-        <UButton block size="lg" variant="soft" color="neutral" class="w-full" @click="createWorkspace">
-          <UIcon name="i-lucide-plus" class="w-4 h-4 shrink-0" />
-          <span class="whitespace-nowrap">{{ t('image.workspace.newWorkspace') }}</span>
-        </UButton>
-      </div>
+      <PanelResizeHandle
+        variant="gap"
+        :active="workspaceSidebarResize.isDragging.value"
+        :value="workspaceSidebarResize.width.value"
+        :min="workspaceSidebarResize.minWidth.value"
+        :max="workspaceSidebarResize.maxWidth.value"
+        :cursor="workspaceSidebarResize.cursor.value"
+        @resize-start="workspaceSidebarResize.startResize"
+        @resize-by="workspaceSidebarResize.resizeBy"
+        @reset="workspaceSidebarResize.resetWidth"
+      />
     </section>
 
     <div class="flex-1 min-w-0 ml-[6px] flex gap-[6px]">
@@ -77,9 +94,9 @@
         <div
           ref="canvasScrollRef"
           :class="[
-            'flex-1 min-h-0 overflow-y-auto bg-elevated px-4 py-4',
-            detailModalOpen ? 'pr-[368px]' : ''
+            'flex-1 min-h-0 overflow-y-auto bg-elevated px-4 py-4'
           ]"
+          :style="canvasScrollStyle"
         >
           <div v-if="!activeWorkspace || activeWorkspace.groups.length === 0" class="h-full flex items-center justify-center">
             <UEmpty
@@ -186,9 +203,10 @@
 
       <aside
         v-if="activeWorkspace"
-        class="shrink-0 w-[350px] h-full bg-default rounded-xl border border-default overflow-hidden flex flex-col"
+        :style="operationPanelWidthStyle"
+        class="relative shrink-0 h-full"
       >
-        <div class="h-full flex flex-col">
+        <div class="h-full bg-default rounded-xl border border-default overflow-hidden flex flex-col">
           <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 bg-default">
             <UTabs
               v-model="activeTask"
@@ -629,6 +647,19 @@
             />
           </div>
         </div>
+
+        <PanelResizeHandle
+          side="left"
+          variant="gap"
+          :active="operationPanelResize.isDragging.value"
+          :value="operationPanelResize.width.value"
+          :min="operationPanelResize.minWidth.value"
+          :max="operationPanelResize.maxWidth.value"
+          :cursor="operationPanelResize.cursor.value"
+          @resize-start="operationPanelResize.startResize"
+          @resize-by="operationPanelResize.resizeBy"
+          @reset="operationPanelResize.resetWidth"
+        />
       </aside>
     </div>
 
@@ -641,7 +672,8 @@
       <aside
         v-if="detailModalOpen && selectedImage"
         ref="detailAsideRef"
-        class="absolute right-[368px] top-5 bottom-5 w-[340px] bg-default rounded-xl border border-default shadow-lg overflow-hidden pointer-events-auto"
+        class="absolute top-5 bottom-5 w-[340px] bg-default rounded-xl border border-default shadow-lg overflow-hidden pointer-events-auto"
+        :style="detailAsideStyle"
       >
         <div class="h-full flex flex-col">
           <div class="shrink-0 h-12 flex items-center justify-between px-3 border-b border-default">
@@ -784,6 +816,8 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { DEFAULT_MODEL_PLACEHOLDER } from "@/stores/useChatStore";
 import { useMyToast } from "@/composables/useMyToast";
 import { useConfirm } from "@/composables/useConfirm";
+import { useResizableWidth } from "@/composables/useResizableWidth";
+import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
 import UList from "@/components/UList.vue";
 import UText from "@/components/UText.vue";
 import UImage from "@/components/UImage.vue";
@@ -928,6 +962,33 @@ const newCustomParam = reactive({
   type: "string-input" as "string-input" | "string-textarea" | "number-input" | "boolean-switch" | "select" | "json-textarea",
   optionsText: "",
 });
+
+const DETAIL_ASIDE_GAP = 18;
+const workspaceSidebarResize = useResizableWidth({
+  storageKey: "image-workspace-sidebar-width",
+  defaultWidth: 200,
+  minWidth: 160,
+  maxWidth: 320,
+  side: "right",
+  step: 16
+});
+const operationPanelResize = useResizableWidth({
+  storageKey: "image-workspace-operation-panel-width",
+  defaultWidth: 350,
+  minWidth: 320,
+  maxWidth: 520,
+  side: "left",
+  step: 16
+});
+const workspaceSidebarWidthStyle = workspaceSidebarResize.widthStyle;
+const operationPanelWidthStyle = operationPanelResize.widthStyle;
+const detailAsideRightOffset = computed(() => operationPanelResize.width.value + DETAIL_ASIDE_GAP);
+const canvasScrollStyle = computed(() => ({
+  paddingRight: detailModalOpen.value ? `${detailAsideRightOffset.value}px` : undefined
+}));
+const detailAsideStyle = computed(() => ({
+  right: `${detailAsideRightOffset.value}px`
+}));
 
 const activeTask = ref<ImageTaskType>("generate");
 

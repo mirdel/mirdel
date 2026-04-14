@@ -1,225 +1,241 @@
 <template>
   <section 
-    ref="sectionRef"
-    class="h-full bg-default rounded-r-xl overflow-hidden flex flex-col"
+    :style="widthStyle"
+    class="relative h-full"
+    :class="{ 'transition-[width] duration-200 ease-out': !isDragging }"
   >
-    <div class="px-2 pt-3 pb-2">
-      <!-- 标题栏：分类名称 + 切换按钮 -->
-      <div 
-        class="mb-3 text-sm font-medium text-default flex items-center"
-        :class="isCollapsed ? 'justify-center' : 'justify-between'"
-      >
-        <!-- 标题文字（收起时隐藏） -->
-        <span 
-          v-if="!isCollapsed"
-          class="ml-3 select-none whitespace-nowrap"
+    <div class="h-full bg-default rounded-r-xl overflow-hidden flex flex-col">
+      <div class="px-2 pt-3 pb-2">
+        <!-- 标题栏：分类名称 + 切换按钮 -->
+        <div 
+          class="mb-3 text-sm font-medium text-default flex items-center"
+          :class="isCollapsed ? 'justify-center' : 'justify-between'"
         >
-          {{ currentCategoryName }}
-        </span>
+          <!-- 标题文字（收起时隐藏） -->
+          <span 
+            v-if="!isCollapsed"
+            class="ml-3 select-none whitespace-nowrap"
+          >
+            {{ currentCategoryName }}
+          </span>
+          
+          <!-- 切换按钮 -->
+          <UTooltip
+            :text="isCollapsed ? t('notes.common.expand') : t('notes.common.collapse')"
+            :kbds="['meta', 'b']"
+          >
+            <UButton
+              icon="i-lucide-panel-left"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              square
+              class="shrink-0"
+              @click="toggleCollapse"
+            />
+          </UTooltip>
+        </div>
+
+        <!-- 新的会话按钮 -->
+        <UTooltip :text="t('chat.sessionList.newSession')" :kbds="['meta', 'n']" :disabled="!isCollapsed" :content="{ side: 'right' }">
+          <UButton 
+            :block="!isCollapsed" 
+            size="lg" 
+            variant="ghost" 
+            color="neutral" 
+            :class="isCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
+            @click="handleCreate"
+          >
+            <UIcon name="i-lucide-message-circle" class="w-4 h-4 shrink-0" />
+            <span 
+              v-if="!isCollapsed"
+              class="whitespace-nowrap transition-all duration-100"
+              :style="{ transitionDelay: '100ms' }"
+            >{{ t("chat.sessionList.newSession") }}</span>
+          </UButton>
+        </UTooltip>
         
-        <!-- 切换按钮 -->
-        <UTooltip
-          :text="isCollapsed ? t('notes.common.expand') : t('notes.common.collapse')"
-          :kbds="['meta', 'b']"
-        >
-          <UButton
-            icon="i-lucide-panel-left"
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            square
-            class="shrink-0"
-            @click="toggleCollapse"
-          />
+        <!-- 临时会话按钮 -->
+        <UTooltip :text="t('chat.sessionList.tempSession')" :kbds="['meta', 'shift', 'n']" :disabled="!isCollapsed" :content="{ side: 'right' }">
+          <UButton 
+            :block="!isCollapsed" 
+            size="lg" 
+            variant="ghost" 
+            color="neutral" 
+            :class="isCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
+            @click="handleCreateTemporary"
+          >
+            <UIcon name="i-lucide-message-circle-dashed" class="w-4 h-4 shrink-0" />
+            <span 
+              v-if="!isCollapsed"
+              class="whitespace-nowrap transition-all duration-100"
+              :style="{ transitionDelay: '100ms' }"
+            >{{ t("chat.sessionList.tempSession") }}</span>
+          </UButton>
         </UTooltip>
       </div>
+      <!-- 会话列表（收起时隐藏） -->
+      <UList
+        v-show="!isCollapsed && sessionsWithChildren.length > 0"
+        :items="sessionsWithChildren"
+        :model-value="chatStore.currentSessionId"
+        value-key="id"
+        label-key="title"
+        :collapsible="true"
+        children-key="branches"
+        padding="md"
+        gap="none"
+        size="lg"
+        class="flex-1"
+        :virtualize="{ estimateSize: 40, overscan: 5 }"
+        @select="handleSelect"
+        @toggle="handleToggle"
+        ref="listRef"
+      >
+        <template #item="{ item }">
+          <SessionItem
+            :item="item"
+            :is-editing="editingSessionId === item.id"
+            :is-streaming="chatStore.isSessionStreaming(item.id)"
+            :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
+            class="pl-1.5"
+            @save="handleSaveTitle(item.id, $event)"
+            @cancel="handleCancelEdit"
+            @toggle-favorite="handleToggleFavorite(item.id)"
+          />
+        </template>
+        
+        <template #item-trailing="{ item }">
+          <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end">
+            <div
+              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+              :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
+            >
+              {{ formatCompactListUpdatedAt(item.updatedAt) }}
+            </div>
 
-      <!-- 新的会话按钮 -->
-      <UTooltip :text="t('chat.sessionList.newSession')" :kbds="['meta', 'n']" :disabled="!isCollapsed" :content="{ side: 'right' }">
-        <UButton 
-          :block="!isCollapsed" 
-          size="lg" 
-          variant="ghost" 
-          color="neutral" 
-          :class="isCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
-          @click="handleCreate"
-        >
-          <UIcon name="i-lucide-message-circle" class="w-4 h-4 shrink-0" />
-          <span 
-            v-if="!isCollapsed"
-            class="whitespace-nowrap transition-all duration-100"
-            :style="{ transitionDelay: '100ms' }"
-          >{{ t("chat.sessionList.newSession") }}</span>
-        </UButton>
-      </UTooltip>
+            <div
+              class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              :class="{ 'opacity-100': isSessionMenuOpen(item.id) }"
+            >
+              <UDropdownMenu
+                :items="getSessionMenuItems(item.id)"
+                size="md"
+                @update:open="setSessionMenuOpen(item.id, $event)"
+              >
+                <template #project-category-leading="{ item, active, ui }">
+                  <UIcon
+                    v-if="item.icon"
+                    :name="item.icon"
+                    :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
+                    :style="item.projectColor ? { color: item.projectColor } : undefined"
+                  />
+                </template>
+                <UButton
+                  icon="i-lucide-more-horizontal"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  square
+                  @click.stop
+                />
+              </UDropdownMenu>
+            </div>
+          </div>
+        </template>
+        
+        <template #child-item="{ item }">
+          <SessionItem
+            :item="item"
+            :is-editing="editingSessionId === item.id"
+            :is-branch="true"
+            :is-streaming="chatStore.isSessionStreaming(item.id)"
+            :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
+            @save="handleSaveTitle(item.id, $event)"
+            @cancel="handleCancelEdit"
+            @toggle-favorite="handleToggleFavorite(item.id)"
+          />
+        </template>
+        
+        <template #child-item-trailing="{ item }">
+          <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end w-[60px]">
+            <div
+              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+              :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
+            >
+              {{ formatCompactListUpdatedAt(item.updatedAt) }}
+            </div>
+
+            <div
+              class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              :class="{ 'opacity-100': isSessionMenuOpen(item.id) }"
+            >
+              <UDropdownMenu
+                :items="getSessionMenuItems(item.id)"
+                size="md"
+                @update:open="setSessionMenuOpen(item.id, $event)"
+              >
+                <template #project-category-leading="{ item, active, ui }">
+                  <UIcon
+                    v-if="item.icon"
+                    :name="item.icon"
+                    :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
+                    :style="item.projectColor ? { color: item.projectColor } : undefined"
+                  />
+                </template>
+                <UButton
+                  icon="i-lucide-more-horizontal"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  square
+                  @click.stop
+                />
+              </UDropdownMenu>
+            </div>
+          </div>
+        </template>
+      </UList>
       
-      <!-- 临时会话按钮 -->
-      <UTooltip :text="t('chat.sessionList.tempSession')" :kbds="['meta', 'shift', 'n']" :disabled="!isCollapsed" :content="{ side: 'right' }">
-        <UButton 
-          :block="!isCollapsed" 
-          size="lg" 
-          variant="ghost" 
-          color="neutral" 
-          :class="isCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
-          @click="handleCreateTemporary"
-        >
-          <UIcon name="i-lucide-message-circle-dashed" class="w-4 h-4 shrink-0" />
-          <span 
-            v-if="!isCollapsed"
-            class="whitespace-nowrap transition-all duration-100"
-            :style="{ transitionDelay: '100ms' }"
-          >{{ t("chat.sessionList.tempSession") }}</span>
-        </UButton>
-      </UTooltip>
+      <!-- 空状态（收起时隐藏） -->
+      <UEmpty
+        v-show="!isCollapsed && sessionsWithChildren.length === 0"
+        :title="t('chat.sessionList.empty')"
+        icon="i-lucide-message-square"
+        variant="naked"
+        size="sm"
+        class="flex-1 flex flex-col items-center justify-center text-center"
+      />
     </div>
-    <!-- 会话列表（收起时隐藏） -->
-    <UList
-      v-show="!isCollapsed && sessionsWithChildren.length > 0"
-      :items="sessionsWithChildren"
-      :model-value="chatStore.currentSessionId"
-      value-key="id"
-      label-key="title"
-      :collapsible="true"
-      children-key="branches"
-      padding="md"
-      gap="none"
-      size="lg"
-      class="flex-1"
-      :virtualize="{ estimateSize: 40, overscan: 5 }"
-      @select="handleSelect"
-      @toggle="handleToggle"
-      ref="listRef"
-    >
-      <template #item="{ item }">
-        <SessionItem
-          :item="item"
-          :is-editing="editingSessionId === item.id"
-          :is-streaming="chatStore.isSessionStreaming(item.id)"
-          :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
-          class="pl-1.5"
-          @save="handleSaveTitle(item.id, $event)"
-          @cancel="handleCancelEdit"
-          @toggle-favorite="handleToggleFavorite(item.id)"
-        />
-      </template>
-      
-      <template #item-trailing="{ item }">
-        <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end">
-          <div
-            class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
-            :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
-          >
-            {{ formatCompactListUpdatedAt(item.updatedAt) }}
-          </div>
 
-          <div
-            class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            :class="{ 'opacity-100': isSessionMenuOpen(item.id) }"
-          >
-            <UDropdownMenu
-              :items="getSessionMenuItems(item.id)"
-              size="md"
-              @update:open="setSessionMenuOpen(item.id, $event)"
-            >
-              <template #project-category-leading="{ item, active, ui }">
-                <UIcon
-                  v-if="item.icon"
-                  :name="item.icon"
-                  :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
-                  :style="item.projectColor ? { color: item.projectColor } : undefined"
-                />
-              </template>
-              <UButton
-                icon="i-lucide-more-horizontal"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                square
-                @click.stop
-              />
-            </UDropdownMenu>
-          </div>
-        </div>
-      </template>
-      
-      <template #child-item="{ item }">
-        <SessionItem
-          :item="item"
-          :is-editing="editingSessionId === item.id"
-          :is-branch="true"
-          :is-streaming="chatStore.isSessionStreaming(item.id)"
-          :has-completed-unread="chatStore.hasCompletedUnreadSession(item.id)"
-          @save="handleSaveTitle(item.id, $event)"
-          @cancel="handleCancelEdit"
-          @toggle-favorite="handleToggleFavorite(item.id)"
-        />
-      </template>
-      
-      <template #child-item-trailing="{ item }">
-        <div v-if="editingSessionId !== item.id" class="relative flex items-center justify-end w-[60px]">
-          <div
-            class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
-            :class="{ 'opacity-0': isSessionMenuOpen(item.id) }"
-          >
-            {{ formatCompactListUpdatedAt(item.updatedAt) }}
-          </div>
-
-          <div
-            class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            :class="{ 'opacity-100': isSessionMenuOpen(item.id) }"
-          >
-            <UDropdownMenu
-              :items="getSessionMenuItems(item.id)"
-              size="md"
-              @update:open="setSessionMenuOpen(item.id, $event)"
-            >
-              <template #project-category-leading="{ item, active, ui }">
-                <UIcon
-                  v-if="item.icon"
-                  :name="item.icon"
-                  :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
-                  :style="item.projectColor ? { color: item.projectColor } : undefined"
-                />
-              </template>
-              <UButton
-                icon="i-lucide-more-horizontal"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                square
-                @click.stop
-              />
-            </UDropdownMenu>
-          </div>
-        </div>
-      </template>
-    </UList>
-    
-    <!-- 空状态（收起时隐藏） -->
-    <UEmpty
-      v-show="!isCollapsed && sessionsWithChildren.length === 0"
-      :title="t('chat.sessionList.empty')"
-      icon="i-lucide-message-square"
-      variant="naked"
-      size="sm"
-      class="flex-1 flex flex-col items-center justify-center text-center"
+    <PanelResizeHandle
+      variant="gap"
+      :active="isDragging"
+      :disabled="isCollapsed"
+      :value="width"
+      :min="minWidth"
+      :max="maxWidth"
+      :cursor="resizeCursor"
+      @resize-start="startResize"
+      @resize-by="resizeBy"
+      @reset="resetWidth"
     />
-    
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMotion } from '@vueuse/motion'
 import { useChatStore } from '@/stores/useChatStore'
 import { useProjectStore } from '@/stores/useProjectStore'
 import { useMyToast } from '@/composables/useMyToast'
 import { useSessionDelete } from '@/composables/useSessionDelete'
+import { useResizableWidth } from '@/composables/useResizableWidth'
 import { formatCompactListUpdatedAt } from '@/utils/timeFormat'
 import { useRouter } from 'vue-router'
 import { DEFAULT_COLOR } from '@/config/project-icon-config'
 import { buildSessionTree } from './sessionCategoryViewModel'
+import PanelResizeHandle from '../PanelResizeHandle.vue'
 import UList from '../UList.vue'
 import SessionItem from './SessionItem.vue'
 
@@ -239,22 +255,25 @@ const isCollapsed = ref(
   localStorage.getItem(COLLAPSE_KEY) === 'true'
 )
 
-// 面板容器 ref
-const sectionRef = ref<HTMLElement>()
-
-// 初始化动画
-const motionInstance = useMotion(sectionRef, {
-  initial: {
-    width: isCollapsed.value ? 56 : 256
-  },
-  enter: {
-    width: isCollapsed.value ? 56 : 256,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 30
-    }
-  }
+const {
+  width,
+  minWidth,
+  maxWidth,
+  widthStyle,
+  cursor: resizeCursor,
+  isDragging,
+  startResize,
+  resizeBy,
+  resetWidth
+} = useResizableWidth({
+  storageKey: 'session-list-width',
+  defaultWidth: 256,
+  minWidth: 220,
+  maxWidth: 420,
+  collapsed: isCollapsed,
+  collapsedWidth: 56,
+  side: 'right',
+  step: 16
 })
 
 function toggleCollapse() {
@@ -280,20 +299,6 @@ defineShortcuts({
     handler: () => {
       handleCreateTemporary()
     }
-  }
-})
-
-// 监听状态变化，应用动画
-watch(isCollapsed, (collapsed) => {
-  if (motionInstance) {
-    motionInstance.apply({
-      width: collapsed ? 56 : 256,
-      transition: {
-        type: 'spring',
-        stiffness: 300,
-        damping: 30
-      }
-    })
   }
 })
 

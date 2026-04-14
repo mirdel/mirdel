@@ -1,276 +1,307 @@
 <template>
   <div class="h-full flex gap-0">
     <section
-      ref="listPanelRef"
-      class="h-full rounded-xl rounded-r-none overflow-hidden flex flex-col bg-muted"
+      :style="listPanelWidthStyle"
+      class="relative h-full"
+      :class="{ 'transition-[width] duration-200 ease-out': !isListPanelDragging }"
     >
-      <div class="px-2 pt-3">
-        <div
-          class="mb-3 text-sm font-medium text-default flex items-center"
-          :class="isListPanelCollapsed ? 'justify-center' : 'justify-between'"
-        >
-          <span v-if="!isListPanelCollapsed" class="ml-3 select-none whitespace-nowrap">{{ t("notes.listPanel.title") }}</span>
-          <UTooltip :text="isListPanelCollapsed ? t('notes.common.expand') : t('notes.common.collapse')">
-            <UButton
-              icon="i-lucide-panel-left"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              square
-              class="shrink-0"
-              @click="toggleListPanel"
-            />
-          </UTooltip>
-        </div>
-      </div>
-
-      <div class="flex flex-col px-1 overflow-x-hidden">
-        <UList
-          :items="fixedListItems"
-          :model-value="selectedListKey"
-          value-key="id"
-          label-key="label"
-          size="lg"
-          gap="none"
-          padding="none"
-          @select="handleSelectList"
-        >
-          <template #item="{ item }">
-            <UTooltip :text="item.label" :content="{ side: 'right' }" :disabled="!isListPanelCollapsed">
-              <div class="flex justify-center items-center gap-2 flex-1 min-w-0">
-                <UIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                <span
-                  v-if="!isListPanelCollapsed"
-                  class="text-sm flex-1 min-w-0 whitespace-nowrap overflow-hidden transition-all duration-100"
-                  :style="{ transitionDelay: '100ms' }"
-                >
-                  {{ item.label }}
-                </span>
-              </div>
-            </UTooltip>
-          </template>
-
-          <template v-if="!isListPanelCollapsed" #item-trailing="{ item }">
-            <span class="text-xs text-muted tabular-nums">{{ item.count }}</span>
-          </template>
-        </UList>
-
-        <USeparator class="my-2" />
-
-        <div
-          class="overflow-hidden transition-all duration-100"
-          :class="isListPanelCollapsed ? 'opacity-0 h-0' : 'opacity-100'"
-          :style="{
-            pointerEvents: isListPanelCollapsed ? 'none' : 'auto',
-            transitionDelay: isListPanelCollapsed ? '0ms' : '100ms'
-          }"
-        >
-          <div class="pl-2 pr-1 py-1 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1 min-w-0">
-              <span class="text-xs text-toned font-medium">{{ t("notes.listPanel.title") }}</span>
-              <span class="text-xs text-muted">({{ customListItems.length }})</span>
-            </div>
-            <UTooltip :text="t('notes.listPanel.newList')">
+      <div class="h-full rounded-xl rounded-r-none overflow-hidden flex flex-col bg-muted">
+        <div class="px-2 pt-3">
+          <div
+            class="mb-3 text-sm font-medium text-default flex items-center"
+            :class="isListPanelCollapsed ? 'justify-center' : 'justify-between'"
+          >
+            <span v-if="!isListPanelCollapsed" class="ml-3 select-none whitespace-nowrap">{{ t("notes.listPanel.title") }}</span>
+            <UTooltip :text="isListPanelCollapsed ? t('notes.common.expand') : t('notes.common.collapse')">
               <UButton
-                icon="i-lucide-plus"
+                icon="i-lucide-panel-left"
                 variant="ghost"
                 color="neutral"
-                size="xs"
+                size="sm"
                 square
-                @click="openCreateListModal"
+                class="shrink-0"
+                @click="toggleListPanel"
               />
             </UTooltip>
           </div>
         </div>
-      </div>
 
-      <div class="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">
-        <UList
-          :items="customListItems"
-          :model-value="selectedListKey"
-          value-key="id"
-          label-key="name"
-          size="lg"
-          gap="none"
-          padding="none"
-          @select="handleSelectList"
-        >
-          <template #item="{ item }">
-            <UTooltip :text="item.name" :content="{ side: 'right' }" :disabled="!isListPanelCollapsed">
-              <div class="flex justify-center items-center gap-2 flex-1 min-w-0">
-                <UIcon
-                  :name="item.icon || DEFAULT_ICON"
-                  class="w-4 h-4 shrink-0"
-                  :style="{ color: item.color || DEFAULT_COLOR }"
+        <div class="flex flex-col px-1 overflow-x-hidden">
+          <UList
+            :items="fixedListItems"
+            :model-value="selectedListKey"
+            value-key="id"
+            label-key="label"
+            size="lg"
+            gap="none"
+            padding="none"
+            @select="handleSelectList"
+          >
+            <template #item="{ item }">
+              <UTooltip :text="item.label" :content="{ side: 'right' }" :disabled="!isListPanelCollapsed">
+                <div class="flex justify-center items-center gap-2 flex-1 min-w-0">
+                  <UIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                  <span
+                    v-if="!isListPanelCollapsed"
+                    class="text-sm flex-1 min-w-0 whitespace-nowrap overflow-hidden transition-all duration-100"
+                    :style="{ transitionDelay: '100ms' }"
+                  >
+                    {{ item.label }}
+                  </span>
+                </div>
+              </UTooltip>
+            </template>
+
+            <template v-if="!isListPanelCollapsed" #item-trailing="{ item }">
+              <span class="text-xs text-muted tabular-nums">{{ item.count }}</span>
+            </template>
+          </UList>
+
+          <USeparator class="my-2" />
+
+          <div
+            class="overflow-hidden transition-all duration-100"
+            :class="isListPanelCollapsed ? 'opacity-0 h-0' : 'opacity-100'"
+            :style="{
+              pointerEvents: isListPanelCollapsed ? 'none' : 'auto',
+              transitionDelay: isListPanelCollapsed ? '0ms' : '100ms'
+            }"
+          >
+            <div class="pl-2 pr-1 py-1 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1 min-w-0">
+                <span class="text-xs text-toned font-medium">{{ t("notes.listPanel.title") }}</span>
+                <span class="text-xs text-muted">({{ customListItems.length }})</span>
+              </div>
+              <UTooltip :text="t('notes.listPanel.newList')">
+                <UButton
+                  icon="i-lucide-plus"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  square
+                  @click="openCreateListModal"
                 />
+              </UTooltip>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">
+          <UList
+            :items="customListItems"
+            :model-value="selectedListKey"
+            value-key="id"
+            label-key="name"
+            size="lg"
+            gap="none"
+            padding="none"
+            @select="handleSelectList"
+          >
+            <template #item="{ item }">
+              <UTooltip :text="item.name" :content="{ side: 'right' }" :disabled="!isListPanelCollapsed">
+                <div class="flex justify-center items-center gap-2 flex-1 min-w-0">
+                  <UIcon
+                    :name="item.icon || DEFAULT_ICON"
+                    class="w-4 h-4 shrink-0"
+                    :style="{ color: item.color || DEFAULT_COLOR }"
+                  />
+                  <div
+                    v-if="!isListPanelCollapsed"
+                    class="flex-1 min-w-0 transition-all duration-100"
+                    :style="{ transitionDelay: '100ms' }"
+                  >
+                    <UText :text="item.name" class="text-sm whitespace-nowrap overflow-hidden" />
+                  </div>
+                </div>
+              </UTooltip>
+            </template>
+
+            <template v-if="!isListPanelCollapsed" #item-trailing="{ item }">
+              <div class="relative flex items-center justify-end">
                 <div
-                  v-if="!isListPanelCollapsed"
-                  class="flex-1 min-w-0 transition-all duration-100"
-                  :style="{ transitionDelay: '100ms' }"
+                  class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
+                  :class="{ 'opacity-0': openListMenuId === item.id }"
                 >
-                  <UText :text="item.name" class="text-sm whitespace-nowrap overflow-hidden" />
+                  {{ stats.byList[item.id] || 0 }}
+                </div>
+
+                <div
+                  class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  :class="{ 'opacity-100': openListMenuId === item.id }"
+                >
+                  <UDropdownMenu
+                    :items="getCustomListMenuItems(item)"
+                    size="md"
+                    @update:open="setListMenuOpen(item.id, $event)"
+                  >
+                    <UButton icon="i-lucide-more-horizontal" variant="ghost" color="neutral" size="sm" square @click.stop />
+                  </UDropdownMenu>
                 </div>
               </div>
+            </template>
+          </UList>
+        </div>
+      </div>
+
+      <PanelResizeHandle
+        variant="edge"
+        :active="isListPanelDragging"
+        :disabled="isListPanelCollapsed"
+        :value="listPanelWidth"
+        :min="listPanelMinWidth"
+        :max="listPanelMaxWidth"
+        :cursor="listPanelResizeCursor"
+        @resize-start="startListPanelResize"
+        @resize-by="resizeListPanelBy"
+        @reset="resetListPanelWidth"
+      />
+    </section>
+
+    <section
+      :style="notePanelWidthStyle"
+      class="relative h-full"
+      :class="{ 'transition-[width] duration-200 ease-out': !isNotePanelDragging }"
+    >
+      <div class="h-full bg-default rounded-r-xl overflow-hidden flex flex-col">
+        <div class="px-2 pt-3 pb-2">
+          <div
+            class="mb-3 text-sm font-medium text-default flex items-center"
+            :class="isNotePanelCollapsed ? 'justify-center' : 'justify-between'"
+          >
+            <span v-if="!isNotePanelCollapsed" class="ml-3 select-none whitespace-nowrap">
+              {{ currentListTitle }}
+            </span>
+            <UTooltip :text="isNotePanelCollapsed ? t('notes.common.expand') : t('notes.common.collapse')" :kbds="['meta', 'b']">
+              <UButton
+                icon="i-lucide-panel-left"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                square
+                class="shrink-0"
+                @click="toggleNotePanel"
+              />
             </UTooltip>
+          </div>
+
+          <UTooltip :text="t('notes.panel.newNote')" :disabled="!isNotePanelCollapsed" :content="{ side: 'right' }">
+            <UButton
+              :block="!isNotePanelCollapsed"
+              size="lg"
+              variant="ghost"
+              color="neutral"
+              :class="isNotePanelCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
+              @click="handleCreateNote"
+            >
+              <UIcon name="i-lucide-notebook-pen" class="w-4 h-4 shrink-0" />
+              <span
+                v-if="!isNotePanelCollapsed"
+                class="whitespace-nowrap transition-all duration-100"
+                :style="{ transitionDelay: '100ms' }"
+              >
+                {{ t("notes.panel.newNote") }}
+              </span>
+            </UButton>
+          </UTooltip>
+        </div>
+
+        <UList
+          v-if="!isNotePanelCollapsed && notes.length > 0"
+          :items="notes"
+          :model-value="selectedNoteId"
+          value-key="id"
+          label-key="title"
+          padding="md"
+          gap="none"
+          size="lg"
+          class="flex-1"
+          @select="handleSelectNote"
+        >
+          <template #item="{ item }">
+            <div class="pl-1.5 w-full min-w-0 flex items-start justify-between gap-2">
+              <UInput
+                v-if="editingNoteId === item.id"
+                v-model="editingNoteTitle"
+                variant="none"
+                autofocus
+                size="md"
+                class="flex-1 min-w-0"
+                :ui="{ base: 'px-0 py-0.5' }"
+                @click.stop
+                @keydown.enter.prevent="handleSaveInlineNoteTitle(item.id)"
+                @keydown.esc.prevent="handleCancelInlineNoteTitle"
+                @blur="handleSaveInlineNoteTitle(item.id)"
+              />
+              <div v-else class="min-w-0 flex-1">
+                <div class="flex items-center gap-1">
+                  <UTooltip v-if="linkedNoteSessionMap.has(item.id)" :text="t('notes.panel.linkedSession')">
+                    <UIcon
+                      name="i-lucide-message-square"
+                      class="w-3.5 h-3.5 text-dimmed shrink-0 hover:text-default cursor-pointer"
+                      @click.stop="router.push({ name: 'chat', params: { sessionId: linkedNoteSessionMap.get(item.id) } })"
+                    />
+                  </UTooltip>
+                  <UText :text="item.title || t('notes.note.untitled')" class="text-sm whitespace-nowrap overflow-hidden" />
+                </div>
+                <div class="text-xs text-muted truncate mt-0.5">{{ formatPreviewText(item.previewText) || t("notes.note.emptyContent") }}</div>
+              </div>
+            </div>
           </template>
 
-          <template v-if="!isListPanelCollapsed" #item-trailing="{ item }">
-            <div class="relative flex items-center justify-end">
+          <template #item-trailing="{ item }">
+            <div v-if="editingNoteId !== item.id" class="relative flex items-center justify-end">
               <div
                 class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
-                :class="{ 'opacity-0': openListMenuId === item.id }"
+                :class="{ 'opacity-0': openNoteMenuId === item.id }"
               >
-                {{ stats.byList[item.id] || 0 }}
+                {{ formatListUpdatedAt(item.updatedAt) }}
               </div>
 
               <div
                 class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                :class="{ 'opacity-100': openListMenuId === item.id }"
+                :class="{ 'opacity-100': openNoteMenuId === item.id }"
               >
                 <UDropdownMenu
-                  :items="getCustomListMenuItems(item)"
+                  :items="getNoteMenuItems(item)"
                   size="md"
-                  @update:open="setListMenuOpen(item.id, $event)"
+                  @update:open="setNoteMenuOpen(item.id, $event)"
                 >
+                  <template #note-list-leading="{ item, active, ui }">
+                    <UIcon
+                      v-if="item.icon"
+                      :name="item.icon"
+                      :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
+                      :style="item.listColor ? { color: item.listColor } : undefined"
+                    />
+                  </template>
                   <UButton icon="i-lucide-more-horizontal" variant="ghost" color="neutral" size="sm" square @click.stop />
                 </UDropdownMenu>
               </div>
             </div>
           </template>
         </UList>
+
+        <UEmpty
+          v-else-if="!isNotePanelCollapsed"
+          icon="i-lucide-notebook-pen"
+          :title="t('notes.empty.noNote')"
+          variant="naked"
+          size="sm"
+          class="flex-1 flex flex-col items-center justify-center text-center"
+        />
       </div>
 
-    </section>
-
-    <section
-      ref="notePanelRef"
-      class="h-full bg-default rounded-r-xl overflow-hidden flex flex-col"
-    >
-      <div class="px-2 pt-3 pb-2">
-        <div
-          class="mb-3 text-sm font-medium text-default flex items-center"
-          :class="isNotePanelCollapsed ? 'justify-center' : 'justify-between'"
-        >
-          <span v-if="!isNotePanelCollapsed" class="ml-3 select-none whitespace-nowrap">
-            {{ currentListTitle }}
-          </span>
-          <UTooltip :text="isNotePanelCollapsed ? t('notes.common.expand') : t('notes.common.collapse')" :kbds="['meta', 'b']">
-            <UButton
-              icon="i-lucide-panel-left"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              square
-              class="shrink-0"
-              @click="toggleNotePanel"
-            />
-          </UTooltip>
-        </div>
-
-        <UTooltip :text="t('notes.panel.newNote')" :disabled="!isNotePanelCollapsed" :content="{ side: 'right' }">
-          <UButton
-            :block="!isNotePanelCollapsed"
-            size="lg"
-            variant="ghost"
-            color="neutral"
-            :class="isNotePanelCollapsed ? 'w-full justify-center' : 'justify-start w-full'"
-            @click="handleCreateNote"
-          >
-            <UIcon name="i-lucide-notebook-pen" class="w-4 h-4 shrink-0" />
-            <span
-              v-if="!isNotePanelCollapsed"
-              class="whitespace-nowrap transition-all duration-100"
-              :style="{ transitionDelay: '100ms' }"
-            >
-              {{ t("notes.panel.newNote") }}
-            </span>
-          </UButton>
-        </UTooltip>
-      </div>
-
-      <UList
-        v-if="!isNotePanelCollapsed && notes.length > 0"
-        :items="notes"
-        :model-value="selectedNoteId"
-        value-key="id"
-        label-key="title"
-        padding="md"
-        gap="none"
-        size="lg"
-        class="flex-1"
-        @select="handleSelectNote"
-      >
-        <template #item="{ item }">
-          <div class="pl-1.5 w-full min-w-0 flex items-start justify-between gap-2">
-            <UInput
-              v-if="editingNoteId === item.id"
-              v-model="editingNoteTitle"
-              variant="none"
-              autofocus
-              size="md"
-              class="flex-1 min-w-0"
-              :ui="{ base: 'px-0 py-0.5' }"
-              @click.stop
-              @keydown.enter.prevent="handleSaveInlineNoteTitle(item.id)"
-              @keydown.esc.prevent="handleCancelInlineNoteTitle"
-              @blur="handleSaveInlineNoteTitle(item.id)"
-            />
-            <div v-else class="min-w-0 flex-1">
-              <div class="flex items-center gap-1">
-                <UTooltip v-if="linkedNoteSessionMap.has(item.id)" :text="t('notes.panel.linkedSession')">
-                  <UIcon
-                    name="i-lucide-message-square"
-                    class="w-3.5 h-3.5 text-dimmed shrink-0 hover:text-default cursor-pointer"
-                    @click.stop="router.push({ name: 'chat', params: { sessionId: linkedNoteSessionMap.get(item.id) } })"
-                  />
-                </UTooltip>
-                <UText :text="item.title || t('notes.note.untitled')" class="text-sm whitespace-nowrap overflow-hidden" />
-              </div>
-              <div class="text-xs text-muted truncate mt-0.5">{{ formatPreviewText(item.previewText) || t("notes.note.emptyContent") }}</div>
-            </div>
-          </div>
-        </template>
-
-        <template #item-trailing="{ item }">
-          <div v-if="editingNoteId !== item.id" class="relative flex items-center justify-end">
-            <div
-              class="text-xs text-muted tabular-nums transition-opacity group-hover:opacity-0"
-              :class="{ 'opacity-0': openNoteMenuId === item.id }"
-            >
-              {{ formatListUpdatedAt(item.updatedAt) }}
-            </div>
-
-            <div
-              class="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              :class="{ 'opacity-100': openNoteMenuId === item.id }"
-            >
-              <UDropdownMenu
-                :items="getNoteMenuItems(item)"
-                size="md"
-                @update:open="setNoteMenuOpen(item.id, $event)"
-              >
-                <template #note-list-leading="{ item, active, ui }">
-                  <UIcon
-                    v-if="item.icon"
-                    :name="item.icon"
-                    :class="ui.itemLeadingIcon({ class: item.ui?.itemLeadingIcon, color: item?.color, active })"
-                    :style="item.listColor ? { color: item.listColor } : undefined"
-                  />
-                </template>
-                <UButton icon="i-lucide-more-horizontal" variant="ghost" color="neutral" size="sm" square @click.stop />
-              </UDropdownMenu>
-            </div>
-          </div>
-        </template>
-      </UList>
-
-      <UEmpty
-        v-else-if="!isNotePanelCollapsed"
-        icon="i-lucide-notebook-pen"
-        :title="t('notes.empty.noNote')"
-        variant="naked"
-        size="sm"
-        class="flex-1 flex flex-col items-center justify-center text-center"
+      <PanelResizeHandle
+        variant="gap"
+        :active="isNotePanelDragging"
+        :disabled="isNotePanelCollapsed"
+        :value="notePanelWidth"
+        :min="notePanelMinWidth"
+        :max="notePanelMaxWidth"
+        :cursor="notePanelResizeCursor"
+        @resize-start="startNotePanelResize"
+        @resize-by="resizeNotePanelBy"
+        @reset="resetNotePanelWidth"
       />
     </section>
 
@@ -426,35 +457,37 @@
 
       <section
         v-if="showAiSidebar"
-        class="w-[340px] h-full bg-default rounded-r-xl overflow-hidden flex flex-col border-l border-default"
+        :style="aiSidebarWidthStyle"
+        class="relative shrink-0 h-full"
       >
-        <div class="h-14 shrink-0 border-b border-default px-3 flex items-center justify-between">
-          <div class="text-sm font-medium text-default flex items-center gap-1.5">
-            <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
-            {{ t("notes.detail.aiAssistant") }}
-          </div>
-          <div class="flex items-center gap-1">
-            <UTooltip :text="t('notes.ai.newSession')">
-              <UButton
-                icon="i-lucide-message-square-plus"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                square
-                :disabled="!activeNote || aiSending"
-                @click="handleCreateAiSession"
-              />
-            </UTooltip>
-            <UDropdownMenu :items="aiSessionMenuItems" size="sm" :content="{ side: 'bottom', align: 'end' }">
-              <UTooltip :text="t('notes.ai.historySessions')">
-                <UButton icon="i-lucide-history" variant="ghost" color="neutral" size="sm" square :disabled="aiSessions.length === 0 || aiSending" />
+        <div class="h-full bg-default rounded-r-xl overflow-hidden flex flex-col border-l border-default">
+          <div class="h-14 shrink-0 border-b border-default px-3 flex items-center justify-between">
+            <div class="text-sm font-medium text-default flex items-center gap-1.5">
+              <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
+              {{ t("notes.detail.aiAssistant") }}
+            </div>
+            <div class="flex items-center gap-1">
+              <UTooltip :text="t('notes.ai.newSession')">
+                <UButton
+                  icon="i-lucide-message-square-plus"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  square
+                  :disabled="!activeNote || aiSending"
+                  @click="handleCreateAiSession"
+                />
               </UTooltip>
-            </UDropdownMenu>
-            <UButton icon="i-lucide-x" variant="ghost" color="neutral" size="sm" square @click="showAiSidebar = false" />
+              <UDropdownMenu :items="aiSessionMenuItems" size="sm" :content="{ side: 'bottom', align: 'end' }">
+                <UTooltip :text="t('notes.ai.historySessions')">
+                  <UButton icon="i-lucide-history" variant="ghost" color="neutral" size="sm" square :disabled="aiSessions.length === 0 || aiSending" />
+                </UTooltip>
+              </UDropdownMenu>
+              <UButton icon="i-lucide-x" variant="ghost" color="neutral" size="sm" square @click="showAiSidebar = false" />
+            </div>
           </div>
-        </div>
 
-        <div ref="aiHistoryScrollRef" class="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+          <div ref="aiHistoryScrollRef" class="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
           <div v-if="visibleAiHistory.length === 0" class="text-sm text-muted leading-5 px-1 py-2">
             {{ t("notes.ai.emptyHint") }}
           </div>
@@ -613,9 +646,9 @@
               </div>
             </div>
           </div>
-        </div>
+          </div>
 
-        <div class="shrink-0 px-3 pt-1.5 pb-2 space-y-1.5 bg-default">
+          <div class="shrink-0 px-3 pt-1.5 pb-2 space-y-1.5 bg-default">
           <div
             :class="[
               'rounded-2xl bg-default overflow-hidden transition-all duration-200 border border-default',
@@ -717,7 +750,21 @@
               @update:model-value="handleAiShortcutChange"
             />
           </div>
+          </div>
         </div>
+
+        <PanelResizeHandle
+          side="left"
+          variant="edge"
+          :active="aiSidebarResize.isDragging.value"
+          :value="aiSidebarResize.width.value"
+          :min="aiSidebarResize.minWidth.value"
+          :max="aiSidebarResize.maxWidth.value"
+          :cursor="aiSidebarResize.cursor.value"
+          @resize-start="aiSidebarResize.startResize"
+          @resize-by="aiSidebarResize.resizeBy"
+          @reset="aiSidebarResize.resetWidth"
+        />
       </section>
     </div>
 
@@ -851,9 +898,9 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
-import { useMotion } from "@vueuse/motion";
 import { useConfirm } from "@/composables/useConfirm";
 import { useMyToast } from "@/composables/useMyToast";
+import { useResizableWidth } from "@/composables/useResizableWidth";
 import { useNotes, type Note, type NoteList, type NoteScope } from "@/composables/useNotes";
 import {
   useNoteAiStore,
@@ -878,6 +925,7 @@ import SourceEditor from "@/components/editor/SourceEditor.vue";
 import PageFindBar from "@/components/PageFindBar.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
 import ModelLogo from "@/components/ModelLogo.vue";
+import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
 import UList from "@/components/UList.vue";
 import UText from "@/components/UText.vue";
 import QuoteDetailModal from "@/components/chat/QuoteDetailModal.vue";
@@ -1007,8 +1055,6 @@ const aiDiffTarget = ref<{ itemId: string; toolCallId: string } | null>(null);
 const aiQuoteDetailOpen = ref(false);
 const aiQuoteDetailText = ref("");
 
-const listPanelRef = ref<HTMLElement>();
-const notePanelRef = ref<HTMLElement>();
 const aiHistoryScrollRef = ref<HTMLElement | null>(null);
 
 const LIST_PANEL_COLLAPSE_KEY = "notes-list-panel-collapsed";
@@ -1072,21 +1118,57 @@ function saveAiSelectionDraft(sessionId: string, selection: NoteAiSelectionConte
 const isListPanelCollapsed = ref(localStorage.getItem(LIST_PANEL_COLLAPSE_KEY) === "true");
 const isNotePanelCollapsed = ref(localStorage.getItem(NOTE_PANEL_COLLAPSE_KEY) === "true");
 
-const listPanelMotion = useMotion(listPanelRef, {
-  initial: { width: isListPanelCollapsed.value ? 44 : 184 },
-  enter: {
-    width: isListPanelCollapsed.value ? 44 : 184,
-    transition: { type: "spring", stiffness: 300, damping: 30 },
-  },
+const {
+  width: listPanelWidth,
+  minWidth: listPanelMinWidth,
+  maxWidth: listPanelMaxWidth,
+  widthStyle: listPanelWidthStyle,
+  cursor: listPanelResizeCursor,
+  isDragging: isListPanelDragging,
+  startResize: startListPanelResize,
+  resizeBy: resizeListPanelBy,
+  resetWidth: resetListPanelWidth,
+} = useResizableWidth({
+  storageKey: "notes-list-panel-width",
+  defaultWidth: 184,
+  minWidth: 160,
+  maxWidth: 280,
+  collapsed: isListPanelCollapsed,
+  collapsedWidth: 44,
+  side: "right",
+  step: 16,
 });
 
-const notePanelMotion = useMotion(notePanelRef, {
-  initial: { width: isNotePanelCollapsed.value ? 56 : 256 },
-  enter: {
-    width: isNotePanelCollapsed.value ? 56 : 256,
-    transition: { type: "spring", stiffness: 300, damping: 30 },
-  },
+const {
+  width: notePanelWidth,
+  minWidth: notePanelMinWidth,
+  maxWidth: notePanelMaxWidth,
+  widthStyle: notePanelWidthStyle,
+  cursor: notePanelResizeCursor,
+  isDragging: isNotePanelDragging,
+  startResize: startNotePanelResize,
+  resizeBy: resizeNotePanelBy,
+  resetWidth: resetNotePanelWidth,
+} = useResizableWidth({
+  storageKey: "notes-item-panel-width",
+  defaultWidth: 256,
+  minWidth: 220,
+  maxWidth: 420,
+  collapsed: isNotePanelCollapsed,
+  collapsedWidth: 56,
+  side: "right",
+  step: 16,
 });
+
+const aiSidebarResize = useResizableWidth({
+  storageKey: "notes-ai-sidebar-width",
+  defaultWidth: 340,
+  minWidth: 300,
+  maxWidth: 520,
+  side: "left",
+  step: 16,
+});
+const aiSidebarWidthStyle = aiSidebarResize.widthStyle;
 
 function toggleListPanel() {
   isListPanelCollapsed.value = !isListPanelCollapsed.value;
@@ -1097,20 +1179,6 @@ function toggleNotePanel() {
   isNotePanelCollapsed.value = !isNotePanelCollapsed.value;
   localStorage.setItem(NOTE_PANEL_COLLAPSE_KEY, String(isNotePanelCollapsed.value));
 }
-
-watch(isListPanelCollapsed, (collapsed) => {
-  listPanelMotion.apply({
-    width: collapsed ? 44 : 184,
-    transition: { type: "spring", stiffness: 300, damping: 30 },
-  });
-});
-
-watch(isNotePanelCollapsed, (collapsed) => {
-  notePanelMotion.apply({
-    width: collapsed ? 56 : 256,
-    transition: { type: "spring", stiffness: 300, damping: 30 },
-  });
-});
 
 defineShortcuts({
   meta_b: {

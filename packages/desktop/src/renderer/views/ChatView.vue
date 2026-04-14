@@ -233,99 +233,115 @@
       <div 
         v-if="!shouldShowCenterView"
         ref="sidebarRef"
-        class="shrink-0 h-full overflow-hidden"
+        class="relative shrink-0 h-full overflow-visible"
       >
-        <ChatTocSidebar 
-          v-show="showTocSidebar"
-          @close="showTocSidebar = false"
-        />
-        <div v-if="showNoteSidebar" class="h-full w-[400px] bg-default rounded-r-xl flex flex-col overflow-hidden border-l border-default">
-          <div class="h-14 flex items-center justify-between px-4 py-3 border-b border-default shrink-0">
-            <div
-              v-if="sessionNoteData"
-              class="flex items-center gap-1.5 font-medium group/note px-2.5 py-0.5 rounded-md max-w-[280px]"
-              :class="{ 'hover:bg-elevated transition-colors': !isEditingNoteTitle }"
-            >
-              <UInput
-                v-if="isEditingNoteTitle"
-                ref="noteTitleInputRef"
-                v-model="sessionNoteTitle"
-                variant="none"
-                size="md"
-                class="w-[280px]"
-                :ui="{ base: 'px-0 py-0 rounded-none' }"
-                @blur="handleSaveNoteTitle"
-                @keydown.enter.prevent="handleSaveNoteTitle"
-                @keydown.esc.prevent="isEditingNoteTitle = false"
-              />
-              <template v-else>
-                <span class="text-sm text-default truncate">
-                  {{ sessionNoteTitle || t("chat.view.sessionNote") }}
-                </span>
-                <div class="opacity-0 group-hover/note:opacity-100 transition-opacity">
-                  <UTooltip :text="t('notes.detail.editTitle')">
-                    <UButton
-                      icon="i-lucide-pencil"
-                      variant="ghost"
-                      color="neutral"
-                      size="sm"
-                      square
-                      @click.stop="startEditNoteTitle"
-                    />
-                  </UTooltip>
-                </div>
-              </template>
-            </div>
-            <div v-else class="text-sm font-medium text-default">{{ t("chat.view.sessionNote") }}</div>
-            <div class="flex items-center gap-1">
-              <UTooltip v-if="sessionNoteData" :text="t('chat.notePreview.openInNotes')">
+        <div class="h-full overflow-hidden">
+          <ChatTocSidebar 
+            v-show="showTocSidebar"
+            @close="showTocSidebar = false"
+          />
+          <div v-if="showNoteSidebar" class="h-full w-full bg-default rounded-r-xl flex flex-col overflow-hidden border-l border-default">
+            <div class="h-14 flex items-center justify-between px-4 py-3 border-b border-default shrink-0">
+              <div
+                v-if="sessionNoteData"
+                class="flex items-center gap-1.5 font-medium group/note px-2.5 py-0.5 rounded-md max-w-[280px]"
+                :class="{ 'hover:bg-elevated transition-colors': !isEditingNoteTitle }"
+              >
+                <UInput
+                  v-if="isEditingNoteTitle"
+                  ref="noteTitleInputRef"
+                  v-model="sessionNoteTitle"
+                  variant="none"
+                  size="md"
+                  class="w-[280px]"
+                  :ui="{ base: 'px-0 py-0 rounded-none' }"
+                  @blur="handleSaveNoteTitle"
+                  @keydown.enter.prevent="handleSaveNoteTitle"
+                  @keydown.esc.prevent="isEditingNoteTitle = false"
+                />
+                <template v-else>
+                  <span class="text-sm text-default truncate">
+                    {{ sessionNoteTitle || t("chat.view.sessionNote") }}
+                  </span>
+                  <div class="opacity-0 group-hover/note:opacity-100 transition-opacity">
+                    <UTooltip :text="t('notes.detail.editTitle')">
+                      <UButton
+                        icon="i-lucide-pencil"
+                        variant="ghost"
+                        color="neutral"
+                        size="sm"
+                        square
+                        @click.stop="startEditNoteTitle"
+                      />
+                    </UTooltip>
+                  </div>
+                </template>
+              </div>
+              <div v-else class="text-sm font-medium text-default">{{ t("chat.view.sessionNote") }}</div>
+              <div class="flex items-center gap-1">
+                <UTooltip v-if="sessionNoteData" :text="t('chat.notePreview.openInNotes')">
+                  <UButton
+                    icon="i-lucide-external-link"
+                    size="sm"
+                    color="neutral"
+                    variant="ghost"
+                    square
+                    @click="handleOpenInNotes"
+                  />
+                </UTooltip>
                 <UButton
-                  icon="i-lucide-external-link"
+                  icon="i-lucide-x"
                   size="sm"
                   color="neutral"
                   variant="ghost"
                   square
-                  @click="handleOpenInNotes"
+                  @click="showNoteSidebar = false"
                 />
-              </UTooltip>
-              <UButton
-                icon="i-lucide-x"
-                size="sm"
-                color="neutral"
-                variant="ghost"
-                square
-                @click="showNoteSidebar = false"
+              </div>
+            </div>
+            <div class="flex-1 min-h-0 flex flex-col">
+              <div v-if="isNoteLoading" class="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-muted">
+                <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin" />
+                <p class="text-sm">{{ t("chat.view.noteLoading") }}</p>
+              </div>
+              <div v-else-if="!sessionNoteData" class="flex-1 flex flex-col items-center justify-center gap-3 px-8">
+                <p class="text-sm text-muted text-center leading-6 mb-2 whitespace-pre-line">{{ t("chat.view.noteEmptyHint") }}</p>
+                <UButton
+                  icon="i-lucide-notebook-pen"
+                  :loading="isCreatingNote"
+                  variant="soft"
+                  color="neutral"
+                  @click="handleCreateSessionNote"
+                >
+                  {{ t("chat.view.createSessionNote") }}
+                </UButton>
+              </div>
+              <DocumentEditor
+                v-else
+                v-model="sessionNoteContent"
+                :placeholder="t('chat.view.notePlaceholder')"
+                :show-drag-handle="false"
+                :show-image-toolbar="false"
+                :show-selection-ai-toolbar="false"
+                :ui="{ root: 'flex-1 min-h-0 flex flex-col overflow-hidden', content: 'flex-1 min-h-0 overflow-y-auto', base: 'p-4 sm:p-4' }"
               />
             </div>
           </div>
-          <div class="flex-1 min-h-0 flex flex-col">
-            <div v-if="isNoteLoading" class="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-muted">
-              <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin" />
-              <p class="text-sm">{{ t("chat.view.noteLoading") }}</p>
-            </div>
-            <div v-else-if="!sessionNoteData" class="flex-1 flex flex-col items-center justify-center gap-3 px-8">
-              <p class="text-sm text-muted text-center leading-6 mb-2 whitespace-pre-line">{{ t("chat.view.noteEmptyHint") }}</p>
-              <UButton
-                icon="i-lucide-notebook-pen"
-                :loading="isCreatingNote"
-                variant="soft"
-                color="neutral"
-                @click="handleCreateSessionNote"
-              >
-                {{ t("chat.view.createSessionNote") }}
-              </UButton>
-            </div>
-            <DocumentEditor
-              v-else
-              v-model="sessionNoteContent"
-              :placeholder="t('chat.view.notePlaceholder')"
-              :show-drag-handle="false"
-              :show-image-toolbar="false"
-              :show-selection-ai-toolbar="false"
-              :ui="{ root: 'flex-1 min-h-0 flex flex-col overflow-hidden', content: 'flex-1 min-h-0 overflow-y-auto', base: 'p-4 sm:p-4' }"
-            />
-          </div>
         </div>
+
+        <PanelResizeHandle
+          v-if="showTocSidebar || showNoteSidebar"
+          side="left"
+          variant="edge"
+          :active="activeSidebarIsDragging"
+          :value="activeSidebarResizableWidth"
+          :min="activeSidebarMinWidth"
+          :max="activeSidebarMaxWidth"
+          :cursor="activeSidebarCursor"
+          @resize-start="handleActiveSidebarResizeStart"
+          @resize-by="resizeActiveSidebarBy"
+          @reset="resetActiveSidebarWidth"
+        />
       </div>
     </div>
   </div>
@@ -429,6 +445,7 @@ import ChatTocSidebar from "../components/chat/ChatTocSidebar.vue";
 import BranchManagerModal from "../components/chat/BranchManagerModal.vue";
 import SessionOverviewModal from "../components/chat/SessionOverviewModal.vue";
 import TempAskOverlay from "../components/chat/TempAskOverlay.vue";
+import PanelResizeHandle from "../components/PanelResizeHandle.vue";
 import PageFindBar from "../components/PageFindBar.vue";
 import ScenarioDetail from "../components/ScenarioDetail.vue";
 import ScenarioSelectorModal from "../components/ScenarioSelectorModal.vue";
@@ -439,6 +456,7 @@ import { useTooltipOnTruncate } from "@/composables/useTooltipOnTruncate";
 import { useMyToast } from "@/composables/useMyToast";
 import { useSessionDelete } from "@/composables/useSessionDelete";
 import { useConfirm } from "@/composables/useConfirm";
+import { useResizableWidth } from "@/composables/useResizableWidth";
 import { useMotion } from "@vueuse/motion";
 import { useDebounceFn } from "@vueuse/core";
 import { DEFAULT_COLOR } from "@/config/project-icon-config";
@@ -551,6 +569,22 @@ const isNoteLoading = ref(false);
 // 侧边栏动画
 const TOC_SIDEBAR_WIDTH = 300;
 const NOTE_SIDEBAR_WIDTH = 400;
+const tocSidebarResize = useResizableWidth({
+  storageKey: "chat-toc-sidebar-width",
+  defaultWidth: TOC_SIDEBAR_WIDTH,
+  minWidth: 240,
+  maxWidth: 420,
+  side: "left",
+  step: 16
+});
+const noteSidebarResize = useResizableWidth({
+  storageKey: "chat-note-sidebar-width",
+  defaultWidth: NOTE_SIDEBAR_WIDTH,
+  minWidth: 320,
+  maxWidth: 560,
+  side: "left",
+  step: 16
+});
 const sidebarMotionInstance = useMotion(sidebarRef, {
   initial: { width: 0 },
   enter: {
@@ -558,10 +592,33 @@ const sidebarMotionInstance = useMotion(sidebarRef, {
     transition: { type: 'spring', stiffness: 300, damping: 30 }
   }
 });
+const activeSidebarResize = computed(() => {
+  return showNoteSidebar.value ? noteSidebarResize : tocSidebarResize;
+});
+const isSidebarDragging = computed(() => {
+  return tocSidebarResize.isDragging.value || noteSidebarResize.isDragging.value;
+});
+const activeSidebarIsDragging = computed(() => activeSidebarResize.value.isDragging.value);
+const activeSidebarResizableWidth = computed(() => activeSidebarResize.value.width.value);
+const activeSidebarMinWidth = computed(() => activeSidebarResize.value.minWidth.value);
+const activeSidebarMaxWidth = computed(() => activeSidebarResize.value.maxWidth.value);
+const activeSidebarCursor = computed(() => activeSidebarResize.value.cursor.value);
+
+function handleActiveSidebarResizeStart(event: PointerEvent) {
+  activeSidebarResize.value.startResize(event);
+}
+
+function resizeActiveSidebarBy(direction: number) {
+  activeSidebarResize.value.resizeBy(direction);
+}
+
+function resetActiveSidebarWidth() {
+  activeSidebarResize.value.resetWidth();
+}
 
 const activeSidebarWidth = computed(() => {
-  if (showNoteSidebar.value) return NOTE_SIDEBAR_WIDTH;
-  if (showTocSidebar.value) return TOC_SIDEBAR_WIDTH;
+  if (showNoteSidebar.value) return noteSidebarResize.width.value;
+  if (showTocSidebar.value) return tocSidebarResize.width.value;
   return 0;
 });
 
@@ -569,7 +626,9 @@ watch(activeSidebarWidth, (w) => {
   if (sidebarMotionInstance) {
     sidebarMotionInstance.apply({
       width: w,
-      transition: { type: 'spring', stiffness: 300, damping: 30 }
+      transition: isSidebarDragging.value
+        ? { duration: 0 }
+        : { type: 'spring', stiffness: 300, damping: 30 }
     });
   }
 });
