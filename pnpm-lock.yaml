@@ -113,6 +113,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.41
         version: 3.0.52(zod@3.25.76)
+      '@electron/rebuild':
+        specifier: ^4.0.3
+        version: 4.0.3
       '@formkit/auto-animate':
         specifier: ^0.9.0
         version: 0.9.0
@@ -224,9 +227,6 @@ importers:
       shiki:
         specifier: ^3.13.0
         version: 3.23.0
-      splitpanes:
-        specifier: ^4.0.4
-        version: 4.0.4(vue@3.5.32(typescript@5.9.3))
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -5180,11 +5180,6 @@ packages:
     resolution: {integrity: sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==}
     engines: {node: '>=0.10.0'}
 
-  splitpanes@4.0.4:
-    resolution: {integrity: sha512-RbysugZhjbCw5fgplvk3hOXr41stahQDtZhHVkhnnJI6H4wlGDhM2kIpbehy7v92duy9GnMa8zIhHigIV1TWtg==}
-    peerDependencies:
-      vue: ^3.2.0
-
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
@@ -7704,7 +7699,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 24.12.2
+      '@types/node': 25.6.0
       '@types/responselike': 1.0.3
 
   '@types/d3-array@3.2.2': {}
@@ -7852,7 +7847,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 24.12.2
+      '@types/node': 25.6.0
 
   '@types/linkify-it@5.0.0': {}
 
@@ -7885,7 +7880,7 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 24.12.2
+      '@types/node': 25.6.0
 
   '@types/tough-cookie@4.0.5': {}
 
@@ -11558,10 +11553,6 @@ snapshots:
   space-separated-tokens@2.0.2: {}
 
   speakingurl@14.0.1: {}
-
-  splitpanes@4.0.4(vue@3.5.32(typescript@5.9.3)):
-    dependencies:
-      vue: 3.5.32(typescript@5.9.3)
 
   sprintf-js@1.0.3: {}
 

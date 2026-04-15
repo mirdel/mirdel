@@ -224,9 +224,9 @@ export function getMemorySettings(): MemorySettings {
     crossSessionEnabled: crossSessionRow?.value !== "false",
     longTermEnabled: longTermRow?.value !== "false",
     historicalEnabled: historicalRow?.value === "true",
-    historicalEmbeddingModel: historicalEmbeddingModelRow?.value && historicalEmbeddingModelRow.value !== "__default__"
-      ? historicalEmbeddingModelRow.value
-      : "",
+    historicalEmbeddingModel: historicalEmbeddingModelRow
+      ? String(historicalEmbeddingModelRow.value || "").trim()
+      : "__default__",
     historicalEmbeddingDimension: Number.isFinite(parsedDimension) && parsedDimension !== null && parsedDimension > 0
       ? Math.floor(parsedDimension)
       : null,
@@ -259,12 +259,8 @@ export function setMemorySettings(v: Partial<MemorySettings>) {
   }
   if (v.historicalEmbeddingModel !== undefined) {
     const model = String(v.historicalEmbeddingModel || "").trim();
-    if (!model || model === "__default__") {
-      db.prepare(`DELETE FROM settings WHERE key = ?`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL);
-    } else {
-      db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
-                  ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL, model);
-    }
+    db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_MEMORY_HISTORICAL_EMBEDDING_MODEL, model);
   }
   if (v.historicalEmbeddingDimension !== undefined) {
     if (v.historicalEmbeddingDimension === null) {

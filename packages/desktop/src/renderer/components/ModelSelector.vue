@@ -19,7 +19,8 @@
       ]"
       tabindex="0"
     >
-      <ModelLogo v-if="selectedModel" :model-id="selectedModel.id" size="sm" />
+      <ModelLogo v-if="selectedModel && !selectedModel.unconfigured" :model-id="selectedModel.id" size="sm" />
+      <ModelUnconfiguredLogo v-else-if="selectedModel" />
       <div v-if="selectedModel" class="flex-1 min-w-0 flex items-center gap-1">
         <span class="flex-1 truncate">{{ selectedModel.id }}</span>
         <span
@@ -80,18 +81,19 @@
             <div v-if="props.showDefault" class="flex flex-col gap-1">
               <!-- chat 类型：场景模型 -->
               <div
-                v-if="modelType === 'chat' && scenarioModelInfo"
+                v-if="modelType === 'chat' && props.scenarioId"
                 @click="selectSpecialModel(SCENARIO_MODEL_PLACEHOLDER)"
                 class="group relative flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-elevated/50 cursor-pointer transition-colors"
                 :class="{ 'bg-elevated': props.modelValue === SCENARIO_MODEL_PLACEHOLDER }"
               >
-                <ModelLogo :model-id="scenarioModelInfo.model.id" size="sm" />
+                <ModelLogo v-if="scenarioModelInfo && !scenarioModelInfo.unconfigured" :model-id="scenarioModelInfo.model?.id ?? ''" size="sm" />
+                <ModelUnconfiguredLogo v-else />
                 <ModelSelectItem
                   :prefix="t('model.selector.special.scenario')"
-                  :model-name="scenarioModelInfo.displayName"
-                  :model-tag="resolveLocalModelTag(scenarioModelInfo.provider.id)"
-                  :provider-name="scenarioModelInfo.provider.name"
-                  :show-provider="true"
+                  :model-name="scenarioModelInfo?.displayName ?? t('model.selector.unconfigured')"
+                  :model-tag="resolveLocalModelTag(scenarioModelInfo?.provider?.id)"
+                  :provider-name="scenarioModelInfo?.provider?.name"
+                  :show-provider="!!scenarioModelInfo?.provider"
                   :show-favorite="false"
                   :capabilities="{}"
                 />
@@ -99,18 +101,19 @@
               
               <!-- chat 类型：默认通用模型 -->
               <div
-                v-if="modelType === 'chat' && defaultModelInfo"
+                v-if="modelType === 'chat'"
                 @click="selectSpecialModel(DEFAULT_MODEL_PLACEHOLDER)"
                 class="group relative flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-elevated/50 cursor-pointer transition-colors"
                 :class="{ 'bg-elevated': props.modelValue === DEFAULT_MODEL_PLACEHOLDER }"
               >
-                <ModelLogo :model-id="defaultModelInfo.model.id" size="sm" />
+                <ModelLogo v-if="!defaultModelInfo.unconfigured" :model-id="defaultModelInfo.model?.id ?? ''" size="sm" />
+                <ModelUnconfiguredLogo v-else />
                 <ModelSelectItem
                   :prefix="t('model.selector.special.defaultChat')"
                   :model-name="defaultModelInfo.displayName"
-                  :model-tag="resolveLocalModelTag(defaultModelInfo.provider.id)"
-                  :provider-name="defaultModelInfo.provider.name"
-                  :show-provider="true"
+                  :model-tag="resolveLocalModelTag(defaultModelInfo.provider?.id)"
+                  :provider-name="defaultModelInfo.provider?.name"
+                  :show-provider="!!defaultModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
                 />
@@ -118,18 +121,19 @@
               
               <!-- translate 类型：默认翻译模型 -->
               <div
-                v-if="modelType === 'translate' && defaultTranslateModelInfo"
+                v-if="modelType === 'translate'"
                 @click="selectSpecialModel(DEFAULT_MODEL_PLACEHOLDER)"
                 class="group relative flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-elevated/50 cursor-pointer transition-colors"
                 :class="{ 'bg-elevated': props.modelValue === DEFAULT_MODEL_PLACEHOLDER }"
               >
-                <ModelLogo :model-id="defaultTranslateModelInfo.model.id" size="sm" />
+                <ModelLogo v-if="!defaultTranslateModelInfo.unconfigured" :model-id="defaultTranslateModelInfo.model?.id ?? ''" size="sm" />
+                <ModelUnconfiguredLogo v-else />
                 <ModelSelectItem
                   :prefix="t('model.selector.special.defaultTranslate')"
                   :model-name="defaultTranslateModelInfo.displayName"
-                  :model-tag="resolveLocalModelTag(defaultTranslateModelInfo.provider.id)"
-                  :provider-name="defaultTranslateModelInfo.provider.name"
-                  :show-provider="true"
+                  :model-tag="resolveLocalModelTag(defaultTranslateModelInfo.provider?.id)"
+                  :provider-name="defaultTranslateModelInfo.provider?.name"
+                  :show-provider="!!defaultTranslateModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
                 />
@@ -137,18 +141,19 @@
 
               <!-- embedding 类型：默认嵌入模型 -->
               <div
-                v-if="modelType === 'embedding' && defaultEmbeddingModelInfo"
+                v-if="modelType === 'embedding'"
                 @click="selectSpecialModel(DEFAULT_MODEL_PLACEHOLDER)"
                 class="group relative flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-elevated/50 cursor-pointer transition-colors"
                 :class="{ 'bg-elevated': props.modelValue === DEFAULT_MODEL_PLACEHOLDER }"
               >
-                <ModelLogo :model-id="defaultEmbeddingModelInfo.model.id" size="sm" />
+                <ModelLogo v-if="!defaultEmbeddingModelInfo.unconfigured" :model-id="defaultEmbeddingModelInfo.model?.id ?? ''" size="sm" />
+                <ModelUnconfiguredLogo v-else />
                 <ModelSelectItem
                   :prefix="t('model.selector.special.defaultEmbedding')"
                   :model-name="defaultEmbeddingModelInfo.displayName"
-                  :model-tag="resolveLocalModelTag(defaultEmbeddingModelInfo.provider.id)"
-                  :provider-name="defaultEmbeddingModelInfo.provider.name"
-                  :show-provider="true"
+                  :model-tag="resolveLocalModelTag(defaultEmbeddingModelInfo.provider?.id)"
+                  :provider-name="defaultEmbeddingModelInfo.provider?.name"
+                  :show-provider="!!defaultEmbeddingModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
                 />
@@ -156,25 +161,26 @@
 
               <!-- image-gen 类型：默认图片模型 -->
               <div
-                v-if="modelType === 'image-gen' && defaultImageModelInfo"
+                v-if="modelType === 'image-gen'"
                 @click="selectSpecialModel(DEFAULT_MODEL_PLACEHOLDER)"
                 class="group relative flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-elevated/50 cursor-pointer transition-colors"
                 :class="{ 'bg-elevated': props.modelValue === DEFAULT_MODEL_PLACEHOLDER }"
               >
-                <ModelLogo :model-id="defaultImageModelInfo.model.id" size="sm" />
+                <ModelLogo v-if="!defaultImageModelInfo.unconfigured" :model-id="defaultImageModelInfo.model?.id ?? ''" size="sm" />
+                <ModelUnconfiguredLogo v-else />
                 <ModelSelectItem
                   :prefix="defaultImageModelPrefix"
                   :model-name="defaultImageModelInfo.displayName"
-                  :model-tag="resolveLocalModelTag(defaultImageModelInfo.provider.id)"
-                  :provider-name="defaultImageModelInfo.provider.name"
-                  :show-provider="true"
+                  :model-tag="resolveLocalModelTag(defaultImageModelInfo.provider?.id)"
+                  :provider-name="defaultImageModelInfo.provider?.name"
+                  :show-provider="!!defaultImageModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
                 />
               </div>
               
               <!-- 分隔线 -->
-              <div v-if="(modelType === 'chat' && (scenarioModelInfo || defaultModelInfo)) || (modelType === 'embedding' && defaultEmbeddingModelInfo) || (modelType === 'translate' && defaultTranslateModelInfo) || (modelType === 'image-gen' && defaultImageModelInfo)" class="border-t border-default my-1"></div>
+              <div v-if="hasSpecialModelRows" class="border-t border-default my-1"></div>
             </div>
 
             <!-- 已收藏 -->
@@ -283,6 +289,7 @@ import type { LocalModelRuntimeStatus } from '@/stores/useSettingsStore'
 import { DEFAULT_MODEL_PLACEHOLDER, SCENARIO_MODEL_PLACEHOLDER } from '@/stores/useChatStore'
 import ModelSelectItem from './ModelSelectItem.vue'
 import ModelLogo from './ModelLogo.vue'
+import ModelUnconfiguredLogo from './ModelUnconfiguredLogo.vue'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -315,6 +322,13 @@ const isOpen = ref(false)
 const searchQuery = ref('')
 const placeholderText = computed(() => props.placeholder || t('model.selector.placeholder'))
 const LOCAL_PROVIDER_ID = 'local'
+
+type SpecialModelInfo = {
+  provider?: any
+  model?: any
+  displayName: string
+  unconfigured: boolean
+}
 
 function clearModelSelection() {
   emit('update:modelValue', '')
@@ -359,55 +373,40 @@ function resolveModelDisabledTooltip(providerId: string, modelId: string): strin
   return null
 }
 
-// 获取默认通用模型信息（chat 类型）
-const defaultModelInfo = computed(() => {
-  const defaultModel = settingsStore.defaultModel
-  if (!defaultModel?.providerId || !defaultModel?.modelId) {
-    return null
+function unconfiguredSpecialModel(): SpecialModelInfo {
+  return {
+    displayName: t('model.selector.unconfigured'),
+    unconfigured: true
   }
+}
 
-  const resolved = resolveProviderModel(defaultModel.providerId, defaultModel.modelId, { requireSelectable: true })
-  if (!resolved) return null
-  
+function resolveSpecialModelInfo(modelRef?: { providerId?: string; modelId?: string } | null): SpecialModelInfo {
+  if (!modelRef?.providerId || !modelRef?.modelId) return unconfiguredSpecialModel()
+
+  const resolved = resolveProviderModel(modelRef.providerId, modelRef.modelId, { requireSelectable: true })
+  if (!resolved) return unconfiguredSpecialModel()
+
   return {
     provider: resolved.provider,
     model: resolved.model,
-    displayName: resolved.model.id
+    displayName: resolved.model.id,
+    unconfigured: false
   }
+}
+
+// 获取默认通用模型信息（chat 类型）
+const defaultModelInfo = computed(() => {
+  return resolveSpecialModelInfo(settingsStore.defaultModel)
 })
 
 // 获取默认翻译模型信息
 const defaultTranslateModelInfo = computed(() => {
-  const translateModel = settingsStore.defaultModels?.translate
-  if (!translateModel?.providerId || !translateModel?.modelId) {
-    return null
-  }
-
-  const resolved = resolveProviderModel(translateModel.providerId, translateModel.modelId, { requireSelectable: true })
-  if (!resolved) return null
-
-  return {
-    provider: resolved.provider,
-    model: resolved.model,
-    displayName: resolved.model.id
-  }
+  return resolveSpecialModelInfo(settingsStore.defaultModels?.translate)
 })
 
 // 获取默认嵌入模型信息
 const defaultEmbeddingModelInfo = computed(() => {
-  const embeddingModel = settingsStore.defaultModels?.embedding
-  if (!embeddingModel?.providerId || !embeddingModel?.modelId) {
-    return null
-  }
-
-  const resolved = resolveProviderModel(embeddingModel.providerId, embeddingModel.modelId, { requireSelectable: true })
-  if (!resolved) return null
-  
-  return {
-    provider: resolved.provider,
-    model: resolved.model,
-    displayName: resolved.model.id
-  }
+  return resolveSpecialModelInfo(settingsStore.defaultModels?.embedding)
 })
 
 // 获取默认图片模型信息
@@ -415,18 +414,7 @@ const defaultImageModelInfo = computed(() => {
   const imageModel = props.imageIntent === 'edit'
     ? settingsStore.defaultModels?.imageEdit
     : settingsStore.defaultModels?.imageGenerate
-  if (!imageModel?.providerId || !imageModel?.modelId) {
-    return null
-  }
-
-  const resolved = resolveProviderModel(imageModel.providerId, imageModel.modelId, { requireSelectable: true })
-  if (!resolved) return null
-
-  return {
-    provider: resolved.provider,
-    model: resolved.model,
-    displayName: resolved.model.id
-  }
+  return resolveSpecialModelInfo(imageModel)
 })
 
 const defaultImageModelPrefix = computed(() => (
@@ -440,7 +428,7 @@ const scenarioModelInfo = computed(() => {
   if (!props.scenarioId) return null
   
   const scenario = settingsStore.scenarios.find(s => s.id === props.scenarioId)
-  if (!scenario) return null
+  if (!scenario) return unconfiguredSpecialModel()
   
   // 解析场景的 selectedModel
   let modelToShow = scenario.selectedModel
@@ -448,25 +436,36 @@ const scenarioModelInfo = computed(() => {
   // 如果场景配置的是默认模型，则解析为具体的默认模型
   if (modelToShow === DEFAULT_MODEL_PLACEHOLDER) {
     const defaultModel = settingsStore.defaultModel
-    if (!defaultModel?.providerId || !defaultModel?.modelId) {
-      return null
-    }
+    if (!defaultModel?.providerId || !defaultModel?.modelId) return unconfiguredSpecialModel()
     modelToShow = `${defaultModel.providerId}::${defaultModel.modelId}`
   }
   
   // 解析为具体的 provider 和 model
   const [providerId, modelId] = modelToShow.split('::')
-  if (!providerId || !modelId) return null
+  if (!providerId || !modelId) return unconfiguredSpecialModel()
 
   const resolved = resolveProviderModel(providerId, modelId, { requireSelectable: true })
-  if (!resolved) return null
+  if (!resolved) return unconfiguredSpecialModel()
   
   return {
     provider: resolved.provider,
     model: resolved.model,
-    displayName: resolved.model.id
+    displayName: resolved.model.id,
+    unconfigured: false
   }
 })
+
+const hasSpecialModelRows = computed(() => {
+  if (!props.showDefault) return false
+  return props.modelType === 'chat'
+    || props.modelType === 'embedding'
+    || props.modelType === 'translate'
+    || props.modelType === 'image-gen'
+})
+
+function buildSpecialSelectedLabel(prefix: string, info: SpecialModelInfo): string {
+  return info.unconfigured ? `${prefix}（${info.displayName}）` : info.displayName
+}
 
 // 获取当前选中的模型
 const selectedModel = computed(() => {
@@ -476,32 +475,52 @@ const selectedModel = computed(() => {
   if (props.modelValue === DEFAULT_MODEL_PLACEHOLDER) {
     // embedding 类型使用默认嵌入模型
     if (props.modelType === 'embedding') {
-      if (!defaultEmbeddingModelInfo.value) return null
+      if (defaultEmbeddingModelInfo.value.unconfigured) {
+        return {
+          id: buildSpecialSelectedLabel(t('model.selector.special.defaultEmbedding'), defaultEmbeddingModelInfo.value),
+          unconfigured: true
+        }
+      }
       return {
-        ...defaultEmbeddingModelInfo.value.model,
+        ...defaultEmbeddingModelInfo.value.model!,
         name: defaultEmbeddingModelInfo.value.displayName
       }
     }
     // translate 类型使用默认翻译模型
     if (props.modelType === 'translate') {
-      if (!defaultTranslateModelInfo.value) return null
+      if (defaultTranslateModelInfo.value.unconfigured) {
+        return {
+          id: buildSpecialSelectedLabel(t('model.selector.special.defaultTranslate'), defaultTranslateModelInfo.value),
+          unconfigured: true
+        }
+      }
       return {
-        ...defaultTranslateModelInfo.value.model,
+        ...defaultTranslateModelInfo.value.model!,
         name: defaultTranslateModelInfo.value.displayName
       }
     }
     // image-gen 类型使用默认图片模型
     if (props.modelType === 'image-gen') {
-      if (!defaultImageModelInfo.value) return null
+      if (defaultImageModelInfo.value.unconfigured) {
+        return {
+          id: buildSpecialSelectedLabel(defaultImageModelPrefix.value, defaultImageModelInfo.value),
+          unconfigured: true
+        }
+      }
       return {
-        ...defaultImageModelInfo.value.model,
+        ...defaultImageModelInfo.value.model!,
         name: defaultImageModelInfo.value.displayName
       }
     }
     // chat 类型使用默认通用模型
-    if (!defaultModelInfo.value) return null
+    if (defaultModelInfo.value.unconfigured) {
+      return {
+        id: buildSpecialSelectedLabel(t('model.selector.special.defaultChat'), defaultModelInfo.value),
+        unconfigured: true
+      }
+    }
     return {
-      ...defaultModelInfo.value.model,
+      ...defaultModelInfo.value.model!,
       name: defaultModelInfo.value.displayName
     }
   }
@@ -509,8 +528,14 @@ const selectedModel = computed(() => {
   // 如果选中的是"使用场景模型"
   if (props.modelValue === SCENARIO_MODEL_PLACEHOLDER) {
     if (!scenarioModelInfo.value) return null
+    if (scenarioModelInfo.value.unconfigured) {
+      return {
+        id: buildSpecialSelectedLabel(t('model.selector.special.scenario'), scenarioModelInfo.value),
+        unconfigured: true
+      }
+    }
     return {
-      ...scenarioModelInfo.value.model,
+      ...scenarioModelInfo.value.model!,
       name: scenarioModelInfo.value.displayName
     }
   }
@@ -529,19 +554,19 @@ const selectedModelTag = computed(() => {
 
   if (props.modelValue === DEFAULT_MODEL_PLACEHOLDER) {
     if (props.modelType === 'embedding') {
-      return resolveLocalModelTag(defaultEmbeddingModelInfo.value?.provider.id)
+      return resolveLocalModelTag(defaultEmbeddingModelInfo.value.provider?.id)
     }
     if (props.modelType === 'translate') {
-      return resolveLocalModelTag(defaultTranslateModelInfo.value?.provider.id)
+      return resolveLocalModelTag(defaultTranslateModelInfo.value.provider?.id)
     }
     if (props.modelType === 'image-gen') {
-      return resolveLocalModelTag(defaultImageModelInfo.value?.provider.id)
+      return resolveLocalModelTag(defaultImageModelInfo.value.provider?.id)
     }
-    return resolveLocalModelTag(defaultModelInfo.value?.provider.id)
+    return resolveLocalModelTag(defaultModelInfo.value.provider?.id)
   }
 
   if (props.modelValue === SCENARIO_MODEL_PLACEHOLDER) {
-    return resolveLocalModelTag(scenarioModelInfo.value?.provider.id)
+    return resolveLocalModelTag(scenarioModelInfo.value?.provider?.id)
   }
 
   const [providerId] = props.modelValue.split('::')

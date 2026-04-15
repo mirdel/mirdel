@@ -248,7 +248,7 @@
                 :icon="modeIcon"
                 size="sm"
                 variant="soft"
-                class="w-26 rounded-full"
+                class="w-25 rounded-full"
                 :content="{ side: 'top', align: 'start' }"
               >
                 <template #item="{ item }">

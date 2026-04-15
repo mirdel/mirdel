@@ -1,12 +1,12 @@
 import { embed, embedMany } from "ai";
 import { loggerServiceMain } from "@shared";
 import type { Message } from "@shared";
-import { getEmbeddingModel } from "../providers/llmProviderFactory";
-import { resolveModelInvocation } from "../providers/modelInvocation";
 import { getMemorySettings } from "../settings/settingsData";
-import { LOCAL_PROVIDER_ID } from "../providers/localModelConstants";
-import { localModelRuntimeService } from "../model-server";
-import { tMain } from "../../i18n";
+import {
+  resolveEmbeddingInvocation,
+  type ResolvedEmbeddingInvocation,
+} from "../providers/embeddingInvocation";
+import type { ModelReferenceFailurePolicy } from "../providers/modelReference";
 import { chunkText, type ChunkConfig } from "../knowledge/chunker";
 import { getDb } from "../db";
 import { getSession } from "./sessionData";
@@ -39,51 +39,23 @@ const MEMORY_CHUNK_CONFIG: ChunkConfig = {
   overlap: 100,
 };
 
-type EmbeddingConfig = {
-  providerId: string;
-  modelId: string;
-  modelKey: string;
-  client: ReturnType<typeof resolveModelInvocation>["client"];
-  providerOptions: Record<string, { dimensions: number }> | undefined;
-};
+type EmbeddingConfig = ResolvedEmbeddingInvocation;
 
 export type HistoricalMemoryHit = HistoricalMemoryCandidate & {
   reason: string[];
 };
 
-function parseEmbeddingModel(embeddingModel: string): { providerId: string; modelId: string } {
-  if (!embeddingModel || embeddingModel === "__default__") {
-    throw new Error(tMain("historicalMemory.embeddingModelMissing"));
-  }
-
-  const [providerId, modelId] = embeddingModel.split("::");
-  if (!providerId || !modelId) {
-    throw new Error(tMain("embedding.invalidModelFormat"));
-  }
-  return { providerId, modelId };
-}
-
 async function getEmbeddingConfig(
   embeddingModel: string,
-  embeddingDimension: number | null
-): Promise<EmbeddingConfig> {
-  const { providerId, modelId } = parseEmbeddingModel(embeddingModel);
-  if (providerId === LOCAL_PROVIDER_ID) {
-    await localModelRuntimeService.ensureModelReady(modelId);
-  }
-
-  const { client } = resolveModelInvocation({ providerId, modelId });
-  const providerOptions = embeddingDimension !== null
-    ? { [providerId]: { dimensions: embeddingDimension } }
-    : undefined;
-
-  return {
-    providerId,
-    modelId,
-    modelKey: `${providerId}::${modelId}`,
-    client,
-    providerOptions,
-  };
+  embeddingDimension: number | null,
+  failurePolicy: ModelReferenceFailurePolicy
+): Promise<EmbeddingConfig | null> {
+  return resolveEmbeddingInvocation({
+    modelRef: embeddingModel,
+    dimension: embeddingDimension,
+    failurePolicy,
+    emptyModelErrorKey: "historicalMemory.embeddingModelMissing",
+  });
 }
 
 async function embedTexts(texts: string[], config: EmbeddingConfig): Promise<number[][]> {
@@ -92,7 +64,7 @@ async function embedTexts(texts: string[], config: EmbeddingConfig): Promise<num
   for (let i = 0; i < texts.length; i += EMBED_BATCH_SIZE) {
     const batch = texts.slice(i, i + EMBED_BATCH_SIZE);
     const { embeddings } = await embedMany({
-      model: getEmbeddingModel(config.client, config.modelId),
+      model: config.model,
       values: batch,
       providerOptions: config.providerOptions,
     });
@@ -104,7 +76,7 @@ async function embedTexts(texts: string[], config: EmbeddingConfig): Promise<num
 
 async function embedQuery(text: string, config: EmbeddingConfig): Promise<number[]> {
   const { embedding } = await embed({
-    model: getEmbeddingModel(config.client, config.modelId),
+    model: config.model,
     value: text,
     providerOptions: config.providerOptions,
   });
@@ -168,8 +140,10 @@ async function indexTurnInternal(turnId: string, options?: { force?: boolean }):
 
   const embeddingConfig = await getEmbeddingConfig(
     settings.historicalEmbeddingModel,
-    settings.historicalEmbeddingDimension
+    settings.historicalEmbeddingDimension,
+    options?.force ? "foreground" : "background"
   );
+  if (!embeddingConfig) return;
   const embeddings = await embedTexts(chunks, embeddingConfig);
   const dimension = embeddings[0]?.length ?? settings.historicalEmbeddingDimension ?? 0;
   if (dimension <= 0) throw new Error("embedding returned empty vector");
@@ -281,21 +255,24 @@ export async function searchHistoricalMemory(params: {
   try {
     const embeddingConfig = await getEmbeddingConfig(
       settings.historicalEmbeddingModel,
-      settings.historicalEmbeddingDimension
+      settings.historicalEmbeddingDimension,
+      "background"
     );
-    queryVector = await embedQuery(query, embeddingConfig);
-    const stats = getHistoricalMemoryIndexStats();
-    if (stats.vectorReady && stats.embeddingModel && stats.embeddingModel !== embeddingConfig.modelKey) {
-      logger.warn("historical memory vector search model mismatch, keyword fallback only", {
-        indexModel: stats.embeddingModel,
-        currentModel: embeddingConfig.modelKey,
-      });
-    } else {
-      vectorRows.push(...searchHistoricalMemoryVectors(
-        queryVector,
-        embeddingConfig.modelKey,
-        Math.max(settings.historicalMaxRecall, params.limit ?? 3)
-      ));
+    if (embeddingConfig) {
+      queryVector = await embedQuery(query, embeddingConfig);
+      const stats = getHistoricalMemoryIndexStats();
+      if (stats.vectorReady && stats.embeddingModel && stats.embeddingModel !== embeddingConfig.modelKey) {
+        logger.warn("historical memory vector search model mismatch, keyword fallback only", {
+          indexModel: stats.embeddingModel,
+          currentModel: embeddingConfig.modelKey,
+        });
+      } else {
+        vectorRows.push(...searchHistoricalMemoryVectors(
+          queryVector,
+          embeddingConfig.modelKey,
+          Math.max(settings.historicalMaxRecall, params.limit ?? 3)
+        ));
+      }
     }
   } catch (error) {
     logger.warn("historical memory vector search unavailable", {
@@ -380,7 +357,11 @@ export async function rebuildHistoricalMemoryIndex(): Promise<{
   failedTurns: number;
 }> {
   const settings = getMemorySettings();
-  await getEmbeddingConfig(settings.historicalEmbeddingModel, settings.historicalEmbeddingDimension);
+  await getEmbeddingConfig(
+    settings.historicalEmbeddingModel,
+    settings.historicalEmbeddingDimension,
+    "foreground"
+  );
 
   const db = getDb();
   const rows = db.prepare(`

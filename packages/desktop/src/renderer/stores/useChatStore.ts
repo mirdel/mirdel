@@ -1606,6 +1606,7 @@ export const useChatStore = defineStore('chat', () => {
     const model = resolvedModel.value
     if (!model) {
       logger.error('sendMessage: no model selected')
+      toast.error(i18n.global.t('chat.input.error.modelNotConfigured'))
       return
     }
     

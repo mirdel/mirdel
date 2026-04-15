@@ -69,7 +69,7 @@
             <label class="block text-sm font-medium mb-2">{{ t("settings.memory.historical.embeddingModel") }}</label>
             <ModelSelector
               v-model="memorySettings.historicalEmbeddingModel"
-              :show-default="false"
+              :show-default="true"
               model-type="embedding"
               @update:model-value="(value) => handleChange('historicalEmbeddingModel', value)"
             />
@@ -283,7 +283,7 @@ const memorySettings = ref({
   crossSessionEnabled: true,
   longTermEnabled: true,
   historicalEnabled: false,
-  historicalEmbeddingModel: "",
+  historicalEmbeddingModel: "__default__",
   historicalEmbeddingDimension: null as number | null,
   historicalMaxRecall: 3,
   historicalMinScore: 0.58,

@@ -15,6 +15,17 @@
       <span class="text-muted dark:text-toned text-xs truncate">{{ providerName }}</span>
       <span class="text-xs">）</span>
     </template>
+    <template v-else-if="prefix">
+      <div class="min-w-0 flex items-center gap-1">
+        <span class="truncate text-xs">{{ prefix }}（{{ modelName }}）</span>
+        <span
+          v-if="modelTag"
+          class="shrink-0 rounded border border-default px-1 py-0 text-[10px] leading-4 text-muted"
+        >
+          {{ modelTag }}
+        </span>
+      </div>
+    </template>
     <template v-else-if="providerName">
       <!-- 无前缀但有供应商：gpt-4o | openai -->
       <div class="min-w-0 flex items-center gap-1">
