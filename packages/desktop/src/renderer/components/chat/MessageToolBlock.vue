@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="isHistoricalMemorySearch"
+    v-if="isHistoricalMemoryTool"
     :class="[
       'border rounded-lg my-2 overflow-hidden',
       statusClass,
@@ -174,7 +174,7 @@
   </div>
 
   <HistoricalMemoryRecallModal
-    v-if="isHistoricalMemorySearch"
+    v-if="isHistoricalMemoryTool"
     v-model:open="showHistoricalMemoryModal"
     :recall="historicalMemoryRecall"
   />
@@ -268,6 +268,8 @@ const showResultBlock = computed(() => {
 const isWebSearch = computed(() => props.toolCall.toolName === 'system::web_search')
 const isWebScrape = computed(() => props.toolCall.toolName === 'system::web_scrape')
 const isHistoricalMemorySearch = computed(() => props.toolCall.toolName === 'system::historical_memory_search')
+const isHistoricalMemoryReview = computed(() => props.toolCall.toolName === 'system::historical_memory_review')
+const isHistoricalMemoryTool = computed(() => isHistoricalMemorySearch.value || isHistoricalMemoryReview.value)
 const isShellCommand = computed(() => props.toolCall.toolName === 'system::run_command')
 
 // 工具图标
@@ -275,8 +277,8 @@ const toolIcon = computed(() => {
   if (isWebSearch.value || isWebScrape.value) {
     return 'i-lucide-globe'
   }
-  if (isHistoricalMemorySearch.value) {
-    return 'i-lucide-brain'
+  if (isHistoricalMemoryTool.value) {
+    return 'i-lucide-brain-cog'
   }
   return 'i-lucide-wrench'
 })
@@ -379,6 +381,12 @@ const displayText = computed(() => {
     const count = historicalMemoryRecall.value?.hits.length ?? 0
     return t('chat.toolBlock.memorySearch.done', { count })
   }
+  if (isHistoricalMemoryReview.value) {
+    if (isLoading.value) return t('chat.toolBlock.memoryReview.running')
+    if (isError.value) return t('chat.toolBlock.memoryReview.failed')
+    const count = historicalMemoryRecall.value?.hits.length ?? 0
+    return t('chat.toolBlock.memoryReview.done', { count })
+  }
   return t('chat.toolBlock.callTool', { tool: displayToolName.value })
 })
 
@@ -446,9 +454,11 @@ const historicalMemoryRecall = computed<HistoricalMemoryRecall | null>(() => {
   const fromProvider = (resultPart.value as any)?.callProviderMetadata?.mirdel?.historicalMemory
   const recall = fromOutput || fromProvider
   if (!recall || !Array.isArray(recall.hits)) return null
+  const mode = recall.mode === 'review' || isHistoricalMemoryReview.value ? 'review' : 'tool'
   return {
-    mode: 'tool',
+    mode,
     query: String(recall.query || ''),
+    rangeLabel: typeof recall.rangeLabel === 'string' ? recall.rangeLabel : undefined,
     hits: recall.hits,
   }
 })

@@ -7,6 +7,7 @@ import { createWebScrape } from './fetchWebpage';
 import { createRunScript } from './skillTools';
 import { createRunCommand } from './runCommand';
 import { createHistoricalMemorySearch } from './historicalMemorySearch';
+import { createHistoricalMemoryReview } from './historicalMemoryReview';
 
 export interface SystemToolsOptions {
   /** 会话 ID（用于 run_command 工作目录与权限） */
@@ -27,6 +28,7 @@ export function buildSystemTools(options?: SystemToolsOptions): Record<string, a
     'system::web_search': createWebSearch(webSearchProviderId, citationStartIndex),
     'system::web_scrape': createWebScrape(),
     'system::historical_memory_search': createHistoricalMemorySearch(sessionId),
+    'system::historical_memory_review': createHistoricalMemoryReview(sessionId),
     'system::run_script': createRunScript(),
     'system::run_command': createRunCommand(sessionId),
   };

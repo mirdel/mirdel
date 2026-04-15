@@ -4,13 +4,41 @@
  */
 import { tool } from 'ai';
 import { z } from 'zod';
-import { searchHistoricalMemory } from '../../chat/historicalMemoryService';
+import {
+  resolveHistoricalMemoryTimeRange,
+  searchHistoricalMemory,
+  type HistoricalMemoryRangePreset,
+} from '../../chat/historicalMemoryService';
 
 function compactQuery(query: string, keywords?: string[]): string {
   const keywordText = Array.isArray(keywords)
     ? keywords.map((item) => String(item || '').trim()).filter(Boolean).join(' ')
     : '';
   return [query.trim(), keywordText].filter(Boolean).join('\n');
+}
+
+const searchRangeSchema = z.enum([
+  'anytime',
+  'today',
+  'yesterday',
+  'last_7_days',
+  'last_30_days',
+  'last_month',
+  'this_month',
+  'custom',
+]);
+
+function normalizeRange(input: {
+  range?: HistoricalMemoryRangePreset;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const range = input.range ?? (input.startDate || input.endDate ? 'custom' : 'anytime');
+  return resolveHistoricalMemoryTimeRange({
+    range,
+    startDate: input.startDate,
+    endDate: input.endDate,
+  });
 }
 
 export function createHistoricalMemorySearch(sessionId?: string) {
@@ -23,13 +51,17 @@ Do not use it for general world knowledge or current events.
 Input rule:
 - Write a focused semantic search query based on the user's intent, not a blind copy of the full user message.
 - Include important entity names, project names, dates, or keywords when available.
+- If the user asks for a specific topic within a time period, pass that time period with range or custom startDate/endDate.
 - The tool searches local non-temporary historical chats and excludes the current conversation.`,
     inputSchema: z.object({
       query: z.string().describe('A focused semantic search query for local conversation history'),
       keywords: z.array(z.string()).optional().describe('Optional important keywords or entity names to strengthen keyword matching'),
-      limit: z.number().int().min(1).max(10).optional().describe('Maximum number of memory snippets to return')
+      range: searchRangeSchema.optional().describe('Optional time range. Use last_month/last_7_days/etc. when the user mentions a time period; default is anytime. Use custom only with startDate and/or endDate.'),
+      startDate: z.string().optional().describe('Custom range start date, preferably YYYY-MM-DD in the user local timezone. Only used when range is custom or when range is omitted but dates are provided.'),
+      endDate: z.string().optional().describe('Custom range end date, preferably YYYY-MM-DD in the user local timezone. Date-only values are inclusive. Only used when range is custom or when range is omitted but dates are provided.'),
+      limit: z.number().int().min(1).max(20).optional().describe('Maximum number of memory snippets to return')
     }),
-    execute: async ({ query, keywords, limit }) => {
+    execute: async ({ query, keywords, range, startDate, endDate, limit }) => {
       if (!sessionId) {
         return {
           content: [{ type: 'text' as const, text: 'Historical memory search failed: session context is unavailable' }],
@@ -45,11 +77,25 @@ Input rule:
         };
       }
 
+      let timeRange;
+      try {
+        timeRange = normalizeRange({ range, startDate, endDate });
+      } catch (error) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `Historical memory search failed: ${error instanceof Error ? error.message : String(error)}`
+          }],
+          isError: true
+        };
+      }
+
       const hits = await searchHistoricalMemory({
         sessionId,
         query: searchQuery,
         limit: limit ?? 3,
         excludeSessionId: sessionId,
+        timeRange,
       });
 
       const displayHits = hits.map((hit) => ({
@@ -67,14 +113,16 @@ Input rule:
           ? `${hit.content.slice(0, 1200).trimEnd()}...`
           : hit.content,
       }));
+      const rangeText = timeRange.preset === 'anytime' ? '' : ` in ${timeRange.label}`;
 
       if (displayHits.length === 0) {
         return {
-          content: [{ type: 'text' as const, text: `No historical conversation memory was found for "${query}".` }],
+          content: [{ type: 'text' as const, text: `No historical conversation memory was found for "${query}"${rangeText}.` }],
           _meta: {
             historicalMemory: {
               mode: 'tool' as const,
               query: searchQuery,
+              rangeLabel: timeRange.label,
               hits: displayHits,
             }
           }
@@ -82,7 +130,7 @@ Input rule:
       }
 
       const lines: string[] = [
-        `Historical conversation memory for "${query}" (${displayHits.length} item(s)):`,
+        `Historical conversation memory for "${query}"${rangeText} (${displayHits.length} item(s)):`,
         ''
       ];
       for (const [index, hit] of displayHits.entries()) {
@@ -103,6 +151,7 @@ Input rule:
           historicalMemory: {
             mode: 'tool' as const,
             query: searchQuery,
+            rangeLabel: timeRange.label,
             hits: displayHits,
           }
         }

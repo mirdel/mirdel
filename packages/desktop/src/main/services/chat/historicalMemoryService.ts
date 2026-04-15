@@ -15,6 +15,7 @@ import { getTurn } from "./turnData";
 import {
   getHistoricalMemoryChunksByIds,
   getHistoricalMemoryIndexStats,
+  listHistoricalMemoryByTimeRange,
   resetHistoricalMemoryIndex,
   saveHistoricalMemoryChunks,
   searchHistoricalMemoryKeywords,
@@ -31,6 +32,7 @@ const RRF_K = 60;
 const MAX_CONTEXT_CHARS_PER_HIT = 1200;
 const MAX_CONTEXT_TOTAL_CHARS = 3600;
 const KEYWORD_ADMISSION_SCORE = 0.5;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MEMORY_CHUNK_CONFIG: ChunkConfig = {
   targetMin: 700,
@@ -41,6 +43,23 @@ const MEMORY_CHUNK_CONFIG: ChunkConfig = {
 };
 
 type EmbeddingConfig = ResolvedEmbeddingInvocation;
+
+export type HistoricalMemoryRangePreset =
+  | "anytime"
+  | "today"
+  | "yesterday"
+  | "last_7_days"
+  | "last_30_days"
+  | "last_month"
+  | "this_month"
+  | "custom";
+
+export interface HistoricalMemoryResolvedTimeRange {
+  preset: HistoricalMemoryRangePreset;
+  startAt?: number;
+  endAt?: number;
+  label: string;
+}
 
 export type HistoricalMemoryHit = HistoricalMemoryCandidate & {
   reason: string[];
@@ -72,6 +91,140 @@ export interface HistoricalMemoryTestRecallResult {
     minScore: number;
   };
   hits: HistoricalMemoryTestRecallHit[];
+}
+
+function startOfLocalDay(value: Date): Date {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function addLocalDays(value: Date, days: number): Date {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate() + days);
+}
+
+function formatLocalDate(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateBoundary(value: string | undefined, boundary: "start" | "end"): number | undefined {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return undefined;
+
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      throw new Error(`invalid date: ${trimmed}`);
+    }
+    return boundary === "end" ? addLocalDays(date, 1).getTime() : date.getTime();
+  }
+
+  const parsed = Date.parse(trimmed);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`invalid date: ${trimmed}`);
+  }
+  return parsed;
+}
+
+export function resolveHistoricalMemoryTimeRange(input?: {
+  range?: HistoricalMemoryRangePreset;
+  startDate?: string;
+  endDate?: string;
+  now?: number;
+}): HistoricalMemoryResolvedTimeRange {
+  const preset = input?.range ?? "anytime";
+  const now = Number.isFinite(input?.now) ? new Date(input?.now as number) : new Date();
+
+  if (preset === "anytime") {
+    return { preset, label: "anytime" };
+  }
+
+  if (preset === "custom") {
+    const startAt = parseDateBoundary(input?.startDate, "start");
+    const endAt = parseDateBoundary(input?.endDate, "end");
+    if (startAt == null && endAt == null) {
+      throw new Error("custom historical memory range requires startDate or endDate");
+    }
+    if (startAt != null && endAt != null && startAt >= endAt) {
+      throw new Error("historical memory startDate must be earlier than endDate");
+    }
+    const startLabel = startAt != null ? formatLocalDate(new Date(startAt)) : "beginning";
+    const endLabel = endAt != null ? formatLocalDate(new Date(endAt - 1)) : "now";
+    return { preset, startAt, endAt, label: `${startLabel} to ${endLabel}` };
+  }
+
+  const todayStart = startOfLocalDay(now);
+  if (preset === "today") {
+    const end = addLocalDays(todayStart, 1);
+    return {
+      preset,
+      startAt: todayStart.getTime(),
+      endAt: end.getTime(),
+      label: `today (${formatLocalDate(todayStart)})`,
+    };
+  }
+
+  if (preset === "yesterday") {
+    const start = addLocalDays(todayStart, -1);
+    return {
+      preset,
+      startAt: start.getTime(),
+      endAt: todayStart.getTime(),
+      label: `yesterday (${formatLocalDate(start)})`,
+    };
+  }
+
+  if (preset === "last_7_days") {
+    const startAt = now.getTime() - 7 * DAY_MS;
+    return {
+      preset,
+      startAt,
+      endAt: now.getTime(),
+      label: `last 7 days (${formatLocalDate(new Date(startAt))} to ${formatLocalDate(now)})`,
+    };
+  }
+
+  if (preset === "last_30_days") {
+    const startAt = now.getTime() - 30 * DAY_MS;
+    return {
+      preset,
+      startAt,
+      endAt: now.getTime(),
+      label: `last 30 days (${formatLocalDate(new Date(startAt))} to ${formatLocalDate(now)})`,
+    };
+  }
+
+  if (preset === "last_month") {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 1);
+    return {
+      preset,
+      startAt: start.getTime(),
+      endAt: end.getTime(),
+      label: `last month (${formatLocalDate(start)} to ${formatLocalDate(addLocalDays(end, -1))})`,
+    };
+  }
+
+  if (preset === "this_month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return {
+      preset,
+      startAt: start.getTime(),
+      endAt: now.getTime(),
+      label: `this month (${formatLocalDate(start)} to ${formatLocalDate(now)})`,
+    };
+  }
+
+  return { preset: "anytime", label: "anytime" };
 }
 
 async function getEmbeddingConfig(
@@ -271,6 +424,7 @@ async function searchHistoricalMemoryInternal(params: {
   query: string;
   limit?: number;
   excludeSessionId?: string;
+  timeRange?: HistoricalMemoryResolvedTimeRange;
   requireSession?: boolean;
   respectEnabled?: boolean;
   failurePolicy?: ModelReferenceFailurePolicy;
@@ -296,6 +450,11 @@ async function searchHistoricalMemoryInternal(params: {
   let currentEmbeddingModel: string | null = null;
   const vectorRows: Array<{ chunkId: number; distance: number; rank: number }> = [];
   const failurePolicy = params.failurePolicy ?? "background";
+  const searchFilter = {
+    excludeSessionId: params.excludeSessionId,
+    startAt: params.timeRange?.startAt,
+    endAt: params.timeRange?.endAt,
+  };
   try {
     const embeddingConfig = await getEmbeddingConfig(
       settings.historicalEmbeddingModel,
@@ -316,7 +475,7 @@ async function searchHistoricalMemoryInternal(params: {
           queryVector,
           embeddingConfig.modelKey,
           Math.max(settings.historicalMaxRecall, params.limit ?? 3),
-          { excludeSessionId: params.excludeSessionId }
+          searchFilter
         ));
       }
     }
@@ -332,7 +491,7 @@ async function searchHistoricalMemoryInternal(params: {
   const keywordRows = searchHistoricalMemoryKeywords(
     query,
     Math.max(settings.historicalMaxRecall, params.limit ?? 3),
-    { excludeSessionId: params.excludeSessionId }
+    searchFilter
   );
   const candidateIds = Array.from(new Set([
     ...vectorRows.map((row) => row.chunkId),
@@ -367,7 +526,7 @@ async function searchHistoricalMemoryInternal(params: {
     };
   });
 
-  const limit = Math.max(1, Math.min(10, params.limit ?? settings.historicalMaxRecall));
+  const limit = Math.max(1, Math.min(20, params.limit ?? settings.historicalMaxRecall));
   const selected = hits
     .filter((hit) => passesHistoricalMemoryAdmission(hit, settings.historicalMinScore))
     .sort((a, b) => b.score - a.score || b.rrfScore - a.rrfScore || b.createdAt - a.createdAt)
@@ -385,6 +544,7 @@ export async function searchHistoricalMemory(params: {
   query: string;
   limit?: number;
   excludeSessionId?: string;
+  timeRange?: HistoricalMemoryResolvedTimeRange;
 }): Promise<HistoricalMemoryHit[]> {
   const result = await searchHistoricalMemoryInternal({
     ...params,
@@ -394,6 +554,35 @@ export async function searchHistoricalMemory(params: {
     touchAccessCount: true,
   });
   return result.hits;
+}
+
+export async function reviewHistoricalMemory(params: {
+  sessionId: string;
+  timeRange: HistoricalMemoryResolvedTimeRange;
+  limit?: number;
+  excludeSessionId?: string;
+}): Promise<HistoricalMemoryHit[]> {
+  const settings = getMemorySettings();
+  if (!settings.historicalEnabled) return [];
+
+  const session = getSession(params.sessionId);
+  if (!session || session.isTemporary) return [];
+
+  const limit = Math.max(1, Math.min(30, Math.floor(params.limit ?? 20)));
+  const chunks = listHistoricalMemoryByTimeRange(limit, {
+    excludeSessionId: params.excludeSessionId,
+    startAt: params.timeRange.startAt,
+    endAt: params.timeRange.endAt,
+  });
+
+  const hits = chunks.map((chunk): HistoricalMemoryHit => ({
+    ...chunk,
+    score: Math.min(1, 0.5 + recencyBoost(chunk.createdAt) + accessBoost(chunk.accessCount)),
+    reason: ["time-range"],
+  }));
+
+  touchHistoricalMemoryChunks(hits.map((hit) => hit.id));
+  return hits;
 }
 
 function toTestRecallHit(hit: HistoricalMemoryHit): HistoricalMemoryTestRecallHit {

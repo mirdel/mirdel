@@ -614,6 +614,7 @@ const CHAT_MODE_TOOLS_WHITELIST: string[] = [
   'system::web_search',
   'system::web_scrape',
   'system::historical_memory_search',
+  'system::historical_memory_review',
 ];
 
 type AggregatedToolStat = {
@@ -787,6 +788,7 @@ async function aggregateToolsForMode(params: {
     const filteredTools: Record<string, any> = {};
     for (const [toolName, tool] of Object.entries(tools)) {
       if (toolName === 'system::historical_memory_search') continue;
+      if (toolName === 'system::historical_memory_review') continue;
       filteredTools[toolName] = tool;
     }
     tools = Object.keys(filteredTools).length > 0 ? filteredTools : undefined;

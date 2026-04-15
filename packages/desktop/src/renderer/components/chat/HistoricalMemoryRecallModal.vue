@@ -18,11 +18,15 @@
             {{ t("chat.historicalMemory.query") }}:
             <span class="text-default whitespace-pre-wrap">{{ recall.query }}</span>
           </div>
+          <div v-if="showRangeLabel" class="mt-2 text-xs text-muted">
+            {{ t("chat.historicalMemory.range") }}:
+            <span class="text-default">{{ recall?.rangeLabel }}</span>
+          </div>
         </div>
 
         <UEmpty
           v-if="!recall || recall.hits.length === 0"
-          icon="i-lucide-brain"
+          icon="i-lucide-brain-cog"
           :title="t('chat.historicalMemory.emptyTitle')"
           :description="t('chat.historicalMemory.emptyDescription')"
         />
@@ -111,8 +115,13 @@ const { t, locale } = useI18n()
 
 const modalTitle = computed(() => t('chat.historicalMemory.title'))
 const modeLabel = computed(() => {
+  if (props.recall?.mode === 'review') return t('chat.historicalMemory.mode.review')
   if (props.recall?.mode === 'tool') return t('chat.historicalMemory.mode.tool')
   return t('chat.historicalMemory.mode.auto')
+})
+const showRangeLabel = computed(() => {
+  const label = props.recall?.rangeLabel?.trim()
+  return !!label && label !== 'anytime'
 })
 
 function formatTime(value: number): string {

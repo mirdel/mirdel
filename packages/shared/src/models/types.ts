@@ -119,11 +119,12 @@ export interface HistoricalMemoryDebugHit {
   contentPreview: string
 }
 
-export type HistoricalMemoryRecallMode = 'auto' | 'tool'
+export type HistoricalMemoryRecallMode = 'auto' | 'tool' | 'review'
 
 export interface HistoricalMemoryRecall {
   mode: HistoricalMemoryRecallMode
   query: string
+  rangeLabel?: string
   hits: HistoricalMemoryDebugHit[]
 }
 

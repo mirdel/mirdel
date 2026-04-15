@@ -902,6 +902,7 @@ export function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_turnId ON historical_memory_chunks(turnId);
     CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_sessionId ON historical_memory_chunks(sessionId);
+    CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_createdAt ON historical_memory_chunks(createdAt DESC);
     CREATE INDEX IF NOT EXISTS idx_historical_memory_chunks_updatedAt ON historical_memory_chunks(updatedAt DESC);
   `);
 }

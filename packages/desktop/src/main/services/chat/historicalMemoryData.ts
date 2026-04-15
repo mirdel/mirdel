@@ -38,6 +38,12 @@ export interface HistoricalMemoryCandidate extends HistoricalMemoryChunk {
   score: number;
 }
 
+export interface HistoricalMemorySearchFilter {
+  excludeSessionId?: string;
+  startAt?: number;
+  endAt?: number;
+}
+
 type HistoricalMemoryChunkRow = HistoricalMemoryChunk & {
   sessionTitle?: string;
   sessionUpdatedAt?: number;
@@ -244,13 +250,15 @@ export function searchHistoricalMemoryVectors(
   queryVector: number[],
   embeddingModel: string,
   limit: number,
-  options?: { excludeSessionId?: string }
+  options?: HistoricalMemorySearchFilter
 ): Array<{ chunkId: number; distance: number; rank: number }> {
   if (!historicalMemoryVectorTableExists()) return [];
   const db = getDb();
   const tableName = getHistoricalMemoryVectorTableName();
   const fetchK = Math.min(Math.max(limit * 8, 40), 300);
   const excludeSessionId = options?.excludeSessionId?.trim() || null;
+  const startAt = Number.isFinite(options?.startAt) ? Math.max(0, Math.floor(options?.startAt as number)) : null;
+  const endAt = Number.isFinite(options?.endAt) ? Math.max(0, Math.floor(options?.endAt as number)) : null;
   const rows = db.prepare(`
     SELECT v.id AS chunkId, v.distance
     FROM (
@@ -263,6 +271,8 @@ export function searchHistoricalMemoryVectors(
       AND c.embeddingModel = ?
       AND c.embeddingDimension = ?
       AND (? IS NULL OR c.sessionId <> ?)
+      AND (? IS NULL OR c.createdAt >= ?)
+      AND (? IS NULL OR c.createdAt < ?)
     ORDER BY v.distance ASC
     LIMIT ?
   `).all(
@@ -272,6 +282,10 @@ export function searchHistoricalMemoryVectors(
     queryVector.length,
     excludeSessionId,
     excludeSessionId,
+    startAt,
+    startAt,
+    endAt,
+    endAt,
     fetchK
   ) as Array<{ chunkId: number; distance: number }>;
 
@@ -285,7 +299,7 @@ export function searchHistoricalMemoryVectors(
 export function searchHistoricalMemoryKeywords(
   query: string,
   limit: number,
-  options?: { excludeSessionId?: string }
+  options?: HistoricalMemorySearchFilter
 ): Array<{ chunkId: number; rawScore: number; rank: number }> {
   const trimmed = query.trim();
   if (!trimmed) return [];
@@ -293,6 +307,8 @@ export function searchHistoricalMemoryKeywords(
   ensureHistoricalMemorySearchReady();
   const fetchK = Math.min(Math.max(limit * 8, 40), 300);
   const excludeSessionId = options?.excludeSessionId?.trim() || null;
+  const startAt = Number.isFinite(options?.startAt) ? Math.max(0, Math.floor(options?.startAt as number)) : null;
+  const endAt = Number.isFinite(options?.endAt) ? Math.max(0, Math.floor(options?.endAt as number)) : null;
 
   const rows = db.prepare(`
     SELECT
@@ -304,14 +320,67 @@ export function searchHistoricalMemoryKeywords(
     WHERE ${HISTORICAL_MEMORY_FTS_TABLE} MATCH simple_query(?)
       AND (s.isTemporary IS NULL OR s.isTemporary = 0)
       AND (? IS NULL OR c.sessionId <> ?)
+      AND (? IS NULL OR c.createdAt >= ?)
+      AND (? IS NULL OR c.createdAt < ?)
     ORDER BY rawScore ASC, c.updatedAt DESC
     LIMIT ?
-  `).all(trimmed, excludeSessionId, excludeSessionId, fetchK) as Array<{ chunkId: number; rawScore: number }>;
+  `).all(
+    trimmed,
+    excludeSessionId,
+    excludeSessionId,
+    startAt,
+    startAt,
+    endAt,
+    endAt,
+    fetchK
+  ) as Array<{ chunkId: number; rawScore: number }>;
 
   return rows.map((row, index) => ({
     chunkId: row.chunkId,
     rawScore: row.rawScore,
     rank: index + 1,
+  }));
+}
+
+export function listHistoricalMemoryByTimeRange(
+  limit: number,
+  options: HistoricalMemorySearchFilter
+): HistoricalMemoryCandidate[] {
+  const db = getDb();
+  const fetchLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+  const excludeSessionId = options.excludeSessionId?.trim() || null;
+  const startAt = Number.isFinite(options.startAt) ? Math.max(0, Math.floor(options.startAt as number)) : null;
+  const endAt = Number.isFinite(options.endAt) ? Math.max(0, Math.floor(options.endAt as number)) : null;
+
+  const rows = db.prepare(`
+    SELECT
+      c.*,
+      s.title AS sessionTitle,
+      s.updatedAt AS sessionUpdatedAt
+    FROM historical_memory_chunks c
+    JOIN sessions s ON s.id = c.sessionId
+    WHERE (s.isTemporary IS NULL OR s.isTemporary = 0)
+      AND (? IS NULL OR c.sessionId <> ?)
+      AND (? IS NULL OR c.createdAt >= ?)
+      AND (? IS NULL OR c.createdAt < ?)
+    ORDER BY c.createdAt DESC, c.id DESC
+    LIMIT ?
+  `).all(
+    excludeSessionId,
+    excludeSessionId,
+    startAt,
+    startAt,
+    endAt,
+    endAt,
+    fetchLimit
+  ) as HistoricalMemoryChunkRow[];
+
+  return rows.map((row) => ({
+    ...row,
+    sessionTitle: row.sessionTitle ?? "",
+    sessionUpdatedAt: row.sessionUpdatedAt ?? row.updatedAt,
+    rrfScore: 0,
+    score: 0,
   }));
 }
 
