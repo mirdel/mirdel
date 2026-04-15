@@ -177,7 +177,7 @@ ${actualPrompt}`,
       return { ok: false as const, error: tMain("title.invalidResult") };
     }
 
-    logger.info("generated title by fast model", {
+    logger.info("generated title by light task model", {
       providerId: fast.providerId,
       modelId: fast.modelId,
       actualPrompt,

@@ -110,7 +110,7 @@ describe("titleService", () => {
     ).toBe('title.defaultImageMultiple:{"count":2}');
   });
 
-  it("generates and cleans a model title using the fast model", async () => {
+  it("generates and cleans a model title using the light task model", async () => {
     generateTextMock.mockResolvedValue({
       text: 'Release Plan\nMore explanation',
     });
@@ -139,7 +139,7 @@ describe("titleService", () => {
     expect(result).toEqual({ ok: true, title: "Release Plan" });
   });
 
-  it("returns user-facing errors when no fast model is configured or the model output is invalid", async () => {
+  it("returns user-facing errors when no light task model is configured or the model output is invalid", async () => {
     getDefaultModelByTypeMock.mockReturnValue(null);
 
     await expect(

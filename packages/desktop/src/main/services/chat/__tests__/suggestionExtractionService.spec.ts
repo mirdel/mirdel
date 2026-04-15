@@ -82,7 +82,7 @@ describe("suggestionExtractionService", () => {
     expect(generateTextMock).not.toHaveBeenCalled();
   });
 
-  it("returns a user-facing error when no fast model is configured", async () => {
+  it("returns a user-facing error when no light task model is configured", async () => {
     getDefaultModelByTypeMock.mockReturnValue(null);
 
     await expect(

@@ -58,7 +58,7 @@ describe("searchPlannerService", () => {
     });
   });
 
-  it("rejects empty requests and missing fast models", async () => {
+  it("rejects empty requests and missing light task models", async () => {
     await expect(
       generateSearchPlan({
         request: "   ",
