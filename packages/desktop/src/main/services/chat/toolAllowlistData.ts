@@ -30,6 +30,10 @@ export function clearToolAllowlist(): void {
 }
 
 export function isInToolAllowlist(serverId: string, toolName: string, args: { command?: string } | undefined): boolean {
+  if (serverId === 'system' && toolName === 'historical_memory_search') {
+    return true;
+  }
+
   const d = getDb();
   const isRunCommandTool = serverId === 'system' && toolName === 'run_command';
   if (isRunCommandTool && args?.command != null) {

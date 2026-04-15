@@ -178,6 +178,7 @@ export type MessagePublic = {
   userEdited?: boolean          // 是否被用户手动编辑过
   tokenUsage?: { inputTokens: number | null; outputTokens: number | null }  // Token 消耗统计
   contextSources?: import('@shared').CitationSource[]  // 知识库召回来源（仅 user 消息）
+  historicalMemory?: import('@shared').HistoricalMemoryRecall
   createdAt?: number
   updatedAt?: number
 }

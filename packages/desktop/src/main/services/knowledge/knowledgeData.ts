@@ -166,7 +166,8 @@ export function updateKnowledgeBase(id: string, updates: Partial<Pick<KnowledgeB
 export function migrateKnowledgeBase(id: string, updates: Pick<KnowledgeBase, 'embeddingModel' | 'embeddingDimension'>): void {
   const db = getDb();
   const now = Date.now();
-  const dimension = Math.max(1, Math.floor(updates.embeddingDimension ?? 768));
+  if (updates.embeddingDimension == null) throw new Error("embeddingDimension is required for migration");
+  const dimension = Math.max(1, Math.floor(updates.embeddingDimension));
 
   dropKbVectorTable(id);
   db.prepare(`DELETE FROM kb_chunks WHERE kbId = ?`).run(id);

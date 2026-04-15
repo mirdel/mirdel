@@ -329,6 +329,7 @@ export function initDb() {
       userEdited INTEGER DEFAULT 0,
       tokenUsage TEXT,
       contextSources TEXT,
+      historicalMemory TEXT,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL
     );
@@ -746,6 +747,11 @@ export function initDb() {
   const noteListColumns = d.prepare("PRAGMA table_info(note_lists)").all() as Array<{ name: string }>;
   if (!noteListColumns.some((column) => column.name === "color")) {
     d.exec("ALTER TABLE note_lists ADD COLUMN color TEXT");
+  }
+
+  const messageColumns = d.prepare("PRAGMA table_info(messages)").all() as Array<{ name: string }>;
+  if (!messageColumns.some((column) => column.name === "historicalMemory")) {
+    d.exec("ALTER TABLE messages ADD COLUMN historicalMemory TEXT");
   }
 
   // 兼容旧版本数据库：为 sessions 增加 stateCursorUserMessageId 字段

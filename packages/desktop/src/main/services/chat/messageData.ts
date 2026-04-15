@@ -1,11 +1,15 @@
 import { getDb } from "../db";
 import { nanoid as nanoId } from "nanoid";
-import type { Message, MessageContentPart, CitationSource, MessageRole } from "@shared";
+import type { Message, MessageContentPart, CitationSource, MessageRole, HistoricalMemoryRecall } from "@shared";
 import {
   deleteMessageSearchDoc,
   deleteMessageSearchDocsByTurnId,
   syncMessageSearchDoc,
 } from "./chatSearchIndex";
+import {
+  deleteHistoricalMemoryByMessageId,
+  deleteHistoricalMemoryByTurnId,
+} from "./historicalMemoryData";
 import { tMain } from "../../i18n";
 
 export type MessageStatus = "pending" | "streaming" | "success" | "aborted" | "error";
@@ -24,6 +28,7 @@ type MessageRow = {
   userEdited: number;
   tokenUsage: string | null;  // JSON 字符串：{ inputTokens, outputTokens }
   contextSources: string | null;  // JSON 字符串：CitationSource[]，仅 user 消息且本回合有 KB 时
+  historicalMemory: string | null; // JSON 字符串：HistoricalMemoryRecall，仅 assistant 消息
   createdAt: number;
   updatedAt: number;
 };
@@ -67,9 +72,25 @@ function parseContextSources(json: string | null): CitationSource[] | undefined 
   }
 }
 
+function parseHistoricalMemory(json: string | null): HistoricalMemoryRecall | undefined {
+  if (!json) return undefined;
+  try {
+    const parsed = JSON.parse(json) as HistoricalMemoryRecall;
+    return parsed && Array.isArray(parsed.hits) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function stringifyTokenUsage(tokenUsage: TokenUsage | undefined): string | null {
   if (!tokenUsage) return null;
   return JSON.stringify(tokenUsage);
+}
+
+function deleteHistoricalMemoryByTurnIds(turnIds: Array<string | null | undefined>): void {
+  for (const turnId of new Set(turnIds.filter((value): value is string => !!value))) {
+    deleteHistoricalMemoryByTurnId(turnId);
+  }
 }
 
 /**
@@ -95,6 +116,7 @@ export function listMessages(sessionId: string): Message[] {
     userEdited: r.userEdited === 1,
     tokenUsage: parseTokenUsage(r.tokenUsage),
     contextSources: parseContextSources(r.contextSources ?? null),
+    historicalMemory: parseHistoricalMemory(r.historicalMemory ?? null),
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -228,6 +250,7 @@ export function getMessage(id: string): Message | null {
     userEdited: row.userEdited === 1,
     tokenUsage: parseTokenUsage(row.tokenUsage),
     contextSources: parseContextSources(row.contextSources ?? null),
+    historicalMemory: parseHistoricalMemory(row.historicalMemory ?? null),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -247,6 +270,7 @@ export function updateMessage(
     turnId?: string | null;
     tokenUsage?: { inputTokens: number | null; outputTokens: number | null };
     contextSources?: CitationSource[];
+    historicalMemory?: HistoricalMemoryRecall;
   }
 ) {
   const db = getDb();
@@ -254,7 +278,8 @@ export function updateMessage(
     updates.parts !== undefined ||
     updates.status !== undefined ||
     updates.isDeleted !== undefined ||
-    updates.deletedAt !== undefined;
+    updates.deletedAt !== undefined ||
+    updates.turnId !== undefined;
   const previous = shouldConsiderSearchSync ? getMessage(id) : null;
   const now = Date.now();
 
@@ -301,6 +326,11 @@ export function updateMessage(
     values.push(updates.contextSources?.length ? JSON.stringify(updates.contextSources) : null);
   }
 
+  if (updates.historicalMemory !== undefined) {
+    sets.push("historicalMemory = ?");
+    values.push(updates.historicalMemory?.hits?.length ? JSON.stringify(updates.historicalMemory) : null);
+  }
+
   values.push(id);
 
   db.prepare(`UPDATE messages SET ${sets.join(", ")} WHERE id = ?`).run(
@@ -322,6 +352,16 @@ export function updateMessage(
   if (shouldSyncNow) {
     syncMessageSearchDoc(id);
   }
+
+  if (
+    (updates.parts !== undefined ||
+      updates.status !== undefined ||
+      updates.isDeleted !== undefined ||
+      updates.deletedAt !== undefined ||
+      updates.turnId !== undefined)
+  ) {
+    deleteHistoricalMemoryByTurnIds([previous?.turnId, updates.turnId]);
+  }
 }
 
 /**
@@ -329,6 +369,7 @@ export function updateMessage(
  */
 export function deleteMessage(id: string) {
   const db = getDb();
+  deleteHistoricalMemoryByMessageId(id);
   
   const now = Date.now();
   // 清空内容时使用 JSON 格式的空数组
@@ -461,6 +502,7 @@ export function getMessagesByTurnId(turnId: string): Message[] {
  */
 export function deleteMessagesByTurnId(turnId: string) {
   const db = getDb();
+  deleteHistoricalMemoryByTurnId(turnId);
   const now = Date.now();
   const emptyContent = stringifyParts([]);
   

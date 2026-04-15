@@ -105,6 +105,28 @@ export interface DebugToolExecution {
   errorMessage?: string
 }
 
+export interface HistoricalMemoryDebugHit {
+  chunkId: number
+  sessionId: string
+  sessionTitle: string
+  turnId: string
+  score: number
+  vectorScore?: number
+  keywordScore?: number
+  reason: string[]
+  createdAt: number
+  updatedAt: number
+  contentPreview: string
+}
+
+export type HistoricalMemoryRecallMode = 'auto' | 'tool'
+
+export interface HistoricalMemoryRecall {
+  mode: HistoricalMemoryRecallMode
+  query: string
+  hits: HistoricalMemoryDebugHit[]
+}
+
 /**
  * 完整的调试信息（ReAct 循环结构）
  */
@@ -154,6 +176,11 @@ export interface ChatDebugInfo {
       name: string
       description?: string
     }>
+
+    historicalMemory?: {
+      query: string
+      hits: HistoricalMemoryDebugHit[]
+    }
   }
   
   // ===== 执行步骤 =====
@@ -270,6 +297,8 @@ export interface Message extends Omit<AppUIMessage, 'metadata'> {
   tokenUsage?: { inputTokens: number | null; outputTokens: number | null }  // Token 消耗统计
   /** 知识库召回的结构化来源（仅 role=user 且本回合有 RAG 时存在，用于引用展示与持久化） */
   contextSources?: CitationSource[]
+  /** 历史对话记忆自动召回结果（仅 assistant 消息，用于消息底部展示） */
+  historicalMemory?: HistoricalMemoryRecall
   createdAt: number
   updatedAt: number
 }

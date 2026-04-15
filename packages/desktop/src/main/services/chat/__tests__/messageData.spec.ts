@@ -12,6 +12,11 @@ import {
 } from "../messageData";
 import { createSession } from "../sessionData";
 import { createTurn } from "../turnData";
+import {
+  createHistoricalMemoryVectorIndex,
+  getHistoricalMemoryIndexStats,
+  saveHistoricalMemoryChunks,
+} from "../historicalMemoryData";
 import type { CitationSource } from "@shared";
 import { useTestDb } from "../../../../../test/helpers/testDb";
 
@@ -67,12 +72,110 @@ describe("messageData", () => {
     expect(loadedUser?.contextSources).toEqual(contextSources);
     expect(getParentUserMessage(assistantMessage.id)?.id).toBe(userMessage.id);
 
+    createHistoricalMemoryVectorIndex(2);
+    saveHistoricalMemoryChunks({
+      sessionId: session.id,
+      sessionTitle: session.title,
+      turnId: "turn-1",
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      chunks: ["Historical memory for the turn group."],
+      embeddings: [[1, 0]],
+      embeddingModel: "provider::embedding",
+      embeddingDimension: 2,
+    });
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(1);
+
     deleteMessagesByTurnId("turn-1");
 
     const deletedMessages = getMessagesByTurnId("turn-1");
     expect(deletedMessages).toHaveLength(2);
     expect(deletedMessages.every((message) => message.isDeleted)).toBe(true);
     expect(deletedMessages.every((message) => message.parts.length === 0)).toBe(true);
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(0);
+  });
+
+  it("clears historical memory when an indexed message is edited", () => {
+    const session = createSession("__default__", "default-scenario", "Message Edit Memory");
+    const userMessage = createUserMessage({
+      sessionId: session.id,
+      turnId: "turn-edit",
+      parts: [{ type: "text", text: "Original question" }],
+    });
+    const assistantMessage = createAssistantMessage({
+      sessionId: session.id,
+      turnId: "turn-edit",
+      parts: [{ type: "text", text: "Original answer" }],
+      status: "success",
+    });
+    createTurn({
+      id: "turn-edit",
+      sessionId: session.id,
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      triggerType: "submit",
+      status: "success",
+      selectedModel: "mock::general",
+    });
+
+    createHistoricalMemoryVectorIndex(2);
+    saveHistoricalMemoryChunks({
+      sessionId: session.id,
+      sessionTitle: session.title,
+      turnId: "turn-edit",
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      chunks: ["Historical memory before edit."],
+      embeddings: [[1, 0]],
+      embeddingModel: "provider::embedding",
+      embeddingDimension: 2,
+    });
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(1);
+
+    updateMessage(assistantMessage.id, {
+      parts: [{ type: "text", text: "Edited answer" }],
+    });
+
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(0);
+  });
+
+  it("clears historical memory for both old and new turns when a message turn changes", () => {
+    const session = createSession("__default__", "default-scenario", "Message Turn Move Memory");
+    const assistantMessage = createAssistantMessage({
+      sessionId: session.id,
+      turnId: "turn-old",
+      parts: [{ type: "text", text: "Answer before moving turns" }],
+      status: "success",
+    });
+
+    createHistoricalMemoryVectorIndex(2);
+    saveHistoricalMemoryChunks({
+      sessionId: session.id,
+      sessionTitle: session.title,
+      turnId: "turn-old",
+      userMessageId: "user-old",
+      assistantMessageId: assistantMessage.id,
+      chunks: ["Historical memory for the old turn."],
+      embeddings: [[1, 0]],
+      embeddingModel: "provider::embedding",
+      embeddingDimension: 2,
+    });
+    saveHistoricalMemoryChunks({
+      sessionId: session.id,
+      sessionTitle: session.title,
+      turnId: "turn-new",
+      userMessageId: "user-new",
+      assistantMessageId: "assistant-new",
+      chunks: ["Historical memory for the new turn."],
+      embeddings: [[0, 1]],
+      embeddingModel: "provider::embedding",
+      embeddingDimension: 2,
+    });
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(2);
+
+    updateMessage(assistantMessage.id, { turnId: "turn-new" });
+
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(0);
   });
 
   it("returns the nearest previous user message even when it was soft deleted", () => {

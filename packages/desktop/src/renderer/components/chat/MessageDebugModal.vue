@@ -102,6 +102,57 @@
           </div>
         </div>
 
+        <!-- 历史对话记忆召回 -->
+        <div
+          v-if="debugInfo.meta.historicalMemory"
+          class="border border-default rounded-lg"
+        >
+          <div class="p-3 border-b border-default flex items-center gap-2">
+            <span class="text-sm font-medium">
+              {{ t("chat.debug.historicalMemory") }}
+            </span>
+            <span class="text-xs text-muted">
+              {{ t("chat.debug.historicalMemoryCount", { count: debugInfo.meta.historicalMemory.hits.length }) }}
+            </span>
+          </div>
+          <div class="p-4 space-y-3">
+            <div class="text-xs text-toned">
+              {{ t("chat.debug.historicalMemoryQuery") }}:
+              <span class="text-default">{{ debugInfo.meta.historicalMemory.query }}</span>
+            </div>
+            <div
+              v-if="debugInfo.meta.historicalMemory.hits.length === 0"
+              class="text-xs text-muted"
+            >
+              {{ t("chat.debug.historicalMemoryEmpty") }}
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="hit in debugInfo.meta.historicalMemory.hits"
+                :key="hit.chunkId"
+                class="p-3 bg-muted rounded border border-default space-y-2"
+              >
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                  <span class="font-medium text-default">{{ hit.sessionTitle || hit.sessionId }}</span>
+                  <span class="text-muted">{{ formatDateTime(hit.createdAt) }}</span>
+                  <span class="text-muted">score {{ formatScore(hit.score) }}</span>
+                  <span
+                    v-for="reason in hit.reason"
+                    :key="reason"
+                    class="px-1.5 py-0.5 rounded border border-default text-muted"
+                  >
+                    {{ reason }}
+                  </span>
+                </div>
+                <div class="text-xs text-muted">
+                  vector {{ formatOptionalScore(hit.vectorScore) }} · keyword {{ formatOptionalScore(hit.keywordScore) }}
+                </div>
+                <pre class="text-xs text-toned whitespace-pre-wrap break-all">{{ hit.contentPreview }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 执行流程（ReAct 循环） -->
         <div class="border border-default rounded-lg">
           <div class="p-3 border-b border-default flex items-center justify-between">
@@ -341,6 +392,18 @@ function formatDuration(ms: number) {
   if (ms < 1000) return `${ms}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
   return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`
+}
+
+function formatDateTime(value: number) {
+  return new Date(value).toLocaleString()
+}
+
+function formatScore(value: number) {
+  return Number.isFinite(value) ? value.toFixed(3) : '-'
+}
+
+function formatOptionalScore(value?: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '-'
 }
 
 function formatMcpServersTitle(count: number, aggregationTime?: number) {

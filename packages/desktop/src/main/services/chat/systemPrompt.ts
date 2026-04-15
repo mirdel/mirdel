@@ -4,7 +4,12 @@
  * - untrusted context data: 将用户可影响的记忆数据放入非指令数据容器（非 system 角色）
  */
 import type { ModelMessage } from "ai";
-import { loggerServiceMain, type ChatMode, type SupportedAppLocale } from "@shared";
+import {
+  loggerServiceMain,
+  type ChatMode,
+  type HistoricalMemoryDebugHit,
+  type SupportedAppLocale,
+} from "@shared";
 import { getScenario } from "../scenarios/scenarioData";
 import { getSession, listSessionsForDigest, getEffectiveWorkingDirs } from "./sessionData";
 import { getMemorySettings } from "../settings/settingsData";
@@ -65,6 +70,10 @@ type ContextDataBlock = {
 export type ResolvedPromptEnvelope = {
   systemMessages: ModelMessage[];
   contextDataMessages: ModelMessage[];
+  historicalMemory?: {
+    query: string;
+    hits: HistoricalMemoryDebugHit[];
+  };
 };
 
 function pushPromptBlock(blocks: PromptBlock[], title: string, content: string) {
@@ -124,6 +133,7 @@ export async function resolveSystemPromptEnvelope(
 
   const systemBlocks: PromptBlock[] = [];
   const contextDataBlocks: ContextDataBlock[] = [];
+  let historicalMemoryDebug: ResolvedPromptEnvelope["historicalMemory"] | undefined;
 
   const systemContextText = normalizeSystemContextText(getSystemContext());
   const userSystemPrompt = scenario.systemPrompt?.trim() || "";
@@ -239,7 +249,26 @@ Root directory of the currently active skill. Use for this skill's scripts, refe
         sessionId,
         query: currentUserText,
         limit: memorySettings.historicalMaxRecall,
+        excludeSessionId: sessionId,
       });
+      historicalMemoryDebug = {
+        query: currentUserText,
+        hits: hits.map((hit) => ({
+          chunkId: hit.id,
+          sessionId: hit.sessionId,
+          sessionTitle: hit.sessionTitle,
+          turnId: hit.turnId,
+          score: hit.score,
+          vectorScore: hit.vectorScore,
+          keywordScore: hit.keywordScore,
+          reason: hit.reason,
+          createdAt: hit.createdAt,
+          updatedAt: hit.updatedAt,
+          contentPreview: hit.content.length > 500
+            ? `${hit.content.slice(0, 500).trimEnd()}...`
+            : hit.content,
+        })),
+      };
       const context = formatHistoricalMemoryContext(hits);
       if (context) {
         pushContextDataBlock(contextDataBlocks, {
@@ -268,7 +297,7 @@ Root directory of the currently active skill. Use for this skill's scripts, refe
     });
   }
 
-  return { systemMessages, contextDataMessages };
+  return { systemMessages, contextDataMessages, historicalMemory: historicalMemoryDebug };
 }
 
 /**

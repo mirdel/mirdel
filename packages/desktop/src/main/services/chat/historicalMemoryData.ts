@@ -130,12 +130,47 @@ export function deleteHistoricalMemoryByTurnId(turnId: string): void {
   db.prepare("DELETE FROM historical_memory_chunks WHERE turnId = ?").run(turnId);
 }
 
+export function deleteHistoricalMemoryBySessionId(sessionId: string): void {
+  const db = getDb();
+  ensureHistoricalMemorySearchReady();
+  const rows = db
+    .prepare("SELECT id FROM historical_memory_chunks WHERE sessionId = ?")
+    .all(sessionId) as Array<{ id: number }>;
+  const ids = rows.map((row) => row.id);
+
+  if (ids.length > 0 && historicalMemoryVectorTableExists()) {
+    const tableName = getHistoricalMemoryVectorTableName();
+    const placeholders = ids.map(() => "?").join(",");
+    db.prepare(`DELETE FROM "${tableName}" WHERE id IN (${placeholders})`).run(...ids);
+  }
+
+  db.prepare(`DELETE FROM ${HISTORICAL_MEMORY_FTS_TABLE} WHERE sessionId = ?`).run(sessionId);
+  db.prepare("DELETE FROM historical_memory_chunks WHERE sessionId = ?").run(sessionId);
+}
+
+export function deleteHistoricalMemoryByMessageId(messageId: string): void {
+  const db = getDb();
+  ensureHistoricalMemorySearchReady();
+  const rows = db
+    .prepare(`
+      SELECT DISTINCT turnId
+      FROM historical_memory_chunks
+      WHERE userMessageId = ? OR assistantMessageId = ?
+    `)
+    .all(messageId, messageId) as Array<{ turnId: string }>;
+
+  for (const row of rows) {
+    deleteHistoricalMemoryByTurnId(row.turnId);
+  }
+}
+
 export function saveHistoricalMemoryChunks(input: {
   sessionId: string;
   sessionTitle: string;
   turnId: string;
   userMessageId: string | null;
   assistantMessageId: string | null;
+  sourceCreatedAt?: number;
   chunks: string[];
   embeddings: number[][];
   embeddingModel: string;
@@ -153,7 +188,10 @@ export function saveHistoricalMemoryChunks(input: {
 
   deleteHistoricalMemoryByTurnId(input.turnId);
 
-  const now = Date.now();
+  const indexedAt = Date.now();
+  const sourceCreatedAt = Number.isFinite(input.sourceCreatedAt)
+    ? Math.max(0, Math.floor(input.sourceCreatedAt as number))
+    : indexedAt;
   const ids: number[] = [];
   const insertChunk = db.prepare(`
     INSERT INTO historical_memory_chunks (
@@ -184,8 +222,8 @@ export function saveHistoricalMemoryChunks(input: {
         hashMemoryContent(content),
         input.embeddingModel,
         input.embeddingDimension,
-        now,
-        now
+        sourceCreatedAt,
+        indexedAt
       );
       const chunkId = Number(result.lastInsertRowid);
       ids.push(chunkId);
@@ -195,7 +233,7 @@ export function saveHistoricalMemoryChunks(input: {
 
     setHistoricalMemoryMeta("embeddingModel", input.embeddingModel);
     setHistoricalMemoryMeta("vectorDimension", String(input.embeddingDimension));
-    setHistoricalMemoryMeta("lastIndexedAt", String(now));
+    setHistoricalMemoryMeta("lastIndexedAt", String(indexedAt));
   });
 
   tx();
@@ -205,12 +243,14 @@ export function saveHistoricalMemoryChunks(input: {
 export function searchHistoricalMemoryVectors(
   queryVector: number[],
   embeddingModel: string,
-  limit: number
+  limit: number,
+  options?: { excludeSessionId?: string }
 ): Array<{ chunkId: number; distance: number; rank: number }> {
   if (!historicalMemoryVectorTableExists()) return [];
   const db = getDb();
   const tableName = getHistoricalMemoryVectorTableName();
   const fetchK = Math.min(Math.max(limit * 8, 40), 300);
+  const excludeSessionId = options?.excludeSessionId?.trim() || null;
   const rows = db.prepare(`
     SELECT v.id AS chunkId, v.distance
     FROM (
@@ -222,9 +262,18 @@ export function searchHistoricalMemoryVectors(
     WHERE (s.isTemporary IS NULL OR s.isTemporary = 0)
       AND c.embeddingModel = ?
       AND c.embeddingDimension = ?
+      AND (? IS NULL OR c.sessionId <> ?)
     ORDER BY v.distance ASC
     LIMIT ?
-  `).all(new Float32Array(queryVector), fetchK, embeddingModel, queryVector.length, fetchK) as Array<{ chunkId: number; distance: number }>;
+  `).all(
+    new Float32Array(queryVector),
+    fetchK,
+    embeddingModel,
+    queryVector.length,
+    excludeSessionId,
+    excludeSessionId,
+    fetchK
+  ) as Array<{ chunkId: number; distance: number }>;
 
   return rows.map((row, index) => ({
     chunkId: row.chunkId,
@@ -235,13 +284,15 @@ export function searchHistoricalMemoryVectors(
 
 export function searchHistoricalMemoryKeywords(
   query: string,
-  limit: number
+  limit: number,
+  options?: { excludeSessionId?: string }
 ): Array<{ chunkId: number; rawScore: number; rank: number }> {
   const trimmed = query.trim();
   if (!trimmed) return [];
   const db = getDb();
   ensureHistoricalMemorySearchReady();
   const fetchK = Math.min(Math.max(limit * 8, 40), 300);
+  const excludeSessionId = options?.excludeSessionId?.trim() || null;
 
   const rows = db.prepare(`
     SELECT
@@ -252,9 +303,10 @@ export function searchHistoricalMemoryKeywords(
     JOIN sessions s ON s.id = c.sessionId
     WHERE ${HISTORICAL_MEMORY_FTS_TABLE} MATCH simple_query(?)
       AND (s.isTemporary IS NULL OR s.isTemporary = 0)
+      AND (? IS NULL OR c.sessionId <> ?)
     ORDER BY rawScore ASC, c.updatedAt DESC
     LIMIT ?
-  `).all(trimmed, fetchK) as Array<{ chunkId: number; rawScore: number }>;
+  `).all(trimmed, excludeSessionId, excludeSessionId, fetchK) as Array<{ chunkId: number; rawScore: number }>;
 
   return rows.map((row, index) => ({
     chunkId: row.chunkId,

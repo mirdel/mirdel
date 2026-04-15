@@ -30,6 +30,7 @@ const EMBED_BATCH_SIZE = 10;
 const RRF_K = 60;
 const MAX_CONTEXT_CHARS_PER_HIT = 1200;
 const MAX_CONTEXT_TOTAL_CHARS = 3600;
+const KEYWORD_ADMISSION_SCORE = 0.5;
 
 const MEMORY_CHUNK_CONFIG: ChunkConfig = {
   targetMin: 700,
@@ -44,6 +45,34 @@ type EmbeddingConfig = ResolvedEmbeddingInvocation;
 export type HistoricalMemoryHit = HistoricalMemoryCandidate & {
   reason: string[];
 };
+
+export interface HistoricalMemoryTestRecallHit {
+  chunkId: number;
+  sessionId: string;
+  sessionTitle: string;
+  turnId: string;
+  score: number;
+  vectorScore?: number;
+  keywordScore?: number;
+  reason: string[];
+  createdAt: number;
+  updatedAt: number;
+  contentPreview: string;
+}
+
+export interface HistoricalMemoryTestRecallResult {
+  query: string;
+  duration: number;
+  stats: ReturnType<typeof getHistoricalMemoryIndexStats> & {
+    currentEmbeddingModel: string | null;
+  };
+  settings: {
+    enabled: boolean;
+    maxRecall: number;
+    minScore: number;
+  };
+  hits: HistoricalMemoryTestRecallHit[];
+}
 
 async function getEmbeddingConfig(
   embeddingModel: string,
@@ -172,6 +201,7 @@ async function indexTurnInternal(turnId: string, options?: { force?: boolean }):
     turnId,
     userMessageId: turn.userMessageId ?? null,
     assistantMessageId: turn.assistantMessageId ?? null,
+    sourceCreatedAt: turn.createdAt,
     chunks,
     embeddings,
     embeddingModel: embeddingConfig.modelKey,
@@ -212,12 +242,8 @@ export function enqueueHistoricalMemoryIndexTask(params: { turnId: string }): vo
   });
 }
 
-function hasHistoricalIntent(query: string): boolean {
-  return /上次|之前|以前|刚才|历史|记得|我们讨论|聊过|提到过|previous|before|earlier|last time|remember|discussed/i.test(query);
-}
-
-function recencyBoost(updatedAt: number): number {
-  const ageDays = Math.max(0, (Date.now() - updatedAt) / (24 * 60 * 60 * 1000));
+function recencyBoost(sourceCreatedAt: number): number {
+  const ageDays = Math.max(0, (Date.now() - sourceCreatedAt) / (24 * 60 * 60 * 1000));
   if (ageDays <= 7) return 0.06;
   if (ageDays <= 30) return 0.03;
   return 0;
@@ -231,34 +257,53 @@ function buildReason(hit: HistoricalMemoryHit): string[] {
   const reason: string[] = [];
   if ((hit.vectorScore ?? 0) >= 0.5) reason.push("semantic");
   if ((hit.keywordScore ?? 0) >= 0.25) reason.push("keyword");
-  if (recencyBoost(hit.updatedAt) > 0) reason.push("recent");
+  if (recencyBoost(hit.createdAt) > 0) reason.push("recent");
   if (hit.accessCount > 0) reason.push("used-before");
   return reason.length > 0 ? reason : ["ranked"];
 }
 
-export async function searchHistoricalMemory(params: {
-  sessionId: string;
+function passesHistoricalMemoryAdmission(hit: HistoricalMemoryHit, minScore: number): boolean {
+  return (hit.vectorScore ?? 0) >= minScore || (hit.keywordScore ?? 0) >= KEYWORD_ADMISSION_SCORE;
+}
+
+async function searchHistoricalMemoryInternal(params: {
+  sessionId?: string;
   query: string;
   limit?: number;
-}): Promise<HistoricalMemoryHit[]> {
+  excludeSessionId?: string;
+  requireSession?: boolean;
+  respectEnabled?: boolean;
+  failurePolicy?: ModelReferenceFailurePolicy;
+  touchAccessCount?: boolean;
+}): Promise<{
+  hits: HistoricalMemoryHit[];
+  currentEmbeddingModel: string | null;
+}> {
   const settings = getMemorySettings();
-  if (!settings.historicalEnabled) return [];
+  if (params.respectEnabled !== false && !settings.historicalEnabled) {
+    return { hits: [], currentEmbeddingModel: null };
+  }
 
   const query = params.query.trim();
-  if (!query) return [];
+  if (!query) return { hits: [], currentEmbeddingModel: null };
 
-  const session = getSession(params.sessionId);
-  if (!session || session.isTemporary) return [];
+  if (params.requireSession !== false) {
+    const session = params.sessionId ? getSession(params.sessionId) : null;
+    if (!session || session.isTemporary) return { hits: [], currentEmbeddingModel: null };
+  }
 
   let queryVector: number[] | null = null;
+  let currentEmbeddingModel: string | null = null;
   const vectorRows: Array<{ chunkId: number; distance: number; rank: number }> = [];
+  const failurePolicy = params.failurePolicy ?? "background";
   try {
     const embeddingConfig = await getEmbeddingConfig(
       settings.historicalEmbeddingModel,
       settings.historicalEmbeddingDimension,
-      "background"
+      failurePolicy
     );
     if (embeddingConfig) {
+      currentEmbeddingModel = embeddingConfig.modelKey;
       queryVector = await embedQuery(query, embeddingConfig);
       const stats = getHistoricalMemoryIndexStats();
       if (stats.vectorReady && stats.embeddingModel && stats.embeddingModel !== embeddingConfig.modelKey) {
@@ -270,22 +315,30 @@ export async function searchHistoricalMemory(params: {
         vectorRows.push(...searchHistoricalMemoryVectors(
           queryVector,
           embeddingConfig.modelKey,
-          Math.max(settings.historicalMaxRecall, params.limit ?? 3)
+          Math.max(settings.historicalMaxRecall, params.limit ?? 3),
+          { excludeSessionId: params.excludeSessionId }
         ));
       }
     }
   } catch (error) {
+    if (failurePolicy === "foreground") {
+      throw error;
+    }
     logger.warn("historical memory vector search unavailable", {
       error: error instanceof Error ? error.message : String(error),
     });
   }
 
-  const keywordRows = searchHistoricalMemoryKeywords(query, Math.max(settings.historicalMaxRecall, params.limit ?? 3));
+  const keywordRows = searchHistoricalMemoryKeywords(
+    query,
+    Math.max(settings.historicalMaxRecall, params.limit ?? 3),
+    { excludeSessionId: params.excludeSessionId }
+  );
   const candidateIds = Array.from(new Set([
     ...vectorRows.map((row) => row.chunkId),
     ...keywordRows.map((row) => row.chunkId),
   ]));
-  if (candidateIds.length === 0) return [];
+  if (candidateIds.length === 0) return { hits: [], currentEmbeddingModel };
 
   const vectorById = new Map(vectorRows.map((row) => [row.chunkId, row]));
   const keywordById = new Map(keywordRows.map((row) => [row.chunkId, row]));
@@ -299,11 +352,11 @@ export async function searchHistoricalMemory(params: {
     const rrfScore =
       (vector ? 1 / (RRF_K + vector.rank) : 0) +
       (keyword ? 1 / (RRF_K + keyword.rank) : 0);
-    const score =
-      vectorScore * 0.65 +
-      keywordScore * 0.25 +
-      recencyBoost(chunk.updatedAt) +
-      accessBoost(chunk.accessCount);
+    const score = Math.min(1,
+      Math.max(vectorScore, keywordScore * 0.75) +
+      recencyBoost(chunk.createdAt) +
+      accessBoost(chunk.accessCount)
+    );
     return {
       ...chunk,
       vectorScore: vector ? vectorScore : undefined,
@@ -314,18 +367,85 @@ export async function searchHistoricalMemory(params: {
     };
   });
 
-  const threshold = hasHistoricalIntent(query)
-    ? Math.max(0, settings.historicalMinScore - 0.08)
-    : settings.historicalMinScore;
   const limit = Math.max(1, Math.min(10, params.limit ?? settings.historicalMaxRecall));
   const selected = hits
-    .filter((hit) => hit.score >= threshold || (hit.keywordScore ?? 0) >= 0.5)
-    .sort((a, b) => b.score - a.score || b.rrfScore - a.rrfScore || b.updatedAt - a.updatedAt)
+    .filter((hit) => passesHistoricalMemoryAdmission(hit, settings.historicalMinScore))
+    .sort((a, b) => b.score - a.score || b.rrfScore - a.rrfScore || b.createdAt - a.createdAt)
     .slice(0, limit)
     .map((hit) => ({ ...hit, reason: buildReason(hit) }));
 
-  touchHistoricalMemoryChunks(selected.map((hit) => hit.id));
-  return selected;
+  if (params.touchAccessCount !== false) {
+    touchHistoricalMemoryChunks(selected.map((hit) => hit.id));
+  }
+  return { hits: selected, currentEmbeddingModel };
+}
+
+export async function searchHistoricalMemory(params: {
+  sessionId: string;
+  query: string;
+  limit?: number;
+  excludeSessionId?: string;
+}): Promise<HistoricalMemoryHit[]> {
+  const result = await searchHistoricalMemoryInternal({
+    ...params,
+    requireSession: true,
+    respectEnabled: true,
+    failurePolicy: "background",
+    touchAccessCount: true,
+  });
+  return result.hits;
+}
+
+function toTestRecallHit(hit: HistoricalMemoryHit): HistoricalMemoryTestRecallHit {
+  return {
+    chunkId: hit.id,
+    sessionId: hit.sessionId,
+    sessionTitle: hit.sessionTitle,
+    turnId: hit.turnId,
+    score: hit.score,
+    vectorScore: hit.vectorScore,
+    keywordScore: hit.keywordScore,
+    reason: hit.reason,
+    createdAt: hit.createdAt,
+    updatedAt: hit.updatedAt,
+    contentPreview: hit.content.length > 800
+      ? `${hit.content.slice(0, 800).trimEnd()}...`
+      : hit.content,
+  };
+}
+
+export async function testHistoricalMemoryRecall(query: string): Promise<HistoricalMemoryTestRecallResult> {
+  const startedAt = Date.now();
+  const settings = getMemorySettings();
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    throw new Error("query is required");
+  }
+
+  const result = await searchHistoricalMemoryInternal({
+    query: trimmedQuery,
+    limit: settings.historicalMaxRecall,
+    requireSession: false,
+    respectEnabled: false,
+    failurePolicy: "foreground",
+    touchAccessCount: false,
+  });
+  const stats = getHistoricalMemoryIndexStats();
+
+  return {
+    query: trimmedQuery,
+    duration: Date.now() - startedAt,
+    stats: {
+      ...stats,
+      currentEmbeddingModel: result.currentEmbeddingModel,
+    },
+    settings: {
+      enabled: settings.historicalEnabled,
+      maxRecall: settings.historicalMaxRecall,
+      minScore: settings.historicalMinScore,
+    },
+    hits: result.hits.map(toTestRecallHit),
+  };
 }
 
 export function formatHistoricalMemoryContext(hits: HistoricalMemoryHit[]): string {

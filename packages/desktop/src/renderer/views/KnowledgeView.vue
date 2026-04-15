@@ -156,7 +156,7 @@
             />
           </div>
 
-          <UFormField :label="t('knowledge.modal.field.embeddingDimension')" required :error="dimensionValidationError">
+          <UFormField :label="t('knowledge.modal.field.embeddingDimension')" :error="dimensionValidationError">
             <div class="flex items-center gap-2">
               <UInput
                 :model-value="embeddingDimensionInput"
@@ -682,11 +682,7 @@ function openEditModal(kb: KnowledgeBase) {
 const canConfirmKbModal = computed(() => {
   if (!kbModalForm.value.name.trim()) return false;
   if (isEditMode.value && needsMigration.value) return false;
-  if (!isEditMode.value) {
-    const dim = parseEmbeddingDimension(embeddingDimensionInput.value);
-    if (dim == null || dim < 1) return false;
-    if (dimensionValidationError.value) return false;
-  }
+  if (dimensionValidationError.value) return false;
   return true;
 });
 
@@ -718,14 +714,12 @@ async function handleKbModalConfirm() {
       toast.success(t('knowledge.toast.updateSuccess'));
     } else {
       const dim = parseEmbeddingDimension(embeddingDimensionInput.value);
-      if (dim == null || dim < 1) {
-        toast.error({ title: t('knowledge.toast.createFailed'), description: t('knowledge.toast.invalidDimension') });
-        return;
-      }
-      const validation = await validateEmbeddingDimension(kbModalForm.value.embeddingModel, dim);
-      if (!validation.ok) {
-        toast.error({ title: t('knowledge.toast.createFailed'), description: validation.error });
-        return;
+      if (dim != null) {
+        const validation = await validateEmbeddingDimension(kbModalForm.value.embeddingModel, dim);
+        if (!validation.ok) {
+          toast.error({ title: t('knowledge.toast.createFailed'), description: validation.error });
+          return;
+        }
       }
       const kb = await createKb({
         name: kbModalForm.value.name,

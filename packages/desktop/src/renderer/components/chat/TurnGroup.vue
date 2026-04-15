@@ -248,6 +248,22 @@
             </UAvatarGroup>
             <span class="text-xs text-muted">{{ t('chat.turnGroup.citedSources', { count: citedSourcesFiltered.length }) }}</span>
           </UButton>
+
+          <UButton
+            v-if="autoHistoricalMemoryRecall && autoHistoricalMemoryRecall.hits.length > 0"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            class="flex items-center gap-1.5"
+            @click="showHistoricalMemoryModal = true"
+          >
+            <span>
+              <UIcon name="i-lucide-brain-cog" size="14" />
+            </span>
+            <span class="text-xs text-muted">
+              {{ t('chat.turnGroup.historicalMemoryRecall', { count: autoHistoricalMemoryRecall.hits.length }) }}
+            </span>
+          </UButton>
         </div>
         
         <!-- Token 统计（右侧） -->
@@ -348,6 +364,11 @@
     @source-click="handleSourceActivate"
   />
 
+  <HistoricalMemoryRecallModal
+    v-model:open="showHistoricalMemoryModal"
+    :recall="autoHistoricalMemoryRecall"
+  />
+
   <UModal
     v-model:open="showKnowledgeSourceDetail"
     :title="knowledgeSourceModalTitle"
@@ -446,7 +467,7 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MessageGroup as TurnGroupData } from '@/utils/messageGrouper'
 import type { MessagePublic } from '@/stores/useChatStore'
-import type { CitationSource, CitationSourceKind } from '@shared'
+import type { CitationSource, CitationSourceKind, HistoricalMemoryRecall } from '@shared'
 import MessageItem from './MessageItem.vue'
 import SuggestionsBlock from '../generative-ui/SuggestionsBlock.vue'
 import ModelLogo from '../ModelLogo.vue'
@@ -455,6 +476,7 @@ import MessageDebugModal from './MessageDebugModal.vue'
 import WriteToKbModal from './WriteToKbModal.vue'
 import SourcesDrawer from './SourcesDrawer.vue'
 import SourceCard from './SourceCard.vue'
+import HistoricalMemoryRecallModal from './HistoricalMemoryRecallModal.vue'
 import MessageMindmapBlock from './MessageMindmapBlock.vue'
 import { formatMessageTime } from '@/utils/timeFormat'
 import { parseModelInfo } from '@/utils/modelInfo'
@@ -500,6 +522,7 @@ const isCreatingBranch = ref(false)
 const showAdvancedRegenerateModal = ref(false)
 const showDebugModal = ref(false)
 const showSourcesDrawer = ref(false)
+const showHistoricalMemoryModal = ref(false)
 const showWriteToKbModal = ref(false)
 const showKnowledgeSourceDetail = ref(false)
 const responseContentRef = ref<HTMLElement | null>(null)
@@ -886,6 +909,12 @@ const citedSourcesFiltered = computed<CitationSource[]>(() => {
   const citedIndices = extractCitations(assistantText.value)
   if (citedIndices.length === 0) return []
   return citedSources.value.filter(s => citedIndices.includes(s.index))
+})
+
+const autoHistoricalMemoryRecall = computed<HistoricalMemoryRecall | null>(() => {
+  const recall = lastAssistantMessage.value?.historicalMemory
+  if (!recall || !Array.isArray(recall.hits)) return null
+  return recall
 })
 
 const knowledgeSourceModalTitle = computed(() => {

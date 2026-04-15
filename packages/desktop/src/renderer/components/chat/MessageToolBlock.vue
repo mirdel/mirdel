@@ -1,5 +1,55 @@
 <template>
   <div
+    v-if="isHistoricalMemorySearch"
+    :class="[
+      'border rounded-lg my-2 overflow-hidden',
+      statusClass,
+      { 'cursor-pointer': historicalMemoryRecall }
+    ]"
+    @click="openHistoricalMemoryModal"
+  >
+    <div class="flex items-center justify-between px-3 py-1.5">
+      <div class="flex items-center gap-2">
+        <UIcon :name="toolIcon" :class="['w-3.5 h-3.5', statusIconClass]" />
+        <span :class="['text-xs font-medium', statusTextClass]">
+          {{ displayText }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <UIcon
+          v-if="isLoading"
+          name="i-lucide-loader"
+          class="w-3.5 h-3.5 animate-spin"
+        />
+        <UIcon
+          v-else-if="isError"
+          name="i-lucide-triangle-alert"
+          class="w-3.5 h-3.5 text-error-500"
+        />
+        <UIcon
+          v-else-if="isAborted"
+          name="i-lucide-square"
+          class="w-3.5 h-3.5 text-toned"
+        />
+        <UIcon
+          v-else
+          name="i-lucide-circle-check"
+          class="w-3.5 h-3.5 text-success-500"
+        />
+        <span :class="['text-[11px] font-medium', statusLabelClass]">
+          {{ statusLabel }}
+        </span>
+        <UIcon
+          v-if="historicalMemoryRecall"
+          name="i-lucide-chevron-right"
+          :class="['w-3.5 h-3.5', statusChevronClass]"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div
+    v-else
     :class="[
       'border rounded-lg my-2 overflow-hidden',
       statusClass
@@ -122,13 +172,20 @@
       </div>
     </div>
   </div>
+
+  <HistoricalMemoryRecallModal
+    v-if="isHistoricalMemorySearch"
+    v-model:open="showHistoricalMemoryModal"
+    :recall="historicalMemoryRecall"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DynamicToolPart } from '@shared'
+import type { DynamicToolPart, HistoricalMemoryRecall } from '@shared'
 import { useChatStore } from '@/stores/useChatStore'
+import HistoricalMemoryRecallModal from './HistoricalMemoryRecallModal.vue'
 
 const props = defineProps<{
   toolCall: DynamicToolPart
@@ -139,6 +196,7 @@ const chatStore = useChatStore()
 const { t } = useI18n()
 const isSessionArchived = computed(() => !!chatStore.currentSession?.isArchived)
 const isOpen = ref(false)
+const showHistoricalMemoryModal = ref(false)
 
 // ===== 状态计算 =====
 
@@ -209,12 +267,16 @@ const showResultBlock = computed(() => {
 // 是否是网络搜索工具
 const isWebSearch = computed(() => props.toolCall.toolName === 'system::web_search')
 const isWebScrape = computed(() => props.toolCall.toolName === 'system::web_scrape')
+const isHistoricalMemorySearch = computed(() => props.toolCall.toolName === 'system::historical_memory_search')
 const isShellCommand = computed(() => props.toolCall.toolName === 'system::run_command')
 
 // 工具图标
 const toolIcon = computed(() => {
   if (isWebSearch.value || isWebScrape.value) {
     return 'i-lucide-globe'
+  }
+  if (isHistoricalMemorySearch.value) {
+    return 'i-lucide-brain'
   }
   return 'i-lucide-wrench'
 })
@@ -311,6 +373,12 @@ const displayText = computed(() => {
   if (isWebScrape.value) {
     return t('chat.toolBlock.callTool', { tool: 'web_scrape' })
   }
+  if (isHistoricalMemorySearch.value) {
+    if (isLoading.value) return t('chat.toolBlock.memorySearch.running')
+    if (isError.value) return t('chat.toolBlock.memorySearch.failed')
+    const count = historicalMemoryRecall.value?.hits.length ?? 0
+    return t('chat.toolBlock.memorySearch.done', { count })
+  }
   return t('chat.toolBlock.callTool', { tool: displayToolName.value })
 })
 
@@ -371,6 +439,24 @@ const formattedOutput = computed(() => {
   }
   return JSON.stringify(output, null, 2)
 })
+
+const historicalMemoryRecall = computed<HistoricalMemoryRecall | null>(() => {
+  const output = (resultPart.value as any)?.output as any
+  const fromOutput = output?._meta?.historicalMemory
+  const fromProvider = (resultPart.value as any)?.callProviderMetadata?.mirdel?.historicalMemory
+  const recall = fromOutput || fromProvider
+  if (!recall || !Array.isArray(recall.hits)) return null
+  return {
+    mode: 'tool',
+    query: String(recall.query || ''),
+    hits: recall.hits,
+  }
+})
+
+function openHistoricalMemoryModal() {
+  if (!historicalMemoryRecall.value) return
+  showHistoricalMemoryModal.value = true
+}
 
 function handleConfirm(action: 'allow' | 'allow-and-whitelist' | 'reject') {
   const sessionId = chatStore.currentSessionId

@@ -613,6 +613,7 @@ function mergeToolsWithNativeSdkTools(
 const CHAT_MODE_TOOLS_WHITELIST: string[] = [
   'system::web_search',
   'system::web_scrape',
+  'system::historical_memory_search',
 ];
 
 type AggregatedToolStat = {
@@ -637,7 +638,10 @@ async function buildFinalMessages(params: {
   skillId?: string | null;
   messages: Array<Pick<AppUIMessage, 'role' | 'parts'>>;
   prebuiltModelMessages?: ModelMessage[];
-}): Promise<ModelMessage[]> {
+}): Promise<{
+  messages: ModelMessage[];
+  historicalMemory?: Awaited<ReturnType<typeof resolveSystemPromptEnvelope>>["historicalMemory"];
+}> {
   const {
     sessionId,
     mode,
@@ -649,7 +653,7 @@ async function buildFinalMessages(params: {
     prebuiltModelMessages,
   } = params;
 
-  const { systemMessages, contextDataMessages } = await resolveSystemPromptEnvelope({
+  const { systemMessages, contextDataMessages, historicalMemory } = await resolveSystemPromptEnvelope({
     sessionId,
     mode,
     citationRequired,
@@ -682,7 +686,7 @@ async function buildFinalMessages(params: {
   })();
   finalMessages.push(...filterHistoricalSystemMessages(modelMessages));
 
-  return finalMessages;
+  return { messages: finalMessages, historicalMemory };
 }
 
 async function aggregateToolsForMode(params: {
@@ -777,6 +781,15 @@ async function aggregateToolsForMode(params: {
       reason: webSearch === 'native' ? 'using native model search' : 'web search disabled',
       remainingToolCount: tools ? Object.keys(tools).length : 0
     });
+  }
+
+  if (!getMemorySettings().historicalEnabled && tools) {
+    const filteredTools: Record<string, any> = {};
+    for (const [toolName, tool] of Object.entries(tools)) {
+      if (toolName === 'system::historical_memory_search') continue;
+      filteredTools[toolName] = tool;
+    }
+    tools = Object.keys(filteredTools).length > 0 ? filteredTools : undefined;
   }
 
   return {
@@ -1009,7 +1022,7 @@ async function executeChatCore(params: {
   }
 
   // 5. 构建最终消息：system 由 resolveSystemMessages 统一生成，再追加对话历史
-  const finalMessages = await buildFinalMessages({
+  const promptEnvelope = await buildFinalMessages({
     sessionId,
     mode,
     citationRequired,
@@ -1019,6 +1032,7 @@ async function executeChatCore(params: {
     messages,
     prebuiltModelMessages,
   });
+  const finalMessages = promptEnvelope.messages;
   
   logger.info("executeChatCore: final messages constructed", {
     totalMessages: finalMessages.length,
@@ -1146,7 +1160,8 @@ async function executeChatCore(params: {
           },
           mcpServers: mcpServersSnapshot,
           mcpAggregationTime: mcpServerIds && mcpServerIds.length > 0 ? mcpAggregationTime : undefined,
-          availableTools
+          availableTools,
+          historicalMemory: promptEnvelope.historicalMemory,
         }
       });
     } catch (error) {
@@ -1842,7 +1857,14 @@ async function executeChatCore(params: {
   if (shouldPersist) {
     updateMessage(currentAssistantMessageId, {
       parts: currentAssistantContent,
-      status: finalStatus as 'streaming' | 'success' | 'aborted' | 'error'
+      status: finalStatus as 'streaming' | 'success' | 'aborted' | 'error',
+      historicalMemory: promptEnvelope.historicalMemory
+        ? {
+            mode: 'auto',
+            query: promptEnvelope.historicalMemory.query,
+            hits: promptEnvelope.historicalMemory.hits,
+          }
+        : undefined
     });
   }
   

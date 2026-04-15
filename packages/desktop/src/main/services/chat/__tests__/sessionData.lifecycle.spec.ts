@@ -13,6 +13,11 @@ import {
 } from "../sessionData";
 import { createTurn, listTurnsBySession } from "../turnData";
 import { createBranch } from "../sessionData";
+import {
+  createHistoricalMemoryVectorIndex,
+  getHistoricalMemoryIndexStats,
+  saveHistoricalMemoryChunks,
+} from "../historicalMemoryData";
 import { useTestDb } from "../../../../../test/helpers/testDb";
 
 describe("sessionData lifecycle", () => {
@@ -181,12 +186,26 @@ describe("sessionData lifecycle", () => {
       endTime: now + 1,
       createdMessageIds: [assistantMessage.id],
     });
+    createHistoricalMemoryVectorIndex(2);
+    saveHistoricalMemoryChunks({
+      sessionId: parentSession.id,
+      sessionTitle: parentSession.title,
+      turnId: "turn-parent",
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      chunks: ["Historical memory content from the parent session."],
+      embeddings: [[1, 0]],
+      embeddingModel: "provider::embedding",
+      embeddingDimension: 2,
+    });
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(1);
 
     deleteSession(parentSession.id);
 
     expect(getSession(parentSession.id)).toBeNull();
     expect(listMessages(parentSession.id)).toEqual([]);
     expect(listTurnsBySession(parentSession.id)).toEqual([]);
+    expect(getHistoricalMemoryIndexStats().chunkCount).toBe(0);
     expect(
       getDb().prepare("SELECT COUNT(*) AS count FROM chat_debug_runs WHERE sessionId = ?").get(parentSession.id)
     ).toEqual({ count: 0 });

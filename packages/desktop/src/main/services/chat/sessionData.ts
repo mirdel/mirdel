@@ -11,6 +11,7 @@ import {
   syncMessageSearchDocsBySessionId,
   syncSessionSearchDoc,
 } from "./chatSearchIndex";
+import { deleteHistoricalMemoryBySessionId } from "./historicalMemoryData";
 
 /** 内置始终允许的目录（应用数据目录，技能等依赖），不依赖用户配置 */
 export function getBuiltinWorkingDir(): string {
@@ -586,6 +587,8 @@ export function touchSession(sessionId: string) {
  * 删除会话（手动删除关联数据）
  */
 function deleteSessionCascadeInternal(db: ReturnType<typeof getDb>, sessionId: string) {
+  deleteHistoricalMemoryBySessionId(sessionId);
+
   db.prepare(`
     UPDATE sessions
     SET rootSessionId = NULL,

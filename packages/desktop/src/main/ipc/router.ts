@@ -105,7 +105,7 @@ import {
   deleteMessagesByTurnId,
   type MessageStatus
 } from "../services/chat/messageData";
-import type { MessageContentPart, CitationSource, AppUIMessage, ThinkingMode } from "@shared";
+import type { MessageContentPart, CitationSource, AppUIMessage, ThinkingMode, HistoricalMemoryRecall } from "@shared";
 import { getBranchesInfo } from "../services/chat/branchService";
 import { executeChat, executeChatWithToolApproval, executeChatWithToolApprovals } from "../services/chat/chatService";
 import { getLatestTurnByUserMessageId, getTurn, listTurnsBySession, updateTurn } from "../services/chat/turnData";
@@ -159,6 +159,7 @@ import { listPresetTemplates } from "../services/web-search/presets";
 import { getTestRawHtml, webSearchService, resizePagePool } from "../services/web-search";
 import type { SearchProvider } from "../services/web-search/types";
 import { localModelRuntimeService, modelServerManager } from "../services/model-server";
+import { LOCAL_PROVIDER_ID } from "../services/providers/localModelConstants";
 import { resolveModelInvocation } from "../services/providers/modelInvocation";
 import { getAiDevToolsViewerStatus, startAiDevToolsViewer } from "../services/devtools/aiDevToolsService";
 import {
@@ -340,7 +341,7 @@ function getRequiredDefaultEmbeddingModel(): { providerId: string; modelId: stri
  * 根据知识库配置构建批量 embedding 函数（供 processItem / updateTextItemAndProcess 复用）
  */
 function buildEmbedFnForKb(kb: KnowledgeBase): (texts: string[]) => Promise<number[][]> {
-  const dimension = kb.embeddingDimension ?? 768;
+  const dimension = kb.embeddingDimension;
   const { providerId, modelId, client } = getEmbeddingClientForModel(
     kb.embeddingModel ?? '__default__'
   );
@@ -349,6 +350,9 @@ function buildEmbedFnForKb(kb: KnowledgeBase): (texts: string[]) => Promise<numb
     : undefined;
 
   return async (texts: string[]) => {
+    if (providerId === LOCAL_PROVIDER_ID) {
+      await localModelRuntimeService.ensureModelReady(modelId);
+    }
     const { embeddings } = await embedMany({
       model: getEmbeddingModel(client, modelId),
       values: texts,
@@ -1599,6 +1603,11 @@ export const router = ipcRouter({
     return { ok: true };
   },
 
+  "historicalMemory:testRecall": async (_event, input: { query: string }) => {
+    const { testHistoricalMemoryRecall } = await import("../services/chat/historicalMemoryService");
+    return { ok: true, result: await testHistoricalMemoryRecall(String(input.query || "")) };
+  },
+
   // ==================== 翻译 ====================
   "translate:translate": async (event, input: { requestId?: string; input: string; targetLang: string; model?: string }) => {
     const requestId = String(input.requestId || "").trim();
@@ -2083,6 +2092,7 @@ export const router = ipcRouter({
       userEdited?: boolean;
       turnId?: string | null;
       contextSources?: CitationSource[];
+      historicalMemory?: HistoricalMemoryRecall;
     } 
   }) => {
     updateMessage(input.id, input.updates);
@@ -2870,7 +2880,10 @@ export const router = ipcRouter({
 
   /** 探测 embedding 模型的默认输出维度（不传 dimensions 参数，probe 一次） */
   "embedding:detectDimension": async (_event, input: { embeddingModel: string }) => {
-    const { modelId, client } = getEmbeddingClientForModel(input.embeddingModel);
+    const { providerId, modelId, client } = getEmbeddingClientForModel(input.embeddingModel);
+    if (providerId === LOCAL_PROVIDER_ID) {
+      await localModelRuntimeService.ensureModelReady(modelId);
+    }
     const { embedding } = await embed({
       model: getEmbeddingModel(client, modelId),
       value: "test"
@@ -2881,6 +2894,9 @@ export const router = ipcRouter({
   /** 校验指定维度是否被该模型支持 */
   "embedding:validateDimension": async (_event, input: { embeddingModel: string; dimension: number }) => {
     const { providerId, modelId, client } = getEmbeddingClientForModel(input.embeddingModel);
+    if (providerId === LOCAL_PROVIDER_ID) {
+      await localModelRuntimeService.ensureModelReady(modelId);
+    }
     const dim = input.dimension;
     try {
       const providerOptions = { [providerId]: { dimensions: dim } };
@@ -2909,8 +2925,20 @@ export const router = ipcRouter({
     return getKnowledgeBase(input.id);
   },
 
-  "kb:create": async (_event, input: { name: string; description?: string; embeddingModel?: string; embeddingDimension: number }) => {
-    return createKnowledgeBase(input);
+  "kb:create": async (_event, input: { name: string; description?: string; embeddingModel?: string; embeddingDimension?: number }) => {
+    let dimension = input.embeddingDimension;
+    if (dimension == null) {
+      const { providerId, modelId, client } = getEmbeddingClientForModel(input.embeddingModel ?? '__default__');
+      if (providerId === LOCAL_PROVIDER_ID) {
+        await localModelRuntimeService.ensureModelReady(modelId);
+      }
+      const { embedding } = await embed({
+        model: getEmbeddingModel(client, modelId),
+        value: "test"
+      });
+      dimension = embedding.length;
+    }
+    return createKnowledgeBase({ ...input, embeddingDimension: dimension });
   },
 
   "kb:update": async (_event, input: { id: string; updates: Partial<Pick<KnowledgeBase, 'name' | 'description'>> }) => {
@@ -3096,7 +3124,7 @@ export const router = ipcRouter({
       const kb = getKnowledgeBase(kbId);
       if (!kb || !kbVectorTableExists(kbId)) continue;
 
-      const dimension = kb.embeddingDimension ?? 768;
+      const dimension = kb.embeddingDimension;
       let embedding: number[];
 
       try {
@@ -3108,6 +3136,9 @@ export const router = ipcRouter({
           defaultModel,
           invalidModelErrorKey: "embedding.invalidModelFormat",
         });
+        if (resolved.providerId === LOCAL_PROVIDER_ID) {
+          await localModelRuntimeService.ensureModelReady(resolved.modelId);
+        }
         const providerOptions = dimension
           ? { [resolved.providerId]: { dimensions: dimension } }
           : undefined;
