@@ -242,6 +242,11 @@ export const useChatStore = defineStore('chat', () => {
   
   // ===== State =====
   const sessions = ref<SessionPublic[]>([])
+  const sessionById = computed(() => {
+    const map = new Map<string, SessionPublic>()
+    for (const s of sessions.value) map.set(s.id, s)
+    return map
+  })
   const currentSessionId = ref<string | null>(null)
   const pendingScrollTarget = ref<PendingScrollTarget | null>(null)
   
@@ -696,7 +701,7 @@ export const useChatStore = defineStore('chat', () => {
   
   // ===== Getters =====
   const currentSession = computed(() => 
-    sessions.value.find(s => s.id === currentSessionId.value)
+    currentSessionId.value ? sessionById.value.get(currentSessionId.value) : undefined
   )
   
   const selectedScenarioId = computed(() => {
@@ -718,7 +723,7 @@ export const useChatStore = defineStore('chat', () => {
   /** 根据 sessionId 获取上下文轮数（用于临时问、重新生成等） */
   function getContextCountForSession(sessionId: string | null): number {
     if (!sessionId) return selectedScenario.value?.contextCount ?? 10
-    const s = sessions.value.find(x => x.id === sessionId)
+    const s = sessionById.value.get(sessionId)
     const scenario = s ? settingsStore.scenarios.find(sc => sc.id === s.scenarioId) : selectedScenario.value
     return s?.contextCount ?? scenario?.contextCount ?? 10
   }
@@ -853,7 +858,7 @@ export const useChatStore = defineStore('chat', () => {
       }
     }
     if (currentSessionId.value) {
-      let current = sessions.value.find(s => s.id === currentSessionId.value)
+      let current = sessionById.value.get(currentSessionId.value)
       if (!current) {
         current = await window.ipc('sessions:get', { id: currentSessionId.value }) as SessionPublic | null
         if (current) {
@@ -1106,7 +1111,7 @@ export const useChatStore = defineStore('chat', () => {
 
       currentSessionId.value = sessionId
       clearSessionCompletedUnread(sessionId)
-      let sessionMeta = sessions.value.find(s => s.id === sessionId)
+      let sessionMeta = sessionById.value.get(sessionId)
       if (!sessionMeta) {
         sessionMeta = await window.ipc('sessions:get', { id: sessionId }) as SessionPublic | null
         if (sessionMeta) {
@@ -1200,14 +1205,14 @@ export const useChatStore = defineStore('chat', () => {
   }
   
   function touchLocalSession(sessionId: string, ts: number = Date.now()) {
-    const session = sessions.value.find(s => s.id === sessionId)
+    const session = sessionById.value.get(sessionId)
     if (!session) return
     session.updatedAt = ts
   }
 
   async function updateSessionTitle(sessionId: string, newTitle: string) {
     await window.ipc('sessions:updateTitle', { id: sessionId, title: newTitle })
-    const session = sessions.value.find(s => s.id === sessionId)
+    const session = sessionById.value.get(sessionId)
     if (session) {
       session.title = newTitle
       // 后端会写 updatedAt，这里同步一份，保证会话列表时间/排序即时刷新
@@ -1223,7 +1228,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function updateSessionFavorite(sessionId: string, isFavorite: boolean) {
     await window.ipc('sessions:updateFavorite', { id: sessionId, isFavorite })
-    const session = sessions.value.find(s => s.id === sessionId)
+    const session = sessionById.value.get(sessionId)
     if (session) {
       session.isFavorite = isFavorite
     }
@@ -1231,7 +1236,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function updateSessionArchive(sessionId: string, isArchived: boolean) {
     await window.ipc('sessions:updateArchive', { id: sessionId, isArchived })
-    const session = sessions.value.find(s => s.id === sessionId)
+    const session = sessionById.value.get(sessionId)
     if (session) {
       session.isArchived = isArchived
     }
@@ -1266,7 +1271,7 @@ export const useChatStore = defineStore('chat', () => {
     if (settingsStore.sessionPreferences.titleGenerationMode !== 'ai') return
     try {
       // 如果用户已经改过标题（或被别的流程改过），就不要覆盖
-      const current = sessions.value.find(s => s.id === sessionId)
+      const current = sessionById.value.get(sessionId)
       if (!current || current.title !== initialTitle) return
 
       const result = await window.ipc('sessions:generateTitle', { parts: firstMessage })
@@ -1275,7 +1280,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       // 二次校验：仍然只在标题未变化时覆盖
-      const latest = sessions.value.find(s => s.id === sessionId)
+      const latest = sessionById.value.get(sessionId)
       if (!latest || latest.title !== initialTitle) return
 
       const newTitle = result.title.trim()
@@ -1292,7 +1297,7 @@ export const useChatStore = defineStore('chat', () => {
     if (settingsStore.sessionPreferences.titleGenerationMode !== 'ai') return
     try {
       // 第一次检查：标题是否还是初始的分支后缀格式
-      const current = sessions.value.find(s => s.id === sessionId)
+      const current = sessionById.value.get(sessionId)
       if (!current || !current.title.endsWith(getBranchTitleSuffix())) return
       if (current.title !== initialTitle) return
 
@@ -1302,7 +1307,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       // 第二次检查：标题是否仍然未变
-      const latest = sessions.value.find(s => s.id === sessionId)
+      const latest = sessionById.value.get(sessionId)
       if (!latest || latest.title !== initialTitle) return
 
       const newTitle = result.title.trim()
@@ -1497,7 +1502,7 @@ export const useChatStore = defineStore('chat', () => {
     const next = [...ids]
     if (currentSessionId.value && currentSession.value) {
       await window.ipc('sessions:updateKbIds', { id: currentSessionId.value, kbIds: next })
-      const session = sessions.value.find(s => s.id === currentSessionId.value)
+      const session = sessionById.value.get(currentSessionId.value)
       if (session) session.kbIds = next
     } else {
       pendingKbIds.value = next
@@ -1558,14 +1563,14 @@ export const useChatStore = defineStore('chat', () => {
 
     let skillSelectionToUse = params.skillSelection
     if (!skillSelectionToUse) {
-      const session = sessions.value.find(s => s.id === params.sessionId)
+      const session = sessionById.value.get(params.sessionId)
       const fallbackPolicy: SessionSkillPolicy = session?.skillPolicy ?? sessionSkillPolicy.value
       skillSelectionToUse = { mode: fallbackPolicy }
     }
 
     let mcpSelectionToUse = params.mcpSelection
     if (!mcpSelectionToUse) {
-      const session = sessions.value.find(s => s.id === params.sessionId)
+      const session = sessionById.value.get(params.sessionId)
       const fallbackPolicy: SessionMcpPolicy = session?.mcpPolicy ?? sessionMcpPolicy.value
       mcpSelectionToUse = fallbackPolicy === 'manual'
         ? { mode: 'manual', serverIds: [...params.mcpServerIds] }
@@ -1666,7 +1671,7 @@ export const useChatStore = defineStore('chat', () => {
 
         logger.info('sendMessage: created new session', { sessionId, mcpServerIds, mcpPolicy, mode, skillPolicy, webSearch, thinking })
       } else {
-        isTemporarySession.value = !!sessions.value.find(s => s.id === sessionId)?.isTemporary
+        isTemporarySession.value = !!sessionById.value.get(sessionId)?.isTemporary
       }
 
       // 2. 准备引用和用户原文（同步，不阻塞）
@@ -1834,7 +1839,7 @@ export const useChatStore = defineStore('chat', () => {
       // 2.2 分支会话：检查是否需要生成标题（分叉后第一条消息）
       // 临时会话不支持分支
       if (!isTemporarySession.value) {
-        const currentSession = sessions.value.find(s => s.id === sessionId)
+        const currentSession = sessionById.value.get(sessionId)
         if (currentSession && currentSession.title.endsWith(getBranchTitleSuffix())) {
           // 这是分支会话，且标题仍然是初始的分支后缀格式
           // 说明这是分叉后的第一条消息，触发标题生成
@@ -3645,6 +3650,7 @@ ${userQuestionPart}`
   return {
     // State
     sessions,
+    sessionById,
     mainSessions,
     currentBranches,
     currentSessionId,

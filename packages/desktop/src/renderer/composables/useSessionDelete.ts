@@ -15,7 +15,7 @@ export function useSessionDelete() {
    * @param sessionId 要删除的会话 ID
    */
   async function deleteSession(sessionId: string) {
-    const session = chatStore.sessions.find(s => s.id === sessionId)
+    const session = chatStore.sessionById.get(sessionId)
     if (!session) return
 
     // 检查是否是主会话（没有 rootSessionId）

@@ -41,7 +41,7 @@ const currentSession = computed(() => chatStore.currentSession)
 // 父会话信息
 const parentSession = computed(() => {
   if (!currentSession.value?.parentSessionId) return null
-  return chatStore.sessions.find(s => s.id === currentSession.value.parentSessionId)
+  return chatStore.sessionById.get(currentSession.value.parentSessionId!)
 })
 
 const parentTitle = computed(() => {

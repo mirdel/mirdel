@@ -82,7 +82,7 @@ onMounted(() => {
     if (evt.chunk.type !== 'finish') return
     if (isViewingSession(evt.sessionId)) return
 
-    const session = chatStore.sessions.find((item) => item.id === evt.sessionId)
+    const session = chatStore.sessionById.get(evt.sessionId)
     if (session?.isTemporary) return
 
     chatStore.markSessionCompletedUnread(evt.sessionId)

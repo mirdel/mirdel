@@ -87,7 +87,7 @@
         gap="none"
         size="lg"
         class="flex-1"
-        :virtualize="{ estimateSize: 40, overscan: 5 }"
+        :virtualize="virtualizeOptions"
         @select="handleSelect"
         @toggle="handleToggle"
         ref="listRef"
@@ -320,6 +320,8 @@ const sessionsWithChildren = computed(() =>
   buildSessionTree(chatStore.sessions, projectStore.currentProjectId as any)
 )
 
+const virtualizeOptions = { estimateSize: 36, overscan: 15 }
+
 // 当前分类名称
 const currentCategoryName = computed(() => {
   const currentProjectId = projectStore.currentProjectId
@@ -385,7 +387,7 @@ function getProjectDisplayName(projectId: string | null) {
 }
 
 function getMoveCategoryItems(sessionId: string) {
-  const session = chatStore.sessions.find(item => item.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) return []
 
   const currentProjectId = session.projectId ?? null
@@ -414,7 +416,7 @@ function getMoveCategoryItems(sessionId: string) {
 }
 
 async function handleMoveSession(sessionId: string, targetProjectId: string | null) {
-  const session = chatStore.sessions.find(item => item.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) return
 
   const currentProjectId = session.projectId ?? null
@@ -439,7 +441,7 @@ async function handleMoveSession(sessionId: string, targetProjectId: string | nu
 }
 
 function getSessionMenuItems(sessionId: string) {
-  const session = chatStore.sessions.find(s => s.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   const moveCategoryItems = getMoveCategoryItems(sessionId)
   const isFavorite = !!session?.isFavorite
 
@@ -501,7 +503,7 @@ function getSessionMenuItems(sessionId: string) {
 }
 
 async function handleToggleFavorite(sessionId: string) {
-  const session = chatStore.sessions.find(s => s.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) return
   const next = !session.isFavorite
   await chatStore.updateSessionFavorite(sessionId, next)
@@ -510,7 +512,7 @@ async function handleToggleFavorite(sessionId: string) {
 }
 
 async function handleToggleArchive(sessionId: string) {
-  const session = chatStore.sessions.find(s => s.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) return
   const next = !session.isArchived
   await chatStore.updateSessionArchive(sessionId, next)
@@ -534,7 +536,7 @@ function setSessionMenuOpen(sessionId: string, open: boolean) {
 }
 
 async function handleEditTitle(sessionId: string) {
-  const session = chatStore.sessions.find(s => s.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) return
   
   editingSessionId.value = sessionId
@@ -552,7 +554,7 @@ async function handleSaveTitle(sessionId: string, newTitle: string) {
     return
   }
   
-  const session = chatStore.sessions.find(s => s.id === sessionId)
+  const session = chatStore.sessionById.get(sessionId)
   if (!session) {
     editingSessionId.value = null
     return
@@ -633,7 +635,7 @@ async function handleRegenerateTitle(sessionId: string) {
 function scrollToSession(sessionId: string) {
   if (!listRef.value) return
   
-  const currentSession = chatStore.sessions.find(s => s.id === sessionId)
+  const currentSession = chatStore.sessionById.get(sessionId)
   if (!currentSession) return
   
   // 如果是分支会话，需要滚动到父主会话，然后再滚动到具体分支
@@ -677,7 +679,7 @@ function scrollToSession(sessionId: string) {
 watch(() => chatStore.currentSessionId, async (newSessionId) => {
   if (!newSessionId) return
   
-  const currentSession = chatStore.sessions.find(s => s.id === newSessionId)
+  const currentSession = chatStore.sessionById.get(newSessionId)
   if (!currentSession) return
   
   // 如果是分支会话，自动展开主会话

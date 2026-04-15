@@ -50,18 +50,23 @@ export function buildSessionTree<T extends SessionCategorySession>(
   });
 
   const isArchivedView = currentProjectId === "__archived__";
+
+  const branchesByRoot = new Map<string, T[]>();
+  for (const session of sessions) {
+    if (!session.rootSessionId) continue;
+    if (isArchivedView ? !session.isArchived : session.isArchived) continue;
+    if (!isArchivedView && currentProjectId !== "__starred__" && !isSessionInCategory(session.projectId, currentProjectId)) continue;
+    const list = branchesByRoot.get(session.rootSessionId);
+    if (list) {
+      list.push(session);
+    } else {
+      branchesByRoot.set(session.rootSessionId, [session]);
+    }
+  }
+
   return filteredMainSessions.map((mainSession) => ({
     ...mainSession,
-    branches: sessions
-      .filter((session) => {
-        if (session.rootSessionId !== mainSession.id) return false;
-        if (isArchivedView) return session.isArchived;
-        if (session.isArchived) return false;
-        return currentProjectId === "__starred__"
-          ? true
-          : isSessionInCategory(session.projectId, currentProjectId);
-      })
-      .sort((a, b) => b.updatedAt - a.updatedAt),
+    branches: (branchesByRoot.get(mainSession.id) || []).sort((a, b) => b.updatedAt - a.updatedAt),
   }));
 }
 

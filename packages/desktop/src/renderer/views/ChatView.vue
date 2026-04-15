@@ -806,13 +806,13 @@ const editInputRef = ref<any>(null);
 const { elementRef: titleRef, shouldShowTooltip: shouldShowTitleTooltip, checkTruncation } = useTooltipOnTruncate();
 
 const currentSessionTitle = computed(() => {
-  const currentSession = chatStore.sessions.find(s => s.id === chatStore.currentSessionId);
+  const currentSession = chatStore.currentSessionId ? chatStore.sessionById.get(chatStore.currentSessionId) : undefined;
   return currentSession?.title || t("chat.view.session.untitled");
 });
 
 const currentSessionMeta = computed(() => {
   if (!chatStore.currentSessionId) return null;
-  return chatStore.sessions.find(s => s.id === chatStore.currentSessionId) || null;
+  return chatStore.sessionById.get(chatStore.currentSessionId) || null;
 });
 
 const currentCategoryName = computed(() => {
@@ -912,7 +912,7 @@ const titleMenuItems = computed(() => [[
 function handleEditTitle() {
   if (!chatStore.currentSessionId) return;
   
-  const currentSession = chatStore.sessions.find(s => s.id === chatStore.currentSessionId);
+  const currentSession = chatStore.sessionById.get(chatStore.currentSessionId!);
   if (!currentSession) return;
   
   isEditingTitle.value = true;
@@ -942,7 +942,7 @@ async function handleSaveTitle() {
     return;
   }
   
-  const currentSession = chatStore.sessions.find(s => s.id === chatStore.currentSessionId);
+  const currentSession = chatStore.sessionById.get(chatStore.currentSessionId!);
   if (!currentSession) {
     isEditingTitle.value = false;
     return;
@@ -984,7 +984,7 @@ async function handleRegenerateTitle() {
     });
     
     // 判断是否是分支会话
-    const currentSession = chatStore.sessions.find(s => s.id === chatStore.currentSessionId);
+    const currentSession = chatStore.sessionById.get(chatStore.currentSessionId!);
     const isBranch = currentSession?.rootSessionId !== undefined;
     
     let userMessages;
