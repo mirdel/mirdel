@@ -266,17 +266,47 @@
           </UButton>
         </div>
         
-        <!-- Token 统计（右侧） -->
+        <!-- 统计信息（右侧） -->
         <div 
           v-if="settingsStore.sessionPreferences.showTokenUsage && tokenUsage && (tokenUsage.inputTokens !== null || tokenUsage.outputTokens !== null)"
-          class="flex items-center gap-1 text-xs text-dimmed"
+          class="flex items-center"
         >
-          {{ t('chat.turnGroup.tokens.label') }}
-          <span>{{ t('chat.turnGroup.tokens.input') }}<span>{{ formatTokenCount(tokenUsage.inputTokens) }}</span></span>
-          <span>·</span>
-          <span>{{ t('chat.turnGroup.tokens.output') }}<span>{{ formatTokenCount(tokenUsage.outputTokens) }}</span></span>
-          <span>·</span>
-          <span>{{ t('chat.turnGroup.tokens.total') }}<span>{{ formatTokenCount((tokenUsage.inputTokens || 0) + (tokenUsage.outputTokens || 0)) }}</span></span>
+          <UPopover
+            mode="click"
+            :content="{ side: 'top', align: 'end', sideOffset: 8 }"
+            :ui="{ content: 'w-56 p-2' }"
+          >
+            <UTooltip :text="t('chat.turnGroup.tokens.statisticsLabel')">
+              <UButton
+                icon="i-lucide-info"
+                size="sm"
+                color="neutral"
+                variant="ghost"
+                square
+                :aria-label="t('chat.turnGroup.tokens.statisticsLabel')"
+              />
+            </UTooltip>
+            <template #content>
+              <div class="flex flex-wrap gap-2">
+                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-blue-50 p-3 text-center">
+                  <div class="text-xs text-blue-600">{{ t("chat.debug.inputTokens") }}</div>
+                  <div class="mt-2 text-sm font-bold font-mono text-blue-700">{{ formatTokenCount(tokenUsage.inputTokens) }}</div>
+                </div>
+                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-green-50 p-3 text-center">
+                  <div class="text-xs text-green-600">{{ t("chat.debug.outputTokens") }}</div>
+                  <div class="mt-2 text-sm font-bold font-mono text-green-700">{{ formatTokenCount(tokenUsage.outputTokens) }}</div>
+                </div>
+                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-orange-50 p-3 text-center">
+                  <div class="text-xs text-orange-600">{{ t("chat.debug.totalTokens") }}</div>
+                  <div class="mt-2 text-sm font-bold font-mono text-orange-700">{{ formatTokenCount(totalTokenCount) }}</div>
+                </div>
+                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-purple-50 p-3 text-center">
+                  <div class="text-xs text-purple-600">{{ t("chat.debug.totalDuration") }}</div>
+                  <div class="mt-2 text-sm font-bold font-mono text-purple-700">{{ formatDurationSeconds(totalDurationMs) }}</div>
+                </div>
+              </div>
+            </template>
+          </UPopover>
         </div>
       </div>
 
@@ -701,6 +731,24 @@ const tokenUsage = computed(() => {
   return currentTurn.value?.tokenUsage ?? lastAssistantMessage.value?.tokenUsage
 })
 
+const totalTokenCount = computed(() => {
+  const input = tokenUsage.value?.inputTokens
+  const output = tokenUsage.value?.outputTokens
+  if (input === null || input === undefined || output === null || output === undefined) {
+    return null
+  }
+  return input + output
+})
+
+const totalDurationMs = computed(() => {
+  const startedAt = currentTurn.value?.startedAt
+  const endedAt = currentTurn.value?.endedAt
+  if (typeof startedAt !== 'number' || typeof endedAt !== 'number' || endedAt < startedAt) {
+    return null
+  }
+  return endedAt - startedAt
+})
+
 // ===== 统一引用来源（知识库 contextSources + 网络搜索 tool _meta.sources） =====
 
 function parseCitationIndexFromId(id: string | undefined): number {
@@ -1059,10 +1107,12 @@ function handlePreviewMouseLeave() {
 // 格式化 token 数量显示
 function formatTokenCount(count: number | null): string {
   if (count === null) return '-'
-  if (count >= 1000) {
-    return (count / 1000).toFixed(1) + 'k'
-  }
-  return count.toString()
+  return count.toLocaleString()
+}
+
+function formatDurationSeconds(durationMs: number | null): string {
+  if (durationMs === null) return '-'
+  return (durationMs / 1000).toFixed(2)
 }
 
 // 风格选项
