@@ -3067,6 +3067,13 @@ export const router = ipcRouter({
     return isSupportedFile(input.filePath);
   },
 
+  "app:getStoragePaths": async () => {
+    const userData = app.getPath("userData");
+    const logsDir = path.join(userData, "logs");
+    await fs.mkdir(logsDir, { recursive: true });
+    return { userData, logsDir };
+  },
+
   "shell:showItemInFolder": async (_event, path: string) => {
     shell.showItemInFolder(path);
     return { ok: true };

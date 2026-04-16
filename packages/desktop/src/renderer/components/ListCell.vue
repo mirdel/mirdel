@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-4">
       <div class="min-w-0">
         <div class="text-sm font-medium">{{ title }}</div>
-        <div v-if="description" class="text-sm text-muted mt-1">
+        <div v-if="description" class="text-sm text-muted mt-1 break-all">
           {{ description }}
         </div>
       </div>

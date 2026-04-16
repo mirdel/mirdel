@@ -53,6 +53,7 @@ const settingsCategories = computed(() => [
   { id: "skills", name: t("settings.category.skills"), icon: "i-lucide-package" },
   { id: "tool-allowlist", name: t("settings.category.toolAllowlist"), icon: "i-lucide-shield-check" },
   { divider: true },
+  { id: "storage", name: t("settings.category.storage"), icon: "i-lucide-hard-drive" },
   { id: "session", name: t("settings.category.session"), icon: "i-lucide-message-square" },
   { id: "general", name: t("settings.category.general"), icon: "i-lucide-settings" }
 ]);

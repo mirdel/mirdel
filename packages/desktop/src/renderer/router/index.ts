@@ -18,6 +18,7 @@ import MemorySettings from "@/components/settings/MemorySettings.vue";
 import GeneralSettings from "@/components/settings/GeneralSettings.vue";
 import ToolAllowlistSettings from "@/components/settings/ToolAllowlistSettings.vue";
 import SessionSettings from "@/components/settings/SessionSettings.vue";
+import StorageSettings from "@/components/settings/StorageSettings.vue";
 
 export const router = createRouter({
   history: createWebHashHistory(),
@@ -82,6 +83,11 @@ export const router = createRouter({
               path: "memory",
               name: "settings-memory",
               component: MemorySettings
+            },
+            {
+              path: "storage",
+              name: "settings-storage",
+              component: StorageSettings
             },
             {
               path: "session",
