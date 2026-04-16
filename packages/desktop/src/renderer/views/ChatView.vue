@@ -196,7 +196,10 @@
         <!-- 有会话时的正常视图 -->
         <template v-else>
           <!-- 消息列表 -->
-          <MessageList ref="messageListRef" />
+          <MessageList
+            ref="messageListRef"
+            :layout-resize-active="isSidebarLayoutResizing"
+          />
           
           <!-- 导航按钮 -->
           <ChatNavigationButtons v-model:toc-open="showTocSidebar" />
@@ -619,6 +622,31 @@ const activeSidebarWidth = computed(() => {
   if (showNoteSidebar.value) return noteSidebarResize.width.value;
   if (showTocSidebar.value) return tocSidebarResize.width.value;
   return 0;
+});
+
+const isSidebarLayoutResizing = ref(false);
+let sidebarLayoutResizeIdleTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearSidebarLayoutResizeIdleTimer() {
+  if (!sidebarLayoutResizeIdleTimer) return;
+  clearTimeout(sidebarLayoutResizeIdleTimer);
+  sidebarLayoutResizeIdleTimer = null;
+}
+
+function markSidebarLayoutResizing(idleDelay: number | null) {
+  isSidebarLayoutResizing.value = true;
+  clearSidebarLayoutResizeIdleTimer();
+
+  if (idleDelay == null) return;
+
+  sidebarLayoutResizeIdleTimer = setTimeout(() => {
+    sidebarLayoutResizeIdleTimer = null;
+    isSidebarLayoutResizing.value = false;
+  }, idleDelay);
+}
+
+watch([activeSidebarWidth, isSidebarDragging], ([, dragging], [, wasDragging]) => {
+  markSidebarLayoutResizing(dragging ? null : (wasDragging ? 120 : 520));
 });
 
 watch(activeSidebarWidth, (w) => {
@@ -1451,6 +1479,7 @@ onUnmounted(() => {
   unsubscribeStream = null;
   unsubscribeTemporarySessionDeleted?.();
   unsubscribeTemporarySessionDeleted = null;
+  clearSidebarLayoutResizeIdleTimer();
   emitter.off('scenario:edit-prompt', handleEditPrompt);
   emitter.off('scenario:open-detail', handleScenarioOpenDetail);
   emitter.off('scenario:open-create-modal', openScenarioCreateModal);

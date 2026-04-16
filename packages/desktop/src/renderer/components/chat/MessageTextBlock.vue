@@ -1,6 +1,7 @@
 <template>
   <div 
     ref="containerRef"
+    class="chat-markdown-content"
     @mousedown="handleMouseDown"
     @mouseup="handleTextSelection"
     @click="handleClick"

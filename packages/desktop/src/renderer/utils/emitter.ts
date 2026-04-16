@@ -11,6 +11,8 @@ type Events = {
   'chat:focus-input': void;
   // 滚动消息列表到底部
   'chat:scroll-to-bottom': void;
+  // 滚动消息列表到顶部
+  'chat:scroll-to-top': void;
   // 智能滚动到底部（仅当已在底部时）
   'chat:scroll-to-bottom-if-needed': void;
   // 滚动到指定消息
@@ -27,8 +29,12 @@ type Events = {
   'scenario:open-create-modal': void;
   // 触发编辑消息
   'message:start-edit': string; // messageId
+  // 消息列表滚动事件（用于隐藏引用浮层等）
+  'chat:message-list-scroll': void;
   // 追加内容到会话笔记
   'session:append-to-note': string; // markdown content
+  // 导航到指定消息组（by group index in virtualItems）
+  'chat:navigate-to-group': { groupIndex: number; headingIndex?: number; smooth?: boolean };
 };
 
 const emitter = mitt<Events>();

@@ -67,9 +67,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Lexer, type Token, type Tokens } from 'marked'
+import { Lexer, type Tokens } from 'marked'
 import { useChatStore } from '@/stores/useChatStore'
 import { groupMessages } from '@/utils/messageGrouper'
+import emitter from '@/utils/emitter'
 
 interface TocItem {
   id: string
@@ -78,6 +79,7 @@ interface TocItem {
   level: number
   messageId: string
   headingIndex?: number
+  groupIndex: number
 }
 
 const emit = defineEmits<{
@@ -90,7 +92,6 @@ const tocListRef = ref<HTMLElement>()
 const activeIndex = ref(0)
 const itemRefs = ref<Map<number, HTMLElement>>(new Map())
 
-// 设置 item ref
 function setItemRef(index: number, el: any) {
   if (el) {
     itemRefs.value.set(index, el as HTMLElement)
@@ -99,7 +100,6 @@ function setItemRef(index: number, el: any) {
   }
 }
 
-// 从消息内容中提取纯文本（用于预览，最多 100 字符）
 function extractTextPreview(message: { parts: any[] }): string {
   const textParts = message.parts.filter(p => p.type === 'text')
   if (textParts.length === 0) return '...'
@@ -119,7 +119,6 @@ function extractTextPreview(message: { parts: any[] }): string {
   return cleanText.length > 100 ? cleanText.slice(0, 100) + '...' : cleanText || '...'
 }
 
-// 用 marked Lexer 从 markdown 源文本中提取标题
 function extractHeadingsFromMarkdown(message: { parts: any[] }): { text: string; level: number }[] {
   const textParts = message.parts.filter(p => p.type === 'text')
   if (textParts.length === 0) return []
@@ -140,24 +139,28 @@ function extractHeadingsFromMarkdown(message: { parts: any[] }): { text: string;
   return headings.map(h => ({ text: h.text, level: h.level - minLevel + 1 }))
 }
 
-// 在 DOM 中查找消息内的第 n 个标题元素
-function findHeadingElement(messageId: string, headingIndex: number): HTMLElement | null {
-  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-  if (!messageElement) return null
-  const headings = messageElement.querySelectorAll('h1, h2, h3, h4, h5, h6')
-  return (headings[headingIndex] as HTMLElement) || null
-}
-
-const turnMap = computed(() => new Map(chatStore.currentTurns.map((turn) => [turn.id, turn]))
-)
+const turnMap = computed(() => new Map(chatStore.currentTurns.map((turn) => [turn.id, turn])))
 
 const timelineGroups = computed(() => groupMessages(chatStore.messages, { turns: turnMap.value }))
 
-// 构建 TOC 项目列表（turn 驱动）
+// groupId -> 在 virtualItems 中的 index 映射
+// virtualItems 中：如果有 system prompt 则 index 0 是 system prompt，后面才是 turnGroups
+const groupIdToVirtualIndex = computed(() => {
+  const hasSystemPrompt = !!chatStore.selectedScenario?.systemPrompt?.trim()
+  const offset = hasSystemPrompt ? 1 : 0
+  const map = new Map<string, number>()
+  timelineGroups.value.forEach((group, i) => {
+    map.set(group.id, i + offset)
+  })
+  return map
+})
+
 const tocItems = computed<TocItem[]>(() => {
   const items: TocItem[] = []
 
   for (const group of timelineGroups.value) {
+    const groupIndex = groupIdToVirtualIndex.value.get(group.id) ?? -1
+
     if (group.type === 'user') {
       const message = group.primaryMessage
       if (message.isDeleted) continue
@@ -166,7 +169,8 @@ const tocItems = computed<TocItem[]>(() => {
         type: 'user',
         text: extractTextPreview(message),
         level: 1,
-        messageId: group.id
+        messageId: group.id,
+        groupIndex
       })
       continue
     }
@@ -183,7 +187,8 @@ const tocItems = computed<TocItem[]>(() => {
           text: headings[i].text,
           level: headings[i].level,
           messageId: group.id,
-          headingIndex: i
+          headingIndex: i,
+          groupIndex
         })
       }
     } else {
@@ -192,7 +197,8 @@ const tocItems = computed<TocItem[]>(() => {
         type: 'assistant',
         text: group.displayText || extractTextPreview(assistant),
         level: 1,
-        messageId: group.id
+        messageId: group.id,
+        groupIndex
       })
     }
   }
@@ -200,22 +206,14 @@ const tocItems = computed<TocItem[]>(() => {
   return items
 })
 
-// 处理点击
 function handleItemClick(item: TocItem) {
-  if (item.type === 'heading' && item.headingIndex != null) {
-    const element = findHeadingElement(item.messageId, item.headingIndex)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
-  }
-  const messageElement = document.querySelector(`[data-message-id="${item.messageId}"]`)
-  if (messageElement) {
-    messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  emitter.emit('chat:navigate-to-group', {
+    groupIndex: item.groupIndex,
+    headingIndex: item.type === 'heading' ? item.headingIndex : undefined,
+    smooth: true
+  })
 }
 
-// 滚动到当前激活项使其可见
 function scrollActiveItemIntoView() {
   const activeElement = itemRefs.value.get(activeIndex.value)
   if (activeElement && tocListRef.value) {
@@ -223,36 +221,99 @@ function scrollActiveItemIntoView() {
     const containerRect = container.getBoundingClientRect()
     const itemRect = activeElement.getBoundingClientRect()
     
-    // 检查是否在可视区域内
     if (itemRect.top < containerRect.top || itemRect.bottom > containerRect.bottom) {
       activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
 }
 
-// 获取消息列表滚动容器
 function getScrollContainer(): HTMLElement | null {
   return document.querySelector('[data-chat-message-scroll]') as HTMLElement
 }
 
-// 更新当前激活的导航项
+function getVirtualItemElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll(':scope > [data-slot="viewport"] > [data-slot="item"][data-index]')
+  ) as HTMLElement[]
+}
+
+function getVirtualItemIndex(element: HTMLElement): number | null {
+  const rawIndex = element.getAttribute('data-index')
+  if (!rawIndex) return null
+
+  const index = Number(rawIndex)
+  return Number.isFinite(index) ? index : null
+}
+
+function getCurrentVirtualIndex(container: HTMLElement, thresholdRatio = 0.2): number {
+  const items = getVirtualItemElements(container)
+  if (items.length === 0) return 0
+
+  const containerRect = container.getBoundingClientRect()
+  const threshold = containerRect.top + containerRect.height * thresholdRatio
+  let currentIndex = getVirtualItemIndex(items[0]) ?? 0
+
+  for (const item of items) {
+    const itemIndex = getVirtualItemIndex(item)
+    if (itemIndex == null) continue
+
+    const rect = item.getBoundingClientRect()
+    if (rect.top <= threshold) {
+      currentIndex = itemIndex
+    } else {
+      break
+    }
+  }
+
+  return currentIndex
+}
+
+function getTocIndexForVirtualIndex(virtualIndex: number): number {
+  let tocIndex = 0
+
+  for (let i = 0; i < tocItems.value.length; i++) {
+    if (tocItems.value[i].groupIndex < virtualIndex) {
+      tocIndex = i
+      continue
+    }
+
+    if (tocItems.value[i].groupIndex === virtualIndex) {
+      return i
+    }
+
+    break
+  }
+
+  return tocIndex
+}
+
+// 在 DOM 中查找消息内的第 n 个标题元素（仅用于已渲染的可见消息）
+function findHeadingElement(messageId: string, headingIndex: number): HTMLElement | null {
+  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+  if (!messageElement) return null
+  const headings = messageElement.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  return (headings[headingIndex] as HTMLElement) || null
+}
+
 function updateActiveIndex() {
   const container = getScrollContainer()
   if (!container || tocItems.value.length === 0) return
   
   const containerRect = container.getBoundingClientRect()
-  const threshold = containerRect.top + containerRect.height * 0.2  // 上方 20% 区域
-  
-  let newActiveIndex = 0
+  const threshold = containerRect.top + containerRect.height * 0.2
+  const currentVirtualIndex = getCurrentVirtualIndex(container)
+  let newActiveIndex = getTocIndexForVirtualIndex(currentVirtualIndex)
   
   for (let i = tocItems.value.length - 1; i >= 0; i--) {
     const item = tocItems.value[i]
+    if (item.groupIndex > currentVirtualIndex) continue
+
     let element: Element | null = null
     
     if (item.type === 'heading' && item.headingIndex != null) {
       element = findHeadingElement(item.messageId, item.headingIndex)
     } else {
-      element = document.querySelector(`[data-message-id="${item.messageId}"]`)
+      element = document.querySelector(`[data-message-group-id="${item.messageId}"]`)
     }
     
     if (element) {
@@ -266,14 +327,12 @@ function updateActiveIndex() {
   
   if (activeIndex.value !== newActiveIndex) {
     activeIndex.value = newActiveIndex
-    // 滚动导航列表使激活项可见
     nextTick(() => {
       scrollActiveItemIntoView()
     })
   }
 }
 
-// 防抖
 function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null
   return ((...args: any[]) => {
@@ -284,14 +343,12 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 
 const debouncedUpdateActiveIndex = debounce(updateActiveIndex, 50)
 
-// 监听滚动
 let scrollContainer: HTMLElement | null = null
 
 onMounted(() => {
   scrollContainer = getScrollContainer()
   if (scrollContainer) {
     scrollContainer.addEventListener('scroll', debouncedUpdateActiveIndex)
-    // 初始化
     updateActiveIndex()
   }
 })
@@ -302,7 +359,6 @@ onUnmounted(() => {
   }
 })
 
-// 监听消息变化，重新计算
 watch(() => chatStore.messages.length, () => {
   nextTick(() => {
     updateActiveIndex()

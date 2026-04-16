@@ -83,6 +83,7 @@
     "@mirdel/applet-core": "workspace:*",
     "@mirdel/shared": "workspace:*",
     "@nuxt/ui": "^4.4.0",
+    "@tanstack/vue-virtual": "3.13.23",
     "@tiptap/core": "^3.18.0",
     "@tiptap/extension-code-block-lowlight": "^3.18.0",
     "@tiptap/extension-list": "^3.18.0",

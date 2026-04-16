@@ -302,3 +302,9 @@ button:not(:disabled) {
   --input: var(--ui-color-neutral-700);
   --ring: var(--ui-color-neutral-600);
 }
+
+/* 聊天消息处于虚拟滚动的 transform 容器内，代码块 header 的 sticky 会被约束到代码块底部。 */
+.chat-markdown-content .stream-markdown [data-stream-markdown="code-block-header"] {
+  position: static !important;
+  top: auto !important;
+}

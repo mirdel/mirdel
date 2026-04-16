@@ -76,41 +76,98 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useChatStore } from "@/stores/useChatStore";
+import emitter from "@/utils/emitter";
+import { groupMessages } from "@/utils/messageGrouper";
 
 const tocOpen = defineModel<boolean>('tocOpen', { default: false })
 
 const chatStore = useChatStore();
 const { t } = useI18n();
 
-// 切换 TOC 侧边栏
 function toggleToc() {
   tocOpen.value = !tocOpen.value
 }
 
-// 状态
 const isAtTop = ref(false);
 const isAtBottom = ref(false);
 const currentRoundIndex = ref(-1);
-const totalRounds = ref(0);
 
-// 获取滚动容器
+const turnMap = computed(() => new Map(chatStore.currentTurns.map((turn) => [turn.id, turn])))
+const turnGroups = computed(() => groupMessages(chatStore.messages, { turns: turnMap.value }))
+
+const hasSystemPrompt = computed(() => !!chatStore.selectedScenario?.systemPrompt?.trim())
+
+// user group 在 virtualItems 中的 index（考虑 system prompt 的偏移）
+const userGroupIndices = computed(() => {
+  const offset = hasSystemPrompt.value ? 1 : 0
+  const indices: number[] = []
+  turnGroups.value.forEach((group, i) => {
+    if (group.type === 'user') {
+      indices.push(i + offset)
+    }
+  })
+  return indices
+})
+
+const totalRounds = computed(() => userGroupIndices.value.length)
+const hasPreviousRound = computed(() => currentRoundIndex.value > 0);
+const hasNextRound = computed(() => currentRoundIndex.value < totalRounds.value - 1);
+
 function getScrollContainer(): HTMLElement | null {
   return document.querySelector('[data-chat-message-scroll]') as HTMLElement;
 }
 
-// 获取所有对话轮次（user 消息的 DOM 元素）
-function getRoundElements(): HTMLElement[] {
-  const container = getScrollContainer();
-  if (!container) return [];
-  
-  const userMessages = container.querySelectorAll('[data-message-role="user"]');
-  return Array.from(userMessages) as HTMLElement[];
+function getVirtualItemElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll(':scope > [data-slot="viewport"] > [data-slot="item"][data-index]')
+  ) as HTMLElement[];
 }
 
-const hasPreviousRound = computed(() => currentRoundIndex.value > 0);
-const hasNextRound = computed(() => currentRoundIndex.value < totalRounds.value - 1);
+function getVirtualItemIndex(element: HTMLElement): number | null {
+  const rawIndex = element.getAttribute('data-index')
+  if (!rawIndex) return null
 
-// 更新滚动状态
+  const index = Number(rawIndex)
+  return Number.isFinite(index) ? index : null
+}
+
+function getCurrentVirtualIndex(container: HTMLElement, thresholdRatio = 0.3): number {
+  const items = getVirtualItemElements(container)
+  if (items.length === 0) return 0
+
+  const containerRect = container.getBoundingClientRect()
+  const threshold = containerRect.top + containerRect.height * thresholdRatio
+  let currentIndex = getVirtualItemIndex(items[0]) ?? 0
+
+  for (const item of items) {
+    const itemIndex = getVirtualItemIndex(item)
+    if (itemIndex == null) continue
+
+    const rect = item.getBoundingClientRect()
+    if (rect.top <= threshold) {
+      currentIndex = itemIndex
+    } else {
+      break
+    }
+  }
+
+  return currentIndex
+}
+
+function getRoundIndexForVirtualIndex(virtualIndex: number): number {
+  let roundIndex = -1
+
+  for (let i = 0; i < userGroupIndices.value.length; i++) {
+    if (userGroupIndices.value[i] <= virtualIndex) {
+      roundIndex = i
+    } else {
+      break
+    }
+  }
+
+  return roundIndex < 0 && userGroupIndices.value.length > 0 ? 0 : roundIndex
+}
+
 function updateScrollState() {
   const container = getScrollContainer();
   if (!container) return;
@@ -123,35 +180,19 @@ function updateScrollState() {
   updateCurrentRoundIndex();
 }
 
-// 更新当前所在的对话轮次：找最后一个已滚过视口上方 30% 线的 user 消息
 function updateCurrentRoundIndex() {
   const container = getScrollContainer();
   if (!container) return;
 
-  const rounds = getRoundElements();
-  totalRounds.value = rounds.length;
-
-  if (rounds.length === 0) {
+  if (userGroupIndices.value.length === 0) {
     currentRoundIndex.value = -1;
     return;
   }
 
-  const containerRect = container.getBoundingClientRect();
-  const threshold = containerRect.top + containerRect.height * 0.3;
-
-  let foundIndex = 0;
-  for (let i = rounds.length - 1; i >= 0; i--) {
-    const rect = rounds[i].getBoundingClientRect();
-    if (rect.top <= threshold) {
-      foundIndex = i;
-      break;
-    }
-  }
-
-  currentRoundIndex.value = foundIndex;
+  const currentVirtualIndex = getCurrentVirtualIndex(container);
+  currentRoundIndex.value = getRoundIndexForVirtualIndex(currentVirtualIndex);
 }
 
-// 防抖函数
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   return ((...args: any[]) => {
@@ -163,52 +204,27 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T 
 const debouncedUpdateScrollState = debounce(updateScrollState, 100);
 
 function scrollToTop() {
-  const container = getScrollContainer();
-  if (!container) return;
-
-  container.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
+  emitter.emit('chat:scroll-to-top');
 }
 
 function scrollToBottom() {
-  const container = getScrollContainer();
-  if (!container) return;
-
-  container.scrollTo({
-    top: container.scrollHeight,
-    behavior: 'smooth'
-  });
+  emitter.emit('chat:scroll-to-bottom');
 }
 
 function scrollToPreviousRound() {
-  const rounds = getRoundElements();
   if (currentRoundIndex.value <= 0) return;
-
-  const targetElement = rounds[currentRoundIndex.value - 1];
-  if (!targetElement) return;
-
-  targetElement.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
-  });
+  const targetVirtualIndex = userGroupIndices.value[currentRoundIndex.value - 1];
+  if (targetVirtualIndex == null) return;
+  emitter.emit('chat:navigate-to-group', { groupIndex: targetVirtualIndex, smooth: true });
 }
 
 function scrollToNextRound() {
-  const rounds = getRoundElements();
-  if (currentRoundIndex.value >= rounds.length - 1) return;
-
-  const targetElement = rounds[currentRoundIndex.value + 1];
-  if (!targetElement) return;
-
-  targetElement.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
-  });
+  if (currentRoundIndex.value >= totalRounds.value - 1) return;
+  const targetVirtualIndex = userGroupIndices.value[currentRoundIndex.value + 1];
+  if (targetVirtualIndex == null) return;
+  emitter.emit('chat:navigate-to-group', { groupIndex: targetVirtualIndex, smooth: true });
 }
 
-// 监听滚动事件
 let scrollContainer: HTMLElement | null = null;
 
 onMounted(() => {
@@ -225,7 +241,6 @@ onUnmounted(() => {
   }
 });
 
-// 消息变化时重新计算（处理新增消息后按钮状态更新）
 watch(() => chatStore.messages.length, () => {
   nextTick(() => {
     updateScrollState();
