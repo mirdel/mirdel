@@ -28,10 +28,12 @@
         <!-- User 消息 -->
         <div 
           v-if="item.type === 'user'" 
-          class="max-w-[90%] text-xs line-clamp-2 my-2 px-2 py-1.5 rounded-md transition-colors"
+          class="max-w-[90%] my-2 px-2 py-1.5 rounded-md transition-colors"
           :class="activeIndex === index ? 'bg-elevated' : 'bg-muted hover:bg-elevated'"
         >
-          {{ item.text }}
+          <div class="text-xs text-default line-clamp-2">
+            {{ item.text }}
+          </div>
         </div>
         
         <!-- Assistant 消息预览 -->
