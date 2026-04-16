@@ -55,6 +55,8 @@ import {
   dismissWelcomeOnboarding,
 } from "../services/settings/settingsData";
 import { applyProxySettings } from "../services/network/proxyRuntime";
+import { exportUserDataToZip } from "../services/storage/userDataExport";
+import { runImportUserDataArchiveWithDialog } from "../services/storage/userDataImport";
 import { searxngServerManager } from "../services/web-search/SearxngServerManager";
 import { applyLaunchAtLoginSetting } from "../services/app/loginItemService";
 import {
@@ -3070,8 +3072,40 @@ export const router = ipcRouter({
   "app:getStoragePaths": async () => {
     const userData = app.getPath("userData");
     const logsDir = path.join(userData, "logs");
+    const autoImportBackupDir = path.join(userData, "backups", "auto-before-import");
     await fs.mkdir(logsDir, { recursive: true });
-    return { userData, logsDir };
+    await fs.mkdir(autoImportBackupDir, { recursive: true });
+    return { userData, logsDir, autoImportBackupDir };
+  },
+
+  "app:exportUserDataArchive": async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const defaultName = `mirdel-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    const { canceled, filePath } = await dialog.showSaveDialog(win ?? undefined, {
+      title: tMain("storage.exportDialogTitle"),
+      defaultPath: path.join(app.getPath("documents"), defaultName),
+      filters: [{ name: "ZIP", extensions: ["zip"] }],
+    });
+    if (canceled || !filePath) {
+      return { ok: false as const, canceled: true as const };
+    }
+    let targetPath = filePath;
+    if (!targetPath.toLowerCase().endsWith(".zip")) {
+      targetPath = `${targetPath}.zip`;
+    }
+    const result = await exportUserDataToZip(targetPath);
+    if (!result.ok) {
+      return { ok: false as const, canceled: false as const, error: result.error };
+    }
+    return {
+      ok: true as const,
+      filePath: result.filePath,
+      byteSize: result.byteSize,
+    };
+  },
+
+  "app:importUserDataArchive": async (event) => {
+    return runImportUserDataArchiveWithDialog(() => BrowserWindow.fromWebContents(event.sender));
   },
 
   "shell:showItemInFolder": async (_event, path: string) => {

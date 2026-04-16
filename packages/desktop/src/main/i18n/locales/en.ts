@@ -110,6 +110,8 @@ export const mainEn = {
     "menu.view": "View",
     "menu.window": "Window",
     "menu.help": "Help",
+    "storage.exportDialogTitle": "Export app data",
+    "storage.importDialogTitle": "Choose backup to import",
     "dialog.saveAs": "Save As",
     "dialog.export": "Export",
     "dialog.exportWord": "Export as Word",

@@ -112,6 +112,8 @@ export const mainZhCN = {
     "menu.view": "视图",
     "menu.window": "窗口",
     "menu.help": "帮助",
+    "storage.exportDialogTitle": "导出应用数据",
+    "storage.importDialogTitle": "选择要导入的备份",
     "dialog.saveAs": "另存为",
     "dialog.export": "导出",
     "dialog.exportWord": "导出为 Word",

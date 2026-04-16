@@ -112,6 +112,8 @@ export const mainZhTW = {
     "menu.view": "檢視",
     "menu.window": "視窗",
     "menu.help": "說明",
+    "storage.exportDialogTitle": "匯出應用資料",
+    "storage.importDialogTitle": "選擇要匯入的備份",
     "dialog.saveAs": "另存為",
     "dialog.export": "匯出",
     "dialog.exportWord": "匯出為 Word",
