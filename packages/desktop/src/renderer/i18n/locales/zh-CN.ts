@@ -1318,6 +1318,7 @@ export const rendererZhCN = {
     "chat.message.editPlaceholder": "编辑消息内容...",
     "chat.message.imagePrefix": "[图片]",
     "chat.message.appendToNote": "追加到笔记",
+    "chat.message.saveToPromptLibrary": "写入提示词库",
     "chat.message.debugInfo": "调试信息",
     "chat.message.userMessage": "用户消息",
     "chat.message.aiReply": "AI 回复",

@@ -28,6 +28,15 @@ export type PromptLibraryEntry = {
   updatedAt: number
 }
 
+/** 全局「新建提示词」弹窗保存后的动作 */
+export type PromptLibraryCreateAfterSave = 'none' | 'reload-prompt-library'
+
+export type PromptLibraryCreateRequest = {
+  /** 预填正文 */
+  presetContent: string
+  afterSave: PromptLibraryCreateAfterSave
+}
+
 export type Scenario = {
   id: string
   name: string
@@ -149,6 +158,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const providers = ref<ProviderPublic[]>([])
   const scenarios = ref<Scenario[]>([])
   const promptLibraryEntries = ref<PromptLibraryEntry[]>([])
+  /** 打开全局「新建提示词」弹窗（消费后清空） */
+  const promptLibraryCreateRequest = ref<PromptLibraryCreateRequest | null>(null)
   const defaultModels = ref<DefaultModels>({
     general: null,
     fast: null,
@@ -256,6 +267,16 @@ export const useSettingsStore = defineStore('settings', () => {
     logger.info('loading prompt library')
     promptLibraryEntries.value = await window.ipc('promptLibrary:list')
     logger.info('prompt library loaded', { count: promptLibraryEntries.value.length })
+  }
+
+  function setPromptLibraryCreateRequest(req: PromptLibraryCreateRequest) {
+    promptLibraryCreateRequest.value = req
+  }
+
+  function takePromptLibraryCreateRequest(): PromptLibraryCreateRequest | null {
+    const r = promptLibraryCreateRequest.value
+    promptLibraryCreateRequest.value = null
+    return r
   }
   
   /**
@@ -733,6 +754,7 @@ export const useSettingsStore = defineStore('settings', () => {
     providers,
     scenarios,
     promptLibraryEntries,
+    promptLibraryCreateRequest,
     defaultModels,
     isInitialized,
     isLoading,
@@ -784,6 +806,8 @@ export const useSettingsStore = defineStore('settings', () => {
     updateScenario,
     deleteScenario,
     loadPromptLibrary,
+    setPromptLibraryCreateRequest,
+    takePromptLibraryCreateRequest,
     createPromptLibraryEntry,
     updatePromptLibraryEntry,
     deletePromptLibraryEntry,

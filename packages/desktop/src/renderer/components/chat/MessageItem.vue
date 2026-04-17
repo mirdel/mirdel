@@ -577,19 +577,28 @@ async function handleCopy() {
 }
 
 // ===== user 消息更多菜单 =====
-const userMoreMenuItems = computed(() => [[
-  {
-    label: t('chat.message.appendToNote'),
-    icon: 'i-lucide-notebook-pen',
-    onSelect: () => handleAppendToNote()
-  },
-  {
-    label: t('chat.sessionList.menu.delete'),
-    icon: 'i-lucide-trash-2',
-    color: 'error' as const,
-    onSelect: () => handleDelete()
-  },
-]]);
+const userMoreMenuItems = computed(() => [
+  [
+    {
+      label: t('chat.message.appendToNote'),
+      icon: 'i-lucide-notebook-pen',
+      onSelect: () => handleAppendToNote()
+    },
+    {
+      label: t('chat.message.saveToPromptLibrary'),
+      icon: 'i-lucide-book-marked',
+      onSelect: () => handleSaveToPromptLibrary()
+    }
+  ],
+  [
+    {
+      label: t('chat.sessionList.menu.delete'),
+      icon: 'i-lucide-trash-2',
+      color: 'error' as const,
+      onSelect: () => handleDelete()
+    }
+  ]
+]);
 
 // ===== 追加到笔记 =====
 function handleAppendToNote() {
@@ -597,6 +606,15 @@ function handleAppendToNote() {
   if (text) {
     emitter.emit('session:append-to-note', text);
   }
+}
+
+function handleSaveToPromptLibrary() {
+  const text = messageText.value?.trim();
+  if (!text) return;
+  settingsStore.setPromptLibraryCreateRequest({
+    presetContent: text,
+    afterSave: "reload-prompt-library"
+  });
 }
 
 // ===== 删除功能 =====

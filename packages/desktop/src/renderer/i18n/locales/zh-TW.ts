@@ -1318,6 +1318,7 @@ export const rendererZhTW = {
     "chat.message.editPlaceholder": "編輯訊息內容...",
     "chat.message.imagePrefix": "[圖片]",
     "chat.message.appendToNote": "追加到筆記",
+    "chat.message.saveToPromptLibrary": "寫入提示詞庫",
     "chat.message.debugInfo": "除錯資訊",
     "chat.message.userMessage": "使用者訊息",
     "chat.message.aiReply": "AI 回覆",

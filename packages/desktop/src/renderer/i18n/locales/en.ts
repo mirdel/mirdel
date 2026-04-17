@@ -1316,6 +1316,7 @@ export const rendererEn = {
     "chat.message.editPlaceholder": "Edit message content...",
     "chat.message.imagePrefix": "[Image]",
     "chat.message.appendToNote": "Append to Note",
+    "chat.message.saveToPromptLibrary": "Save to prompt library",
     "chat.message.debugInfo": "Debug Info",
     "chat.message.userMessage": "user message",
     "chat.message.aiReply": "AI reply",

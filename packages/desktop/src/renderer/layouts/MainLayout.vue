@@ -18,6 +18,7 @@
       v-model:open="searchOpen"
       :preset="searchPreset"
     />
+    <PromptLibraryCreateModal />
   </div>
 </template>
 
@@ -28,6 +29,7 @@ import { useRoute, useRouter } from "vue-router"
 import GlobalSidebar from "@/components/GlobalSidebar.vue"
 import ConfirmDialog from "@/components/ConfirmDialog.vue"
 import GlobalSearchModal from "@/components/GlobalSearchModal.vue"
+import PromptLibraryCreateModal from "@/components/settings/PromptLibraryCreateModal.vue"
 import { useMyToast } from "@/composables/useMyToast"
 import { useChatStore } from "@/stores/useChatStore"
 import emitter from "@/utils/emitter"

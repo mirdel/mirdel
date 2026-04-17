@@ -51,11 +51,25 @@
           <template v-if="filteredOthers.length > 0">
             <div
               :class="[
-                'px-3 pt-2 pb-1 text-xs font-medium text-muted',
+                'flex items-center gap-1 px-3 pt-2 pb-1',
                 filteredFavorites.length > 0 && 'border-t border-default'
               ]"
             >
-              {{ t("chat.input.promptLibrary.others") }}
+              <span class="text-xs font-medium text-muted">{{
+                t("chat.input.promptLibrary.others")
+              }}</span>
+              <UTooltip :text="t('settings.category.promptLibrary')">
+                <div
+                  role="button"
+                  tabindex="0"
+                  class="flex shrink-0 cursor-pointer items-center text-muted hover:text-default"
+                  @click.stop="goToPromptLibrarySettings"
+                  @keydown.enter.prevent="goToPromptLibrarySettings"
+                  @keydown.space.prevent="goToPromptLibrarySettings"
+                >
+                  <UIcon name="i-lucide-settings" class="size-3" />
+                </div>
+              </UTooltip>
             </div>
             <div class="flex flex-col gap-0.5 px-1 pb-2">
               <button
@@ -137,6 +151,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import UText from "@/components/UText.vue";
 import { useSettingsStore, type PromptLibraryEntry } from "@/stores/useSettingsStore";
@@ -156,6 +171,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const router = useRouter();
 const settingsStore = useSettingsStore();
 const { promptLibraryEntries } = storeToRefs(settingsStore);
 
@@ -240,6 +256,11 @@ function listItemSubtitle(item: PromptLibraryEntry) {
   const c = (item.content ?? "").trim();
   if (c) return c.slice(0, 160);
   return "—";
+}
+
+function goToPromptLibrarySettings() {
+  emit("update:open", false);
+  void router.push("/settings/prompt-library");
 }
 
 function pick(item: PromptLibraryEntry) {

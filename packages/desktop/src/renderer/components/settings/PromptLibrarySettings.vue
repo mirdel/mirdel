@@ -182,7 +182,12 @@
             required
             :error="titleError || undefined"
           >
-            <UInput v-model="editorTitle" size="md" class="w-full" />
+            <UInput
+              ref="editorTitleInputRef"
+              v-model="editorTitle"
+              size="md"
+              class="w-full"
+            />
           </UFormField>
           <UFormField :label="t('settings.promptLibrary.fieldDescription')">
             <UInput v-model="editorDescription" size="md" class="w-full" />
@@ -312,6 +317,7 @@ const titleError = ref("");
 const contentError = ref("");
 const editorSubmitting = ref(false);
 const editorContentTextareaRef = ref<{ textareaRef?: HTMLTextAreaElement | null } | null>(null);
+const editorTitleInputRef = ref<{ inputRef?: HTMLInputElement | null } | null>(null);
 
 const CONTENT_MAX = 2000;
 
@@ -463,7 +469,13 @@ watch(editorModalOpen, (open) => {
     return;
   }
   nextTick(() => {
-    editorContentTextareaRef.value?.textareaRef?.focus();
+    if (editorMode.value === "create") {
+      setTimeout(() => {
+        editorTitleInputRef.value?.inputRef?.focus();
+      }, 50);
+    } else {
+      editorContentTextareaRef.value?.textareaRef?.focus();
+    }
   });
 });
 
