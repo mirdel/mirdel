@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="chatStore.messages.length > 0"
-    class="absolute right-3 top-1/2 -translate-y-1/2 z-20"
+    class="absolute right-1 top-1/2 -translate-y-1/2 z-20"
   >
     <div class="flex flex-col gap-2">
       <!-- 回到顶部 -->
@@ -10,25 +10,29 @@
           icon="i-lucide-arrow-up-to-line"
           size="sm"
           color="neutral"
-          variant="soft"
+          variant="ghost"
           square
           :disabled="isAtTop"
+          class="shadow rounded-full"
           @click="scrollToTop"
         />
       </UTooltip>
 
       <!-- 上一轮对话 -->
       <UTooltip :text="t('chat.nav.previousRound')" :content="{ side: 'left' }">
-        <UButton
-          icon="i-lucide-arrow-down-to-dot"
-          size="sm"
-          color="neutral"
-          variant="soft"
-          square
-          :disabled="!hasPreviousRound"
-          style="transform: rotate(180deg);"
-          @click="scrollToPreviousRound"
-        />
+        <div class="shadow rounded-full">
+          <UButton
+            icon="i-lucide-arrow-down-to-dot"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            square
+            :disabled="!hasPreviousRound"
+            class="rounded-full"
+            style="transform: rotate(180deg);"
+            @click="scrollToPreviousRound"
+          />
+        </div>
       </UTooltip>
 
       <!-- 对话导航 -->
@@ -37,8 +41,9 @@
           icon="i-lucide-list"
           size="sm"
           color="neutral"
-          variant="soft"
+          variant="ghost"
           square
+          class="shadow rounded-full"
           @click="toggleToc"
         />
       </UTooltip>
@@ -49,9 +54,10 @@
           icon="i-lucide-arrow-down-to-dot"
           size="sm"
           color="neutral"
-          variant="soft"
+          variant="ghost"
           square
           :disabled="!hasNextRound"
+          class="shadow rounded-full"
           @click="scrollToNextRound"
         />
       </UTooltip>
@@ -62,9 +68,10 @@
           icon="i-lucide-arrow-down-to-line"
           size="sm"
           color="neutral"
-          variant="soft"
+          variant="ghost"
           square
           :disabled="isAtBottom"
+          class="shadow rounded-full"
           @click="scrollToBottom"
         />
       </UTooltip>
