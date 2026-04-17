@@ -259,7 +259,7 @@
         <UButton variant="outline" color="neutral" @click="editorModalOpen = false">
           {{ t("common.cancel") }}
         </UButton>
-        <UButton color="primary" :loading="editorSubmitting" @click="submitEditorModal">
+        <UButton color="neutral" :loading="editorSubmitting" @click="submitEditorModal">
           {{ t("settings.promptLibrary.editorSave") }}
         </UButton>
       </template>

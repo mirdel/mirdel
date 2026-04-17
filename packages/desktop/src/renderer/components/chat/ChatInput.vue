@@ -284,6 +284,23 @@
               />
             </UDropdownMenu>
 
+            <PromptLibraryInsertPopover
+              v-model:open="promptLibraryInsertOpen"
+              @before-open="capturePromptInsertSelection"
+              @insert="handleInsertPromptFromLibrary"
+            >
+              <UTooltip :text="t('chat.input.insertPrompt')">
+                <UButton
+                  icon="i-lucide-book-marked"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  square
+                  class="rounded-full"
+                />
+              </UTooltip>
+            </PromptLibraryInsertPopover>
+
             <!-- 思考深度 -->
             <UDropdownMenu
               v-if="currentModelSupportsThinking"
@@ -526,6 +543,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore'
 import ModelSelector from '@/components/ModelSelector.vue'
 import McpSelector from './McpSelector.vue'
 import SkillSelector from './SkillSelector.vue'
+import PromptLibraryInsertPopover from './PromptLibraryInsertPopover.vue'
 import LocalKnowledgeSelector from './LocalKnowledgeSelector.vue'
 import QuoteDetailModal from './QuoteDetailModal.vue'
 import NoteContextPreviewModal from './NoteContextPreviewModal.vue'
@@ -561,6 +579,8 @@ const isDragOver = ref(false)
 const dragEnterCounter = ref(0)
 const showQuoteDetail = ref(false)
 const skillPopoverOpen = ref(false)
+const promptLibraryInsertOpen = ref(false)
+const promptInsertSavedSelection = ref<{ start: number; end: number } | null>(null)
 const manualSkillId = ref<string | null>(null)
 let pasteListenerTarget: HTMLTextAreaElement | null = null
 
@@ -1526,6 +1546,8 @@ watch(() => chatStore.currentSessionId, (newSessionId, oldSessionId) => {
   chatStore.pendingQuote = loadQuoteDraft(newSessionId)
   manualSkillId.value = null
   skillPopoverOpen.value = false
+  promptLibraryInsertOpen.value = false
+  promptInsertSavedSelection.value = null
   selectedAttachments.value = []
   selectedNotes.value = []
 })
@@ -1544,11 +1566,65 @@ watch(sessionMode, (mode) => {
   }
 })
 
+watch(promptLibraryInsertOpen, (open) => {
+  if (!open) {
+    promptInsertSavedSelection.value = null
+  }
+})
+
 // 聚焦输入框
 function focus() {
   setTimeout(() => {
     textareaRef.value?.focus()
   }, 300)
+}
+
+function capturePromptInsertSelection() {
+  const el = textareaRef.value
+  if (!el || document.activeElement !== el) {
+    promptInsertSavedSelection.value = null
+    return
+  }
+  promptInsertSavedSelection.value = {
+    start: el.selectionStart,
+    end: el.selectionEnd
+  }
+}
+
+function handleInsertPromptFromLibrary(text: string) {
+  const el = textareaRef.value
+  const cur = inputText.value
+  let start: number
+  let end: number
+
+  if (el && document.activeElement === el) {
+    start = el.selectionStart
+    end = el.selectionEnd
+  } else if (promptInsertSavedSelection.value) {
+    start = promptInsertSavedSelection.value.start
+    end = promptInsertSavedSelection.value.end
+    promptInsertSavedSelection.value = null
+  } else {
+    start = end = cur.length
+  }
+
+  start = Math.max(0, Math.min(start, cur.length))
+  end = Math.max(0, Math.min(end, cur.length))
+  if (start > end) {
+    const tmp = start
+    start = end
+    end = tmp
+  }
+
+  inputText.value = cur.slice(0, start) + text + cur.slice(end)
+  const caret = start + text.length
+  promptInsertSavedSelection.value = null
+  promptLibraryInsertOpen.value = false
+  nextTick(() => {
+    const ta = textareaRef.value
+    ta?.focus()
+    ta?.setSelectionRange(caret, caret)
+  })
 }
 
 // 填充文本（供快捷追问使用）
