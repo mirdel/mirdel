@@ -177,7 +177,7 @@
           </UTooltip>
           
           <!-- 重新生成按钮：会话已完成时隐藏 -->
-          <UDropdownMenu v-if="!isSessionArchived" :items="regenerateMenuItems" :content="{ align: 'start', side: 'top' }">
+          <UDropdownMenu v-if="showRegenerateMenu" :items="regenerateMenuItems" :content="{ align: 'start', side: 'top' }">
             <UTooltip :text="t('chat.turnGroup.regenerate')">
               <UButton
                 icon="i-lucide-refresh-cw"
@@ -361,12 +361,13 @@
           {{ t('common.cancel') }}
         </UButton>
         <UButton 
-          v-if="isLastResponseGroup"
+          v-if="canRegenerateOverwrite"
           @click="handleAdvancedRegenerateOverwrite"
         >
           {{ t('chat.turnGroup.overwriteGenerate') }}
         </UButton>
         <UButton 
+          v-if="canRegenerateInBranch"
           @click="handleAdvancedRegenerateBranch"
         >
           {{ t('chat.turnGroup.generateInBranch') }}
@@ -725,6 +726,10 @@ const isLastResponseGroup = computed(() => {
   }
   return chatStore.checkIfLastAssistantMessage?.(lastAssistantMessage.value.id) ?? false
 })
+
+const canRegenerateOverwrite = computed(() => isLastResponseGroup.value && !isSessionArchived.value)
+const canRegenerateInBranch = computed(() => !chatStore.isTemporarySession && !isSessionArchived.value)
+const showRegenerateMenu = computed(() => canRegenerateOverwrite.value || canRegenerateInBranch.value)
 
 // Token 统计（从最后一条 assistant 消息获取）
 const tokenUsage = computed(() => {
@@ -1129,7 +1134,7 @@ const styleOptions = computed(() => [
 const regenerateMenuItems = computed(() => {
   const items = []
   
-  if (isLastResponseGroup.value) {
+  if (canRegenerateOverwrite.value) {
     items.push({
       label: t('chat.turnGroup.regenerateOverwrite'),
       icon: 'i-lucide-replace',
@@ -1137,11 +1142,15 @@ const regenerateMenuItems = computed(() => {
     })
   }
   
-  items.push({
-    label: t('chat.turnGroup.regenerateBranch'),
-    icon: 'i-lucide-git-branch-plus',
-    onSelect: handleRegenerateBranch
-  })
+  if (canRegenerateInBranch.value) {
+    items.push({
+      label: t('chat.turnGroup.regenerateBranch'),
+      icon: 'i-lucide-git-branch-plus',
+      onSelect: handleRegenerateBranch
+    })
+  }
+
+  if (!items.length) return []
   
   return [
     items,
@@ -1525,7 +1534,7 @@ async function handleDelete() {
 
 // 覆盖重新生成
 async function handleRegenerateOverwrite() {
-  if (isRegenerating.value || !chatStore.currentSessionId) return
+  if (isRegenerating.value || !chatStore.currentSessionId || !canRegenerateOverwrite.value) return
   
   try {
     isRegenerating.value = true
@@ -1540,7 +1549,7 @@ async function handleRegenerateOverwrite() {
 
 // 分支重新生成
 async function handleRegenerateBranch() {
-  if (isRegenerating.value || !chatStore.currentSessionId) return
+  if (isRegenerating.value || !chatStore.currentSessionId || !canRegenerateInBranch.value) return
   
   try {
     isRegenerating.value = true
@@ -1615,7 +1624,7 @@ function getStylePrompt(options: typeof advancedRegenerateOptions.value): string
 
 // 高级重新生成 - 覆盖模式
 async function handleAdvancedRegenerateOverwrite() {
-  if (isRegenerating.value || !chatStore.currentSessionId) return
+  if (isRegenerating.value || !chatStore.currentSessionId || !canRegenerateOverwrite.value) return
   
   try {
     isRegenerating.value = true
@@ -1638,7 +1647,7 @@ async function handleAdvancedRegenerateOverwrite() {
 
 // 高级重新生成 - 分支模式
 async function handleAdvancedRegenerateBranch() {
-  if (isRegenerating.value || !chatStore.currentSessionId) return
+  if (isRegenerating.value || !chatStore.currentSessionId || !canRegenerateInBranch.value) return
   
   try {
     isRegenerating.value = true

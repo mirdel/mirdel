@@ -1306,6 +1306,68 @@ describe("useChatStore", () => {
     const sendCall = ipcMock.mock.calls.findLast(([channel]) => channel === "chat:send");
     expect(sendCall?.[1]?.sessionId).toBe(branchSession.id);
     expect(sendCall?.[1]?.assistantMessageId).toBeTruthy();
+    expect(sendCall?.[1]?.messages).toHaveLength(1);
+    expect(sendCall?.[1]?.messages[0]?.role).toBe("user");
+    expect(sendCall?.[1]?.messages[0]?.parts[0]?.text).toBe("Branch me");
+  });
+
+  it("does not create a branch when regenerating from a temporary session", async () => {
+    const session = createSessionFixture({
+      id: "session-temp",
+      isTemporary: true,
+      temporaryType: "session",
+    });
+    const turn = createTurnFixture({
+      id: "turn-temp",
+      sessionId: session.id,
+      userMessageId: "user-temp",
+      assistantMessageId: "assistant-temp",
+      status: "success",
+    });
+    const userMessage = {
+      id: "user-temp",
+      sessionId: session.id,
+      turnId: turn.id,
+      role: "user",
+      parts: [{ type: "text", text: "Temporary question" }],
+      status: "success",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const assistantMessage = {
+      id: "assistant-temp",
+      sessionId: session.id,
+      turnId: turn.id,
+      role: "assistant",
+      parts: [{ type: "text", text: "Temporary answer" }],
+      status: "success",
+      createdAt: 2,
+      updatedAt: 2,
+    };
+
+    const { chatStore } = setupStores();
+    const { ipcMock } = installRendererWindowMocks(async (channel) => {
+      switch (channel) {
+        case "messages:getDisplayMessages":
+          return [userMessage, assistantMessage];
+        case "turns:listBySession":
+          return [turn];
+        case "messages:getParentUserMessage":
+          return {
+            ok: true,
+            parentMessage: userMessage,
+          };
+        default:
+          return null;
+      }
+    });
+
+    chatStore.sessions = [session as any];
+    await chatStore.switchSession(session.id);
+    await chatStore.regenerateInBranch(assistantMessage.id);
+
+    expect(ipcMock.mock.calls.some(([channel]) => channel === "sessions:createBranch")).toBe(false);
+    expect(ipcMock.mock.calls.some(([channel]) => channel === "chat:send")).toBe(false);
   });
 
   it("tracks approved tool execution through to an available output", async () => {

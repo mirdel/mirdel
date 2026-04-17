@@ -1260,7 +1260,7 @@ export const rendererEn = {
     "chat.view.scenario.unselected": "No scenario selected",
     "chat.view.session.untitled": "Untitled Session",
     "chat.view.sessionNote": "Session Notes",
-    "chat.view.searchCurrentSession": "Search Current Session",
+    "chat.view.searchCurrentSession": "Search in Session",
     "chat.view.archivedHint": "This session is completed. Resume it before continuing.",
     "chat.view.noteLoading": "Loading...",
     "chat.view.noteEmptyHint": "Capture key points and ideas from the conversation at any time.\nYou can also append content from messages.",

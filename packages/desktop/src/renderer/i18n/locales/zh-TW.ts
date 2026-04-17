@@ -1262,7 +1262,7 @@ export const rendererZhTW = {
     "chat.view.scenario.unselected": "未選擇場景",
     "chat.view.session.untitled": "未命名會話",
     "chat.view.sessionNote": "會話筆記",
-    "chat.view.searchCurrentSession": "搜尋目前會話",
+    "chat.view.searchCurrentSession": "會話內搜尋",
     "chat.view.archivedHint": "此會話已完成。若要繼續，請先取消完成狀態。",
     "chat.view.noteLoading": "載入中...",
     "chat.view.noteEmptyHint": "隨時記錄對話中的要點與靈感\n支援從訊息中追加內容",

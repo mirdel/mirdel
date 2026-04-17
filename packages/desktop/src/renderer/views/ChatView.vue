@@ -153,20 +153,6 @@
               />
             </UTooltip>
 
-            <UTooltip
-              v-if="!chatStore.isTemporarySession && chatStore.currentSessionId"
-              :text="t('chat.view.searchCurrentSession')"
-            >
-              <UButton
-                icon="i-lucide-search"
-                variant="ghost"
-                color="neutral"
-                size="md"
-                square
-                @click="openCurrentSessionSearch"
-              />
-            </UTooltip>
-
             <UDropdownMenu
               :items="sessionOperationMenuItems"
               size="md"
@@ -1107,6 +1093,13 @@ const sessionOperationMenuItems = computed(() => {
           icon: "i-lucide-milestone",
           onSelect: () => {
             handleOpenSessionOverview();
+          }
+        },
+        {
+          label: t("chat.view.searchCurrentSession"),
+          icon: "i-lucide-search",
+          onSelect: () => {
+            openCurrentSessionSearch();
           }
         },
         {

@@ -3335,6 +3335,13 @@ ${userQuestionPart}`
       // 1. 准备上下文
       const context = await prepareRegenerateContext(messageId, options)
       if (!context) return
+
+      if (sessionById.value.get(context.sessionId)?.isTemporary) {
+        logger.warn('regenerateInBranch: temporary session does not support branches', {
+          sessionId: context.sessionId
+        })
+        return
+      }
       
       // 2. 分支起点总是 user 消息（语义清晰：从用户问题开始重新生成）
       const forkFromMessageId = context.userMessage.id
@@ -3376,13 +3383,19 @@ ${userQuestionPart}`
           historyCount: historyMessages.length
         })
       } else {
-        // 纯重新生成：从新会话读取消息（不包含原 assistant）
+        // 纯重新生成：从新会话读取消息，排除复制出来的 fork user；finalPrompt 会作为本轮 user 重新追加。
         const newSessionMessages = messagesCache.value.get(newBranch.id) || []
-        const filteredMsgs = newSessionMessages.filter(m => isCompletedMessageStatus(m.status) && !m.isDeleted)
+        const forkPointMessageId = newBranch.forkPointMessageId
+        const filteredMsgs = newSessionMessages.filter(m =>
+          isCompletedMessageStatus(m.status) &&
+          !m.isDeleted &&
+          m.id !== forkPointMessageId
+        )
         historyMessages = sliceByRounds(filteredMsgs, contextRounds)
         
         logger.info('regenerateInBranch: normal mode - using new session context', {
           newSessionId: newBranch.id,
+          excludedForkPointMessageId: forkPointMessageId,
           historyCount: historyMessages.length
         })
       }
