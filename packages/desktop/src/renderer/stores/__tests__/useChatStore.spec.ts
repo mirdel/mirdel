@@ -630,6 +630,70 @@ describe("useChatStore", () => {
     });
   });
 
+  it("creates an empty inherited session for editing the first user message", async () => {
+    const sourceSession = createSessionFixture({
+      id: "session-edit-source",
+      title: "Original",
+      selectedModel: "mock::deep",
+      projectId: "project-edit",
+      mcpServerIds: ["mcp-edit"],
+      mcpPolicy: "manual",
+      mode: "agent",
+      skillPolicy: "off",
+      webSearch: "native",
+      thinking: "deep",
+      kbIds: ["kb-edit"],
+    });
+    const { chatStore } = setupStores();
+    let createPayload: any;
+
+    installRendererWindowMocks(async (channel, payload) => {
+      switch (channel) {
+        case "messages:getDisplayMessages":
+          return [];
+        case "turns:listBySession":
+          return [];
+        case "sessions:create":
+          createPayload = payload;
+          return createSessionFixture({
+            ...payload,
+            id: "session-edit-target",
+            rootSessionId: null,
+            parentSessionId: null,
+            forkFromMessageId: null,
+            forkPointMessageId: null,
+            createdAt: 2,
+            updatedAt: 2,
+          });
+        default:
+          return null;
+      }
+    });
+
+    chatStore.sessions = [sourceSession as any];
+    await chatStore.switchSession(sourceSession.id);
+
+    const targetSession = await chatStore.createSessionForUserMessageEdit();
+
+    expect(createPayload).toMatchObject({
+      selectedModel: "mock::deep",
+      scenarioId: "default-scenario",
+      projectId: "project-edit",
+      mcpServerIds: ["mcp-edit"],
+      mcpPolicy: "manual",
+      mode: "agent",
+      skillPolicy: "off",
+      webSearch: "native",
+      thinking: "deep",
+      kbIds: ["kb-edit"],
+    });
+    expect(createPayload.title).toContain("Original - ");
+    expect(targetSession?.id).toBe("session-edit-target");
+    expect(chatStore.currentSessionId).toBe("session-edit-target");
+    expect(chatStore.sessions[0]?.id).toBe("session-edit-target");
+    expect(chatStore.messages).toEqual([]);
+  });
+
   it("moves a session to another category and refreshes the session list", async () => {
     const session = createSessionFixture({ id: "session-move-project", projectId: "project-old" });
     const movedSession = createSessionFixture({ id: session.id, projectId: "project-new", updatedAt: 3 });

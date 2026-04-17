@@ -274,7 +274,7 @@
           <UPopover
             mode="click"
             :content="{ side: 'top', align: 'end', sideOffset: 8 }"
-            :ui="{ content: 'w-56 p-2' }"
+            :ui="{ content: 'w-60 p-2' }"
           >
             <UTooltip :text="t('chat.turnGroup.tokens.statisticsLabel')">
               <UButton

@@ -1,12 +1,14 @@
 import { ref } from 'vue';
 import { i18n } from '@/i18n';
 
+type ConfirmColor = 'primary' | 'neutral' | 'error' | 'warning';
+
 export interface ConfirmOptions {
   title?: string;
   content: string;
   confirmText?: string;
   cancelText?: string;
-  confirmColor?: 'primary' | 'error' | 'warning';
+  confirmColor?: ConfirmColor;
   confirmIcon?: string;
 }
 
@@ -16,7 +18,7 @@ interface ConfirmState {
   content: string;
   confirmText: string;
   cancelText: string;
-  confirmColor: 'primary' | 'error' | 'warning';
+  confirmColor: ConfirmColor;
   confirmIcon?: string;
   resolve: ((value: boolean) => void) | null;
 }

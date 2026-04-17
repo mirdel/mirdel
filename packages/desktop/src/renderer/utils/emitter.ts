@@ -21,6 +21,8 @@ type Events = {
   'session:expand-main': string; // mainSessionId
   // 填充输入框文本（用于快捷追问）
   'chat:fill-input': string; // prompt text
+  // 替换输入框草稿文本（用于编辑用户消息后重新发送）
+  'chat:set-input-draft': string; // draft text
   // 编辑系统提示词
   'scenario:edit-prompt': void;
   /** 打开场景详情/编辑 Modal（如新建会话页卡片上的编辑） */

@@ -1419,6 +1419,8 @@ onMounted(async () => {
   emitter.on('chat:focus-input', focus)
   // 监听快捷追问填充文本事件
   emitter.on('chat:fill-input', fillText)
+  // 监听编辑消息后替换输入草稿事件
+  emitter.on('chat:set-input-draft', setInputDraft)
   if (typeof ResizeObserver !== 'undefined') {
     expandedLayoutObserver = new ResizeObserver(() => {
       scheduleSyncExpandedPosition()
@@ -1482,6 +1484,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', scheduleSyncExpandedPosition)
   emitter.off('chat:focus-input', focus)
   emitter.off('chat:fill-input', fillText)
+  emitter.off('chat:set-input-draft', setInputDraft)
   if (expandFrame !== null) {
     cancelAnimationFrame(expandFrame)
     expandFrame = null
@@ -1642,6 +1645,20 @@ function fillText(text: string) {
     if (textarea) {
       textarea.focus()
       // 光标移到末尾
+      const len = inputText.value.length
+      textarea.setSelectionRange(len, len)
+    }
+  }, 300)
+}
+
+function setInputDraft(text: string) {
+  inputText.value = text
+  saveDraftImmediate(chatStore.currentSessionId, text)
+
+  setTimeout(() => {
+    const textarea = textareaRef.value
+    if (textarea) {
+      textarea.focus()
       const len = inputText.value.length
       textarea.setSelectionRange(len, len)
     }

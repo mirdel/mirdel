@@ -577,8 +577,8 @@ async function handleCopy() {
 }
 
 // ===== user 消息更多菜单 =====
-const userMoreMenuItems = computed(() => [
-  [
+const userMoreMenuItems = computed(() => {
+  const actionItems = [
     {
       label: t('chat.message.appendToNote'),
       icon: 'i-lucide-notebook-pen',
@@ -589,16 +589,86 @@ const userMoreMenuItems = computed(() => [
       icon: 'i-lucide-book-marked',
       onSelect: () => handleSaveToPromptLibrary()
     }
-  ],
-  [
-    {
-      label: t('chat.sessionList.menu.delete'),
-      icon: 'i-lucide-trash-2',
-      color: 'error' as const,
-      onSelect: () => handleDelete()
-    }
   ]
-]);
+
+  const manageItems: Array<{
+    label: string
+    icon: string
+    color?: 'error'
+    onSelect: () => void
+  }> = []
+
+  if (!isSessionArchived.value && !chatStore.isTemporarySession) {
+    manageItems.push({
+      label: t('chat.message.edit'),
+      icon: 'i-lucide-pencil',
+      onSelect: () => handleEditInNewContext()
+    })
+  }
+
+  manageItems.push({
+    label: t('chat.sessionList.menu.delete'),
+    icon: 'i-lucide-trash-2',
+    color: 'error' as const,
+    onSelect: () => handleDelete()
+  })
+
+  return [
+    actionItems,
+    manageItems
+  ]
+});
+
+async function handleEditInNewContext() {
+  if (props.message.role !== 'user' || props.message.isDeleted) return
+  if (isSessionArchived.value || chatStore.isTemporarySession) return
+
+  const confirmed = await confirm({
+    title: t('chat.message.editInNewContextTitle'),
+    content: t('chat.message.editInNewContextContent'),
+    confirmText: t('chat.message.editInNewContextConfirm'),
+    cancelText: t('chat.message.cancel'),
+    confirmColor: 'neutral'
+  });
+
+  if (!confirmed) return
+
+  const originalText = messageText.value
+  const originalQuote = extractQuoteFromContent(messageContent.value)
+  const currentMessages = [...chatStore.messages]
+  const messageIndex = currentMessages.findIndex(message => message.id === props.message.id)
+  const previousAssistant = messageIndex > 0
+    ? currentMessages
+        .slice(0, messageIndex)
+        .reverse()
+        .find(message => message.role === 'assistant' && !message.isDeleted)
+    : undefined
+
+  try {
+    const targetSession = previousAssistant
+      ? await chatStore.createBranch(previousAssistant.id)
+      : await chatStore.createSessionForUserMessageEdit()
+
+    if (!targetSession) {
+      toast.error(t('chat.message.editCreateContextFailed'))
+      return
+    }
+
+    await nextTick()
+
+    if (originalQuote) {
+      chatStore.setQuote(originalQuote.parts, originalQuote.sourceMessageId)
+    } else {
+      chatStore.clearQuote()
+    }
+
+    emitter.emit('chat:set-input-draft', originalText)
+    emitter.emit('chat:scroll-to-bottom')
+  } catch (error) {
+    console.error(t('chat.message.editCreateContextFailed'), error)
+    toast.error(t('chat.message.editCreateContextFailed'))
+  }
+}
 
 // ===== 追加到笔记 =====
 function handleAppendToNote() {

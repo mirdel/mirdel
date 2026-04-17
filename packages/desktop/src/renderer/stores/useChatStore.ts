@@ -3496,8 +3496,8 @@ ${userQuestionPart}`
     return null
   }
   
-  async function createBranch(forkFromMessageId: string) {
-    if (!currentSessionId.value) return
+  async function createBranch(forkFromMessageId: string): Promise<SessionPublic | null> {
+    if (!currentSessionId.value) return null
     
     try {
       // 扁平化：从当前会话分叉，所有分支都会指向同一个根
@@ -3515,8 +3515,43 @@ ${userQuestionPart}`
       toast.success(i18n.global.t('chat.store.branchCreatedAndSwitched'))
 
       logger.info('createBranch: created and switched', { branchId: newBranch.id })
+      return newBranch
     } catch (error) {
       logger.error('createBranch failed', { error })
+      return null
+    }
+  }
+
+  async function createSessionForUserMessageEdit(): Promise<SessionPublic | null> {
+    const sourceSession = currentSession.value
+    if (!sourceSession || sourceSession.isTemporary) return null
+
+    try {
+      const title = `${sourceSession.title} - ${i18n.global.t('chat.message.edit')}`
+      const newSession = await window.ipc('sessions:create', JSON.parse(JSON.stringify({
+        selectedModel: sourceSession.selectedModel,
+        scenarioId: sourceSession.scenarioId,
+        title,
+        projectId: sourceSession.projectId,
+        mcpServerIds: sourceSession.mcpServerIds,
+        mcpPolicy: sourceSession.mcpPolicy,
+        mode: sourceSession.mode,
+        skillPolicy: sourceSession.skillPolicy,
+        webSearch: sourceSession.webSearch,
+        thinking: sourceSession.thinking,
+        kbIds: [...(sourceSession.kbIds ?? [])]
+      })))
+
+      sessions.value.unshift(newSession)
+      messagesCache.value.set(newSession.id, [])
+      turnsBySessionCache.value.set(newSession.id, [])
+      await switchSession(newSession.id)
+
+      logger.info('createSessionForUserMessageEdit: created and switched', { sessionId: newSession.id })
+      return newSession
+    } catch (error) {
+      logger.error('createSessionForUserMessageEdit failed', { error })
+      return null
     }
   }
   
@@ -3747,6 +3782,7 @@ ${userQuestionPart}`
     switchVariant,
     getVariantInfo,
     createBranch,
+    createSessionForUserMessageEdit,
     deleteMessage,
     deleteMessagesByTurnId,
     updateMessage,
