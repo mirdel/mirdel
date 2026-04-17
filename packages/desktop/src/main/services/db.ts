@@ -401,6 +401,21 @@ export function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_scenarios_updatedAt ON scenarios(updatedAt DESC);
+
+    -- ===== 提示词库 =====
+    CREATE TABLE IF NOT EXISTS prompt_library_entries (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      content TEXT NOT NULL DEFAULT '',
+      tags TEXT NOT NULL DEFAULT '[]',
+      favorite INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_prompt_library_favorite_updated
+      ON prompt_library_entries(favorite DESC, updatedAt DESC);
   `);
 
   d.exec(`

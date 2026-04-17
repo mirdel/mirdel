@@ -121,6 +121,13 @@ import {
   deleteScenario
 } from "../services/scenarios/scenarioData";
 import {
+  listPromptLibraryEntries,
+  createPromptLibraryEntry,
+  getPromptLibraryEntry,
+  updatePromptLibraryEntry,
+  deletePromptLibraryEntry
+} from "../services/prompts/promptLibraryData";
+import {
   listProjects,
   createProject,
   getProject,
@@ -1854,6 +1861,31 @@ export const router = ipcRouter({
 
   "scenarios:delete": async (_event, input: { id: string }) => {
     deleteScenario(input.id);
+    return { ok: true };
+  },
+
+  // ==================== Prompt library ====================
+  "promptLibrary:list": async () => {
+    return listPromptLibraryEntries();
+  },
+
+  "promptLibrary:create": async (_event, input?: { title?: string; description?: string; content?: string; tags?: string[] }) => {
+    return createPromptLibraryEntry(input);
+  },
+
+  "promptLibrary:get": async (_event, input: { id: string }) => {
+    return getPromptLibraryEntry(input.id);
+  },
+
+  "promptLibrary:update": async (
+    _event,
+    input: { id: string; data: Partial<{ title: string; description: string; content: string; tags: string[]; favorite: boolean }> }
+  ) => {
+    return updatePromptLibraryEntry(input.id, input.data);
+  },
+
+  "promptLibrary:delete": async (_event, input: { id: string }) => {
+    deletePromptLibraryEntry(input.id);
     return { ok: true };
   },
 

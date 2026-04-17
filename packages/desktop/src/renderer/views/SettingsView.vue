@@ -45,8 +45,10 @@ const { t } = useI18n();
 const settingsCategories = computed(() => [
   { id: "model-service", name: t("settings.category.modelService"), icon: "i-lucide-cpu" },
   { id: "default-model", name: t("settings.category.defaultModel"), icon: "i-lucide-sparkles" },
-  { id: "scenario", name: t("settings.category.scenario"), icon: "i-lucide-layout-template" },
   { id: "memory", name: t("settings.category.memory"), icon: "i-lucide-brain-cog" },
+  { divider: true },
+  { id: "scenario", name: t("settings.category.scenario"), icon: "i-lucide-layout-template" },
+  { id: "prompt-library", name: t("settings.category.promptLibrary"), icon: "i-lucide-book-marked" },
   { divider: true },
   { id: "web-search", name: t("settings.category.webSearch"), icon: "i-lucide-globe" },
   { id: "mcp-servers", name: t("settings.category.mcpServers"), icon: "i-gravity-ui:logo-mcp" },

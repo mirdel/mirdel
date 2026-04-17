@@ -258,5 +258,7 @@ export const mainZhTW = {
     "skill.scriptStartFailedRuntimeMissing": "啟動進程失敗（內建 Python runtime 不存在）",
     "skill.scriptTimeoutTerminated": "[執行逾時，已終止]",
     "skill.scriptStartFailedGeneral": "啟動進程失敗（請確認內建 Python runtime 與 node 可用）",
-    "skill.dependencyInstallFailed": "[依賴安裝失敗] {message}"
+    "skill.dependencyInstallFailed": "[依賴安裝失敗] {message}",
+    "promptLibrary.titleRequired": "標題不能為空",
+    "promptLibrary.contentRequired": "提示詞內容不能為空"
 } satisfies LocaleSchema;

@@ -260,5 +260,7 @@ export const mainZhCN = {
     "skill.scriptStartFailedRuntimeMissing": "启动进程失败（内置 Python runtime 不存在）",
     "skill.scriptTimeoutTerminated": "[执行超时，已终止]",
     "skill.scriptStartFailedGeneral": "启动进程失败（请确认内置 Python runtime 与 node 可用）",
-    "skill.dependencyInstallFailed": "[依赖安装失败] {message}"
+    "skill.dependencyInstallFailed": "[依赖安装失败] {message}",
+    "promptLibrary.titleRequired": "标题不能为空",
+    "promptLibrary.contentRequired": "提示词内容不能为空"
 } satisfies LocaleSchema;

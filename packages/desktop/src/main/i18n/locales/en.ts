@@ -258,7 +258,9 @@ export const mainEn = {
     "skill.scriptStartFailedRuntimeMissing": "Failed to start the process (bundled Python runtime is missing)",
     "skill.scriptTimeoutTerminated": "[Execution timed out and was terminated]",
     "skill.scriptStartFailedGeneral": "Failed to start the process (make sure the bundled Python runtime and node are available)",
-    "skill.dependencyInstallFailed": "[Dependency setup failed] {message}"
+    "skill.dependencyInstallFailed": "[Dependency setup failed] {message}",
+    "promptLibrary.titleRequired": "Title is required",
+    "promptLibrary.contentRequired": "Prompt content is required"
 } as const;
 
 export type LocaleSchema = {

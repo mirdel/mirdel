@@ -11,6 +11,7 @@ import TranslateView from "@/views/TranslateView.vue";
 import ModelServiceSettings from "@/components/settings/ModelServiceSettings.vue";
 import DefaultModelSettings from "@/components/settings/DefaultModelSettings.vue";
 import ScenarioSettings from "@/components/settings/ScenarioSettings.vue";
+import PromptLibrarySettings from "@/components/settings/PromptLibrarySettings.vue";
 import McpServerSettings from "@/components/settings/McpServerSettings.vue";
 import SkillSettings from "@/components/settings/SkillSettings.vue";
 import WebSearchSettings from "@/components/settings/WebSearchSettings.vue";
@@ -58,6 +59,11 @@ export const router = createRouter({
               path: "scenario",
               name: "settings-scenario",
               component: ScenarioSettings 
+            },
+            {
+              path: "prompt-library",
+              name: "settings-prompt-library",
+              component: PromptLibrarySettings
             },
             { 
               path: "mcp-servers",

@@ -17,6 +17,17 @@ const logger = loggerServiceRenderer.withContext('useSettingsStore')
 // 使用 shared 的 ProviderPublic 类型（包含完整的 model 信息）
 export type { ProviderPublic } from '@shared'
 
+export type PromptLibraryEntry = {
+  id: string
+  title: string
+  description: string
+  content: string
+  tags: string[]
+  favorite: boolean
+  createdAt: number
+  updatedAt: number
+}
+
 export type Scenario = {
   id: string
   name: string
@@ -137,6 +148,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // ===== State =====
   const providers = ref<ProviderPublic[]>([])
   const scenarios = ref<Scenario[]>([])
+  const promptLibraryEntries = ref<PromptLibraryEntry[]>([])
   const defaultModels = ref<DefaultModels>({
     general: null,
     fast: null,
@@ -200,6 +212,7 @@ export const useSettingsStore = defineStore('settings', () => {
       await Promise.all([
         loadProviders(),
         loadScenarios(),
+        loadPromptLibrary(),
         loadDefaultModels(),
         loadAiDevToolsEnabled(),
         loadSessionPreferences(),
@@ -237,6 +250,12 @@ export const useSettingsStore = defineStore('settings', () => {
     logger.info('loading scenarios')
     scenarios.value = await window.ipc('scenarios:list')
     logger.info('scenarios loaded', { count: scenarios.value.length })
+  }
+
+  async function loadPromptLibrary() {
+    logger.info('loading prompt library')
+    promptLibraryEntries.value = await window.ipc('promptLibrary:list')
+    logger.info('prompt library loaded', { count: promptLibraryEntries.value.length })
   }
   
   /**
@@ -292,6 +311,7 @@ export const useSettingsStore = defineStore('settings', () => {
     await Promise.all([
       loadProviders(),
       loadScenarios(),
+      loadPromptLibrary(),
       loadDefaultModels(),
       loadAiDevToolsEnabled(),
       loadSessionPreferences(),
@@ -672,6 +692,25 @@ export const useSettingsStore = defineStore('settings', () => {
     await window.ipc('scenarios:delete', { id })
     await loadScenarios()
   }
+
+  async function createPromptLibraryEntry(data?: { title?: string; description?: string; content?: string; tags?: string[] }) {
+    const entry = await window.ipc('promptLibrary:create', data)
+    await loadPromptLibrary()
+    return entry as PromptLibraryEntry
+  }
+
+  async function updatePromptLibraryEntry(
+    id: string,
+    data: Partial<{ title: string; description: string; content: string; tags: string[]; favorite: boolean }>
+  ) {
+    await window.ipc('promptLibrary:update', { id, data })
+    await loadPromptLibrary()
+  }
+
+  async function deletePromptLibraryEntry(id: string) {
+    await window.ipc('promptLibrary:delete', { id })
+    await loadPromptLibrary()
+  }
   
   // ===== Default Models CRUD =====
   
@@ -693,6 +732,7 @@ export const useSettingsStore = defineStore('settings', () => {
     // State
     providers,
     scenarios,
+    promptLibraryEntries,
     defaultModels,
     isInitialized,
     isLoading,
@@ -743,6 +783,10 @@ export const useSettingsStore = defineStore('settings', () => {
     createScenario,
     updateScenario,
     deleteScenario,
+    loadPromptLibrary,
+    createPromptLibraryEntry,
+    updatePromptLibraryEntry,
+    deletePromptLibraryEntry,
     
     // Default Models
     setDefaultModel,
