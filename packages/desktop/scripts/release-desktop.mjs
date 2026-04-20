@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const desktopDir = path.resolve(__dirname, "..");
 const releaseDir = path.join(desktopDir, "release");
+const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
@@ -62,16 +63,16 @@ async function main() {
   console.log("[release] NODE_OPTIONS:", process.env.NODE_OPTIONS || "(unset)");
   console.log("[release] electron-builder args:", builderArgs.join(" ") || "(default from config)");
 
-  await run("pnpm", ["run", "build"]);
-  await run("pnpm", ["run", "prepare:packaged-main-chunks"]);
-  await run("pnpm", ["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
-  await run("pnpm", ["run", "prepare:electron-native"]);
+  await run(pnpmCmd, ["run", "build"]);
+  await run(pnpmCmd, ["run", "prepare:packaged-main-chunks"]);
+  await run(pnpmCmd, ["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
+  await run(pnpmCmd, ["run", "prepare:electron-native"]);
 
   const finalBuilderArgs = [...builderArgs];
   if (!finalBuilderArgs.includes("--publish")) {
     finalBuilderArgs.push("--publish", "never");
   }
-  await run("pnpm", ["exec", "electron-builder", ...finalBuilderArgs]);
+  await run(pnpmCmd, ["exec", "electron-builder", ...finalBuilderArgs]);
 
   await maybeCleanUnpackedApp(runtimeTarget);
 }
