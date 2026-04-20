@@ -92,14 +92,6 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
           RUNTIME_TARGET: ${{ matrix.runtime_target }}
           ELECTRON_BUILDER_ARGS: ${{ matrix.electron_builder_args }}
-          # Optional signing/notarization secrets. If unset, electron-builder falls back to unsigned/ad-hoc.
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm --filter @mirdel/desktop run release:target
 
       - name: Show packaged files
