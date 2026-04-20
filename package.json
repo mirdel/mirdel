@@ -25,6 +25,7 @@
     "release": "pnpm --filter @mirdel/desktop dist",
     "release:local": "pnpm --filter @mirdel/desktop dist:local",
     "preview": "pnpm --filter @mirdel/desktop preview",
+    "check:windows-paths": "node scripts/check-windows-paths.mjs",
     "lint": "pnpm -r lint",
     "test:desktop:data": "pnpm --filter @mirdel/desktop run test:data",
     "test:desktop:store": "pnpm --filter @mirdel/desktop run test:store",
