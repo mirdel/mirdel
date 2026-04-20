@@ -48,7 +48,12 @@ function rebuild() {
     cwd: process.cwd(),
   });
   if (result.status !== 0) {
-    console.error("[electron-native] rebuild failed");
+    const reason = result.error
+      ? result.error.message
+      : result.signal
+        ? `signal ${result.signal}`
+        : `exit code ${result.status}`;
+    console.error(`[electron-native] rebuild failed: ${reason}`);
     process.exit(result.status ?? 1);
   }
 }

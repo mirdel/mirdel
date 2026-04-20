@@ -24,7 +24,6 @@
     "pack": "electron-vite build && pnpm run prepare:packaged-main-chunks && pnpm run prepare:platform-runtime && pnpm run prepare:electron-native && electron-builder --dir",
     "dist": "electron-vite build && pnpm run prepare:packaged-main-chunks && pnpm run prepare:platform-runtime && pnpm run prepare:electron-native && electron-builder",
     "dist:local": "cross-env RUNTIME_TARGET=darwin-arm64 ELECTRON_BUILDER_ARGS=\"--mac dmg --arm64\" CLEAN_UNPACKED_APP=true pnpm run release:target",
-    "postinstall": "node ./scripts/ensure-electron-native.mjs",
     "prepare:electron-native": "node ./scripts/ensure-electron-native.mjs",
     "prepare:packaged-main-chunks": "node ./scripts/prepare-packaged-main-chunks.mjs",
     "prepare:platform-runtime": "node ./scripts/prepare-platform-runtime.mjs",
