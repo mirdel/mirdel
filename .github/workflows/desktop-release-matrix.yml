@@ -98,7 +98,7 @@ jobs:
         run: ls -lah packages/desktop/release
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-${{ matrix.id }}
           if-no-files-found: error
