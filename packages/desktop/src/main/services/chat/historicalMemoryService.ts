@@ -295,7 +295,7 @@ function shouldSkipIndexText(text: string): boolean {
   return compact.length < 20;
 }
 
-async function indexTurnInternal(turnId: string, options?: { force?: boolean }): Promise<void> {
+async function indexTurnInternal(turnId: string, options?: { force?: boolean; suppressSuccessLog?: boolean }): Promise<void> {
   const settings = getMemorySettings();
   if (!settings.historicalEnabled && !options?.force) return;
 
@@ -361,12 +361,14 @@ async function indexTurnInternal(turnId: string, options?: { force?: boolean }):
     embeddingDimension: dimension,
   });
 
-  logger.info("historical memory turn indexed", {
-    turnId,
-    sessionId: session.id,
-    chunkCount: chunks.length,
-    dimension,
-  });
+  if (!options?.suppressSuccessLog) {
+    logger.info("historical memory turn indexed", {
+      turnId,
+      sessionId: session.id,
+      chunkCount: chunks.length,
+      dimension,
+    });
+  }
 }
 
 let indexQueue: Promise<void> | null = null;
@@ -688,14 +690,28 @@ export async function rebuildHistoricalMemoryIndex(): Promise<{
     ORDER BY t.createdAt ASC
   `).all() as Array<{ turnId: string }>;
 
+  const startedAt = Date.now();
+  logger.info("historical memory rebuild started", {
+    turnCount: rows.length,
+    embeddingModel: settings.historicalEmbeddingModel,
+    embeddingDimension: settings.historicalEmbeddingDimension,
+  });
+
   resetHistoricalMemoryIndex();
 
   let indexedTurns = 0;
   let failedTurns = 0;
   for (const row of rows) {
     try {
-      await indexTurnInternal(row.turnId, { force: true });
+      await indexTurnInternal(row.turnId, { force: true, suppressSuccessLog: true });
       indexedTurns += 1;
+      if (indexedTurns % 50 === 0) {
+        logger.info("historical memory rebuild progress", {
+          indexedTurns,
+          failedTurns,
+          totalTurns: rows.length,
+        });
+      }
     } catch (error) {
       failedTurns += 1;
       logger.error("historical memory rebuild turn failed", { turnId: row.turnId, error });
@@ -703,6 +719,13 @@ export async function rebuildHistoricalMemoryIndex(): Promise<{
   }
 
   const stats = getHistoricalMemoryIndexStats();
+  logger.info("historical memory rebuild completed", {
+    indexedTurns,
+    indexedChunks: stats.chunkCount,
+    failedTurns,
+    duration: Date.now() - startedAt,
+  });
+
   return {
     indexedTurns,
     indexedChunks: stats.chunkCount,

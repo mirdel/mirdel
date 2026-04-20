@@ -158,7 +158,7 @@
               <UButton
                 icon="i-lucide-refresh-cw"
                 variant="outline"
-                color="neutral"
+                color="warning"
                 :loading="isRebuildingHistoricalIndex"
                 @click="handleRebuildHistoricalIndex"
               >
@@ -201,7 +201,7 @@
               variant="soft"
               color="neutral"
               size="md"
-              :disabled="longTermItems.length >= 20"
+              :disabled="longTermItems.length >= LONG_TERM_MEMORY_LIMIT"
               @click="openMemoryModal()"
             >
               {{ t("settings.memory.longTerm.add") }}
@@ -438,6 +438,7 @@ const { t } = useI18n();
 
 const DEFAULT_HISTORICAL_MAX_RECALL = 3;
 const DEFAULT_HISTORICAL_MIN_SCORE = 0.58;
+const LONG_TERM_MEMORY_LIMIT = 50;
 
 type HistoricalRecallTestHit = {
   chunkId: number;
@@ -629,6 +630,16 @@ function formatOptionalScore(value?: number) {
 }
 
 async function handleRebuildHistoricalIndex() {
+  const confirmed = await confirm({
+    title: t("settings.memory.historical.rebuildConfirmTitle"),
+    content: t("settings.memory.historical.rebuildConfirmContent"),
+    confirmText: t("settings.memory.historical.rebuild"),
+    cancelText: t("common.cancel"),
+    confirmColor: "warning",
+    confirmIcon: "i-lucide-triangle-alert",
+  });
+  if (!confirmed) return;
+
   isRebuildingHistoricalIndex.value = true;
   try {
     const res = await window.ipc("historicalMemory:rebuild");

@@ -16,7 +16,7 @@ export interface LongTermMemoryItem {
   updatedAt: number;
 }
 
-const MAX_ITEMS = 20;
+const MAX_ITEMS = 50;
 const MAX_VALUE_LEN = 100;
 
 export function listLongTermMemory(): LongTermMemoryItem[] {

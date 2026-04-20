@@ -28,7 +28,16 @@ const HEALTH_CHECK_INTERVAL_MS = 30000 // 30 秒健康检查间隔
 export const LOCAL_MODEL_SERVER_PORT = 39391
 
 function shouldSkipModelServerStdoutLog(message: string): boolean {
-  return message.includes('GET /health') || message.includes('GET /v1/health') || message.includes('GET /models')
+  const normalized = message.toLowerCase()
+  if (normalized.includes('error') || normalized.includes('failed')) return false
+
+  return (
+    normalized.includes('get /health') ||
+    normalized.includes('get /v1/health') ||
+    normalized.includes('get /models') ||
+    normalized.includes('/v1/embeddings') ||
+    normalized.includes('/embeddings')
+  )
 }
 
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'error'
@@ -321,7 +330,7 @@ class ModelServerManager {
 
         child.stderr?.on('data', (data: Buffer) => {
           const message = data.toString().trim()
-          if (message) {
+          if (message && !shouldSkipModelServerStdoutLog(message)) {
             logger.warn('[model-server]', { stderr: message })
           }
         })
