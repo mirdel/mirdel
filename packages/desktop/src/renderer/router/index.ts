@@ -20,6 +20,7 @@ import GeneralSettings from "@/components/settings/GeneralSettings.vue";
 import ToolAllowlistSettings from "@/components/settings/ToolAllowlistSettings.vue";
 import SessionSettings from "@/components/settings/SessionSettings.vue";
 import StorageSettings from "@/components/settings/StorageSettings.vue";
+import AboutSettings from "@/components/settings/AboutSettings.vue";
 
 export const router = createRouter({
   history: createWebHashHistory(),
@@ -104,6 +105,11 @@ export const router = createRouter({
               path: "general",
               name: "settings-general",
               component: GeneralSettings
+            },
+            {
+              path: "about",
+              name: "settings-about",
+              component: AboutSettings
             },
           ]
         }

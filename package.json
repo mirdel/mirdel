@@ -1,6 +1,16 @@
 {
   "name": "mirdel",
+  "description": "Mirdel - Next-generation AI workspace",
   "private": true,
+  "homepage": "https://www.mirdel.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mirdel/mirdel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mirdel/mirdel/issues"
+  },
+  "license": "MIT",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=24.0.0 <25"

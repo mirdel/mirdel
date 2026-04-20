@@ -57,7 +57,9 @@ const settingsCategories = computed(() => [
   { divider: true },
   { id: "storage", name: t("settings.category.storage"), icon: "i-lucide-hard-drive" },
   { id: "session", name: t("settings.category.session"), icon: "i-lucide-message-square" },
-  { id: "general", name: t("settings.category.general"), icon: "i-lucide-settings" }
+  { id: "general", name: t("settings.category.general"), icon: "i-lucide-settings" },
+  { divider: true },
+  { id: "about", name: t("settings.category.about"), icon: "i-lucide-info" }
 ]);
 
 // 从路由获取当前分类

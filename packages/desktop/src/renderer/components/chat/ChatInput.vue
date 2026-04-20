@@ -8,7 +8,7 @@
           ref="inputContainerRef"
           :class="[
             'rounded-3xl bg-default overflow-hidden transition-[height] duration-300',
-            'border border-default',
+            'border border-muted',
             chatStore.isTemporarySession && 'border-dashed',
             isDragOver && 'border-primary',
             { 'fixed z-50 shadow-lg': isExpanded },

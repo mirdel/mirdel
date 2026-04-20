@@ -2,8 +2,17 @@
   "name": "@mirdel/desktop",
   "private": true,
   "version": "0.1.0",
-  "description": "Mirdel desktop app",
+  "description": "Mirdel - Next-generation AI workspace",
   "author": "Mirdel Team",
+  "homepage": "https://www.mirdel.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mirdel/mirdel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mirdel/mirdel/issues"
+  },
+  "license": "MIT",
   "type": "module",
   "main": "dist/main/index.cjs",
   "scripts": {
