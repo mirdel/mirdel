@@ -17,9 +17,12 @@ function run(cmd, args, opts = {}) {
       ...opts,
     });
     child.on("error", reject);
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       if (code === 0) resolve();
-      else reject(new Error(`${cmd} ${args.join(" ")} failed with code ${code}`));
+      else {
+        const exitReason = signal ? `signal ${signal}` : `code ${code}`;
+        reject(new Error(`${cmd} ${args.join(" ")} failed with ${exitReason}`));
+      }
     });
   });
 }
@@ -55,6 +58,8 @@ async function main() {
   const builderArgs = parseArgs(rawBuilderArgs);
 
   console.log("[release] runtime target:", runtimeTarget);
+  console.log("[release] node:", process.version);
+  console.log("[release] NODE_OPTIONS:", process.env.NODE_OPTIONS || "(unset)");
   console.log("[release] electron-builder args:", builderArgs.join(" ") || "(default from config)");
 
   await run("pnpm", ["run", "build"]);

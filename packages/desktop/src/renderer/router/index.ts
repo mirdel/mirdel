@@ -1,26 +1,27 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import MainLayout from "@/layouts/MainLayout.vue";
-import ChatView from "@/views/ChatView.vue";
-import ImageWorkspaceView from "@/views/ImageWorkspaceView.vue";
-import VideoWorkspaceView from "@/views/VideoWorkspaceView.vue";
-import NotesView from "@/views/NotesView.vue";
-import SettingsView from "@/views/SettingsView.vue";
-import KnowledgeView from "@/views/KnowledgeView.vue";
-import AppletView from "@/views/AppletView.vue";
-import TranslateView from "@/views/TranslateView.vue";
-import ModelServiceSettings from "@/components/settings/ModelServiceSettings.vue";
-import DefaultModelSettings from "@/components/settings/DefaultModelSettings.vue";
-import ScenarioSettings from "@/components/settings/ScenarioSettings.vue";
-import PromptLibrarySettings from "@/components/settings/PromptLibrarySettings.vue";
-import McpServerSettings from "@/components/settings/McpServerSettings.vue";
-import SkillSettings from "@/components/settings/SkillSettings.vue";
-import WebSearchSettings from "@/components/settings/WebSearchSettings.vue";
-import MemorySettings from "@/components/settings/MemorySettings.vue";
-import GeneralSettings from "@/components/settings/GeneralSettings.vue";
-import ToolAllowlistSettings from "@/components/settings/ToolAllowlistSettings.vue";
-import SessionSettings from "@/components/settings/SessionSettings.vue";
-import StorageSettings from "@/components/settings/StorageSettings.vue";
-import AboutSettings from "@/components/settings/AboutSettings.vue";
+
+const MainLayout = () => import("@/layouts/MainLayout.vue");
+const ChatView = () => import("@/views/ChatView.vue");
+const ImageWorkspaceView = () => import("@/views/ImageWorkspaceView.vue");
+const VideoWorkspaceView = () => import("@/views/VideoWorkspaceView.vue");
+const NotesView = () => import("@/views/NotesView.vue");
+const SettingsView = () => import("@/views/SettingsView.vue");
+const KnowledgeView = () => import("@/views/KnowledgeView.vue");
+const AppletView = () => import("@/views/AppletView.vue");
+const TranslateView = () => import("@/views/TranslateView.vue");
+const ModelServiceSettings = () => import("@/components/settings/ModelServiceSettings.vue");
+const DefaultModelSettings = () => import("@/components/settings/DefaultModelSettings.vue");
+const ScenarioSettings = () => import("@/components/settings/ScenarioSettings.vue");
+const PromptLibrarySettings = () => import("@/components/settings/PromptLibrarySettings.vue");
+const McpServerSettings = () => import("@/components/settings/McpServerSettings.vue");
+const SkillSettings = () => import("@/components/settings/SkillSettings.vue");
+const WebSearchSettings = () => import("@/components/settings/WebSearchSettings.vue");
+const MemorySettings = () => import("@/components/settings/MemorySettings.vue");
+const GeneralSettings = () => import("@/components/settings/GeneralSettings.vue");
+const ToolAllowlistSettings = () => import("@/components/settings/ToolAllowlistSettings.vue");
+const SessionSettings = () => import("@/components/settings/SessionSettings.vue");
+const StorageSettings = () => import("@/components/settings/StorageSettings.vue");
+const AboutSettings = () => import("@/components/settings/AboutSettings.vue");
 
 export const router = createRouter({
   history: createWebHashHistory(),

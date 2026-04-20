@@ -89,6 +89,7 @@ jobs:
 
       - name: Package desktop app
         env:
+          NODE_OPTIONS: --max-old-space-size=4096
           RUNTIME_TARGET: ${{ matrix.runtime_target }}
           ELECTRON_BUILDER_ARGS: ${{ matrix.electron_builder_args }}
           # Optional signing/notarization secrets. If unset, electron-builder falls back to unsigned/ad-hoc.
