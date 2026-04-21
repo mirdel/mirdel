@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import * as tar from "tar";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -167,9 +168,14 @@ function resolveDownloadUrls(assetName) {
   return uniqueBases.map((base) => `${base.replace(/\/+$/, "")}/${releasePath}`);
 }
 
-function extractArchive(archivePath, archiveType, outputDir) {
+async function extractArchive(archivePath, archiveType, outputDir) {
   if (archiveType === "tar.gz") {
-    runCommand("tar", ["-xzf", archivePath, "-C", outputDir, "--strip-components=1"], desktopRoot);
+    console.log(`[llama-runtime] extracting: ${archivePath}`);
+    await tar.x({
+      file: archivePath,
+      cwd: outputDir,
+      strip: 1,
+    });
     return;
   }
 
@@ -241,7 +247,7 @@ async function main() {
   await fs.promises.rm(targetDir, { recursive: true, force: true });
   await fs.promises.mkdir(targetDir, { recursive: true });
 
-  extractArchive(archivePath, archiveType, targetDir);
+  await extractArchive(archivePath, archiveType, targetDir);
 
   if (!fs.existsSync(executablePath)) {
     throw new Error(`llama-server binary not found after extraction: ${executablePath}`);

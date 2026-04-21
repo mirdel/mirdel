@@ -103,6 +103,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.2.2
+      tar:
+        specifier: ^7.5.13
+        version: 7.5.13
       turndown:
         specifier: ^7.2.4
         version: 7.2.4

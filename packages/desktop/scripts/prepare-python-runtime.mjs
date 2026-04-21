@@ -5,6 +5,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import * as tar from "tar";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -207,8 +208,12 @@ function findInstallRoot(extractRoot, executableRelPath) {
   return "";
 }
 
-function extractTarGz(archivePath, outputDir) {
-  runCommand("tar", ["-xzf", archivePath, "-C", outputDir], desktopRoot);
+async function extractTarGz(archivePath, outputDir) {
+  console.log(`[python-runtime] extracting: ${archivePath}`);
+  await tar.x({
+    file: archivePath,
+    cwd: outputDir,
+  });
 }
 
 function readManifest(manifestPath) {
@@ -311,7 +316,7 @@ async function main() {
   await fs.promises.mkdir(extractRoot, { recursive: true });
 
   try {
-    extractTarGz(archivePath, extractRoot);
+    await extractTarGz(archivePath, extractRoot);
     const installRoot = findInstallRoot(extractRoot, executableRelPath);
     if (!installRoot) {
       throw new Error(`Unable to resolve install root from extracted archive: ${archivePath}`);
