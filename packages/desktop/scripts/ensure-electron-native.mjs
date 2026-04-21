@@ -10,6 +10,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
@@ -42,8 +43,9 @@ function canElectronLoad() {
 
 function rebuild() {
   console.log(`[electron-native] rebuilding ${MODULES_TO_REBUILD} for Electron...`);
-  const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const result = spawnSync(pnpmCmd, ["exec", "electron-rebuild", "-f", "-w", MODULES_TO_REBUILD], {
+  const pnpmRunner = getPnpmRunner();
+  console.log(`[electron-native] pnpm runner: ${pnpmRunner.label}`);
+  const result = spawnSync(pnpmRunner.cmd, [...pnpmRunner.argsPrefix, "exec", "electron-rebuild", "-f", "-w", MODULES_TO_REBUILD], {
     stdio: "inherit",
     cwd: process.cwd(),
   });
@@ -56,6 +58,31 @@ function rebuild() {
     console.error(`[electron-native] rebuild failed: ${reason}`);
     process.exit(result.status ?? 1);
   }
+}
+
+function getPnpmRunner() {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && path.basename(npmExecPath).toLowerCase().includes("pnpm")) {
+    return {
+      cmd: process.execPath,
+      argsPrefix: [npmExecPath],
+      label: `node ${npmExecPath}`,
+    };
+  }
+
+  if (process.platform === "win32") {
+    return {
+      cmd: "cmd.exe",
+      argsPrefix: ["/d", "/s", "/c", "pnpm"],
+      label: "cmd.exe /d /s /c pnpm",
+    };
+  }
+
+  return {
+    cmd: "pnpm",
+    argsPrefix: [],
+    label: "pnpm",
+  };
 }
 
 const check1 = canElectronLoad();

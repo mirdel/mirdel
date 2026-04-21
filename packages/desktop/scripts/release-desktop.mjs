@@ -7,24 +7,56 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const desktopDir = path.resolve(__dirname, "..");
 const releaseDir = path.join(desktopDir, "release");
-const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
+    const { displayName, ...spawnOptions } = opts;
     const child = spawn(cmd, args, {
       cwd: desktopDir,
       stdio: "inherit",
       shell: false,
-      ...opts,
+      ...spawnOptions,
     });
     child.on("error", reject);
     child.on("close", (code, signal) => {
       if (code === 0) resolve();
       else {
         const exitReason = signal ? `signal ${signal}` : `code ${code}`;
-        reject(new Error(`${cmd} ${args.join(" ")} failed with ${exitReason}`));
+        reject(new Error(`${displayName || `${cmd} ${args.join(" ")}`} failed with ${exitReason}`));
       }
     });
+  });
+}
+
+function getPnpmRunner() {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && path.basename(npmExecPath).toLowerCase().includes("pnpm")) {
+    return {
+      cmd: process.execPath,
+      argsPrefix: [npmExecPath],
+      label: `node ${npmExecPath}`,
+    };
+  }
+
+  if (process.platform === "win32") {
+    return {
+      cmd: "cmd.exe",
+      argsPrefix: ["/d", "/s", "/c", "pnpm"],
+      label: "cmd.exe /d /s /c pnpm",
+    };
+  }
+
+  return {
+    cmd: "pnpm",
+    argsPrefix: [],
+    label: "pnpm",
+  };
+}
+
+function runPnpm(args) {
+  const runner = getPnpmRunner();
+  return run(runner.cmd, [...runner.argsPrefix, ...args], {
+    displayName: `pnpm ${args.join(" ")}`,
   });
 }
 
@@ -61,18 +93,19 @@ async function main() {
   console.log("[release] runtime target:", runtimeTarget);
   console.log("[release] node:", process.version);
   console.log("[release] NODE_OPTIONS:", process.env.NODE_OPTIONS || "(unset)");
+  console.log("[release] pnpm runner:", getPnpmRunner().label);
   console.log("[release] electron-builder args:", builderArgs.join(" ") || "(default from config)");
 
-  await run(pnpmCmd, ["run", "build"]);
-  await run(pnpmCmd, ["run", "prepare:packaged-main-chunks"]);
-  await run(pnpmCmd, ["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
-  await run(pnpmCmd, ["run", "prepare:electron-native"]);
+  await runPnpm(["run", "build"]);
+  await runPnpm(["run", "prepare:packaged-main-chunks"]);
+  await runPnpm(["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
+  await runPnpm(["run", "prepare:electron-native"]);
 
   const finalBuilderArgs = [...builderArgs];
   if (!finalBuilderArgs.includes("--publish")) {
     finalBuilderArgs.push("--publish", "never");
   }
-  await run(pnpmCmd, ["exec", "electron-builder", ...finalBuilderArgs]);
+  await runPnpm(["exec", "electron-builder", ...finalBuilderArgs]);
 
   await maybeCleanUnpackedApp(runtimeTarget);
 }
