@@ -4,8 +4,8 @@ export type MarkdownToPlainOptions = {
   preserveLineBreaks?: boolean;
 };
 
-const DEFAULT_CODE_PLACEHOLDER = "[代码]";
-const DEFAULT_IMAGE_PLACEHOLDER = "[图片]";
+const DEFAULT_CODE_PLACEHOLDER = "[code]";
+const DEFAULT_IMAGE_PLACEHOLDER = "[image]";
 
 function normalizeMarkdown(input: string) {
   return String(input || "")

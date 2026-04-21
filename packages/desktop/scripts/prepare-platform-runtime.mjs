@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const desktopRoot = path.resolve(__dirname, "..");
 
 function getDefaultRuntimeTarget() {
   const platform = process.platform;
@@ -28,6 +34,7 @@ function parseTargetArg(argv) {
 function run(cmd, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, {
+      cwd: desktopRoot,
       stdio: "inherit",
       shell: false,
       env: process.env,
@@ -54,11 +61,11 @@ async function main() {
 
   console.log("[platform-runtime] target:", runtimeTarget);
 
-  await run("pnpm", ["run", "prepare:model-server-runtime", "--", `--target=${runtimeTarget}`]);
-  await run("pnpm", ["run", "prepare:python-runtime", "--", `--target=${runtimeTarget}`]);
-  await run("pnpm", ["run", "prepare:sqlite-extension-runtime", "--", `--target=${runtimeTarget}`]);
-  await run("pnpm", ["run", "prepare:searxng-python-deps", "--", `--target=${runtimeTarget}`]);
-  await run("pnpm", ["run", "verify:sqlite-extension", "--", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/prepare-model-server-runtime.mjs", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/prepare-python-runtime.mjs", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/prepare-sqlite-extension-runtime.mjs", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/install-searxng-python-deps.mjs", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/verify-sqlite-extension.mjs", `--target=${runtimeTarget}`]);
 
   console.log("[platform-runtime] ready");
 }
