@@ -34,10 +34,7 @@
             <h1 class="text-2xl font-semibold text-default">
               {{ t("onboarding.welcome.title") }}
             </h1>
-            <p class="text-lg leading-8 text-muted">
-              {{ t("onboarding.welcome.subtitle") }}
-            </p>
-            <p class="text-lg leading-8 text-default">
+            <p class="text-md leading-8 text-default">
               {{ t("onboarding.welcome.description") }}
             </p>
           </div>
