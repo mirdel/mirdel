@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -92,6 +92,8 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
           RUNTIME_TARGET: ${{ matrix.runtime_target }}
           ELECTRON_BUILDER_ARGS: ${{ matrix.electron_builder_args }}
+          ELECTRON_BUILDER_PUBLISH: ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+          GH_TOKEN: ${{ github.token }}
         run: pnpm --filter @mirdel/desktop run release:target
 
       - name: Show packaged files

@@ -76,6 +76,15 @@ function parseArgs(raw) {
     .filter(Boolean);
 }
 
+function hasPublishArg(args) {
+  return args.some((arg) => arg === "--publish" || arg.startsWith("--publish="));
+}
+
+function getPublishMode() {
+  const mode = String(process.env.ELECTRON_BUILDER_PUBLISH || "never").trim();
+  return mode || "never";
+}
+
 async function maybeCleanUnpackedApp(runtimeTarget) {
   if (process.env.CLEAN_UNPACKED_APP !== "true") return;
   if (!runtimeTarget.startsWith("darwin-")) return;
@@ -89,11 +98,13 @@ async function main() {
   const runtimeTarget = (process.env.RUNTIME_TARGET || getDefaultRuntimeTarget()).trim();
   const rawBuilderArgs = (process.env.ELECTRON_BUILDER_ARGS || "").trim();
   const builderArgs = parseArgs(rawBuilderArgs);
+  const publishMode = getPublishMode();
 
   console.log("[release] runtime target:", runtimeTarget);
   console.log("[release] node:", process.version);
   console.log("[release] NODE_OPTIONS:", process.env.NODE_OPTIONS || "(unset)");
   console.log("[release] pnpm runner:", getPnpmRunner().label);
+  console.log("[release] electron-builder publish:", publishMode);
   console.log("[release] electron-builder args:", builderArgs.join(" ") || "(default from config)");
 
   await runPnpm(["run", "build"]);
@@ -102,8 +113,8 @@ async function main() {
   await runPnpm(["run", "prepare:electron-native"]);
 
   const finalBuilderArgs = [...builderArgs];
-  if (!finalBuilderArgs.includes("--publish")) {
-    finalBuilderArgs.push("--publish", "never");
+  if (!hasPublishArg(finalBuilderArgs)) {
+    finalBuilderArgs.push("--publish", publishMode);
   }
   await runPnpm(["exec", "electron-builder", ...finalBuilderArgs]);
 
