@@ -214,6 +214,7 @@ export interface ChatDebugInfo {
 // ==================== 消息树和分支相关类型 ====================
 
 export type ChatMode = 'chat' | 'agent'
+export type ToolApprovalMode = 'default' | 'auto'
 
 export interface MessageQuote {
   parts: MessageContentPart[]
@@ -317,6 +318,7 @@ export interface Turn {
   selectedModel?: string
   mcpServerIds?: string[]
   mode?: ChatMode
+  toolApprovalMode?: ToolApprovalMode
   webSearch?: WebSearchMode
   thinking?: ThinkingMode
   effectiveThinking?: ThinkingMode

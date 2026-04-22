@@ -181,6 +181,11 @@ export default defineConfig({
               }
             }
           },
+          select: {
+            slots: {
+              content: 'min-w-fit'
+            }
+          },
           empty: {
             slots: {
               title: 'text-muted',

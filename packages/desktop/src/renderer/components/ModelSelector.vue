@@ -20,7 +20,7 @@
       tabindex="0"
     >
       <ModelLogo v-if="selectedModel && !selectedModel.unconfigured" :model-id="selectedModel.id" size="sm" />
-      <ModelUnconfiguredLogo v-else-if="selectedModel" />
+      <ModelUnconfiguredLogo v-else />
       <div v-if="selectedModel" class="flex-1 min-w-0 flex items-center gap-1">
         <span class="flex-1 truncate">{{ selectedModel.id }}</span>
         <span

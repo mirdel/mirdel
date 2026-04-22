@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import { streamText, type ModelMessage, stepCountIs, validateUIMessages, convertToModelMessages, type UIDataTypes, type UIMessageChunk } from "ai";
 import type { LanguageModelUsage } from "ai";
 import { NATIVE_WEB_SEARCH_TOOLS_BODY_KEY } from "../providers/llmProviderFactory";
-import { loggerServiceMain, resolveNativeWebSearchConfig, resolveThinkingMode, normalizeInputModalities, getInputModalityFromMediaType, supportsInputModality, type MessageContentPart, type MessageRole, type AppUIMessage, type DebugStep, type DebugToolExecution, type NativeWebSearchConfig, type NativeWebSearchSdkNativeConfig, type ThinkingConfig, type ThinkingMode, type ModelModality } from "@shared";
+import { loggerServiceMain, resolveNativeWebSearchConfig, resolveThinkingMode, normalizeInputModalities, getInputModalityFromMediaType, supportsInputModality, type MessageContentPart, type MessageRole, type AppUIMessage, type DebugStep, type DebugToolExecution, type NativeWebSearchConfig, type NativeWebSearchSdkNativeConfig, type ThinkingConfig, type ThinkingMode, type ToolApprovalMode, type ModelModality } from "@shared";
 import { resolveModelInvocation } from "../providers/modelInvocation";
 import { createAssistantMessage, updateMessage, getMessage, listMessages } from "./messageData";
 import { appendDebugRunSteps, createDebugRun, finalizeDebugRun, getLatestDebugRunIdByTurnId } from "./debugInfoData";
@@ -693,6 +693,7 @@ async function buildFinalMessages(params: {
 async function aggregateToolsForMode(params: {
   sessionId: string;
   mode: ChatMode;
+  toolApprovalMode: ToolApprovalMode;
   mcpServerIds?: string[];
   skillId?: string | null;
   webSearch: WebSearchMode;
@@ -702,7 +703,7 @@ async function aggregateToolsForMode(params: {
   mcpStats: AggregatedToolStat[];
   mcpAggregationTime: number;
 }> {
-  const { sessionId, mode, mcpServerIds, skillId, webSearch, citationStartIndex } = params;
+  const { sessionId, mode, toolApprovalMode, mcpServerIds, skillId, webSearch, citationStartIndex } = params;
   let tools: Record<string, any> | undefined;
   let mcpStats: AggregatedToolStat[] = [];
   const mcpAggregationStartTime = Date.now();
@@ -725,6 +726,7 @@ async function aggregateToolsForMode(params: {
       const result = await aggregateMcpTools({
         serverIds: serverIdsToAggregate,
         sessionId,
+        toolApprovalMode,
         webSearchProviderId,
         citationStartIndex
       });
@@ -745,6 +747,7 @@ async function aggregateToolsForMode(params: {
       const result = await aggregateMcpTools({
         serverIds: [],
         sessionId,
+        toolApprovalMode,
         webSearchProviderId,
         citationStartIndex
       });
@@ -900,6 +903,7 @@ export type ChatSendParams = {
   abortSignal: AbortSignal;
   mcpServerIds?: string[];  // MCP 服务器 ID 列表
   mode?: ChatMode;  // 发送模式（chat/agent），默认 chat
+  toolApprovalMode?: ToolApprovalMode;  // 工具审批模式（默认审批/自动审批）
   webSearch?: WebSearchMode;  // 网络搜索模式（auto/close），默认 auto
   thinking?: ThinkingMode;  // 思考深度（auto/off/on/standard/deep/ultra），默认 auto
   citationRequired?: boolean;  // 是否需要在回答中标注引用（知识库或网络搜索时由前端传入）
@@ -924,13 +928,15 @@ async function executeChatCore(params: {
   abortSignal: AbortSignal;
   mcpServerIds?: string[];  // MCP 服务器 ID 列表
   mode?: ChatMode;  // 发送模式（chat/agent），默认 chat
+  toolApprovalMode?: ToolApprovalMode;  // 工具审批模式（默认审批/自动审批）
   webSearch?: WebSearchMode;  // 网络搜索模式（auto/close），默认 auto
   thinking?: ThinkingMode;  // 思考深度（auto/off/on/standard/deep/ultra），默认 auto
   citationRequired?: boolean;  // 是否需要在回答中标注引用
   citationStartIndex?: number;  // 网络搜索来源起始序号（0=无知识库）
   skillId?: string | null;  // 本轮选中的技能 id（来自路由），有则注入技能说明并挂技能工具）
 }) {
-  const { sessionId, assistantMessageId, turnId, debugRunId, userMessageId, messages, prebuiltModelMessages, selectedModel, window, abortSignal, mcpServerIds, mode = 'chat', webSearch = 'auto', thinking = 'auto', citationRequired = false, citationStartIndex = 0, skillId } = params;
+  const { sessionId, assistantMessageId, turnId, debugRunId, userMessageId, messages, prebuiltModelMessages, selectedModel, window, abortSignal, mcpServerIds, mode = 'chat', toolApprovalMode = 'default', webSearch = 'auto', thinking = 'auto', citationRequired = false, citationStartIndex = 0, skillId } = params;
+  const effectiveToolApprovalMode: ToolApprovalMode = mode === 'agent' ? toolApprovalMode : 'default';
   const shouldPersist = true;
   let sessionForRequest: ReturnType<typeof getSession> = null;
 
@@ -1052,6 +1058,7 @@ async function executeChatCore(params: {
   const aggregatedTools = await aggregateToolsForMode({
     sessionId,
     mode,
+    toolApprovalMode: effectiveToolApprovalMode,
     mcpServerIds,
     skillId,
     webSearch: effectiveWebSearch,
@@ -2095,11 +2102,13 @@ export async function executeChat(params: ChatSendParams) {
     abortSignal, 
     mcpServerIds,
     mode,
+    toolApprovalMode,
     webSearch,
     thinking,
     citationRequired,
     citationStartIndex
   } = params;
+  const effectiveToolApprovalMode: ToolApprovalMode = mode === 'agent' ? (toolApprovalMode ?? 'default') : 'default';
 
   // 提升变量作用域，以便在 catch 块中访问
   let finalAssistantMessageId: string | undefined;
@@ -2139,6 +2148,7 @@ export async function executeChat(params: ChatSendParams) {
         selectedModel,
         mcpServerIds: mcpServerIds ?? null,
         mode,
+        toolApprovalMode: effectiveToolApprovalMode,
         webSearch,
         thinking: params.thinking,
         effectiveThinking: params.thinking ?? replaceTurn.effectiveThinking ?? replaceTurn.thinking,
@@ -2188,6 +2198,7 @@ export async function executeChat(params: ChatSendParams) {
         selectedModel,
         mcpServerIds,
         mode,
+        toolApprovalMode: effectiveToolApprovalMode,
         webSearch,
         thinking: params.thinking ?? 'auto',
         effectiveThinking: params.thinking ?? 'auto',
@@ -2219,6 +2230,7 @@ export async function executeChat(params: ChatSendParams) {
       abortSignal,
       mcpServerIds,
       mode,
+      toolApprovalMode: effectiveToolApprovalMode,
       webSearch,
       thinking: params.thinking,
       citationRequired: params.citationRequired,
@@ -2353,6 +2365,7 @@ export async function executeChatWithToolApprovals(params: {
   if (!selectedModel) throw new Error(tMain("chat.resumeModelMissing"));
   const mcpServerIds = currentTurn.mcpServerIds;
   const mode = currentTurn.mode ?? 'chat';
+  const toolApprovalMode = currentTurn.toolApprovalMode ?? 'default';
   const webSearch = currentTurn.webSearch ?? 'auto';
   const thinking = currentTurn.thinking ?? 'auto';
 
@@ -2420,6 +2433,7 @@ export async function executeChatWithToolApprovals(params: {
     abortSignal,
     mcpServerIds,
     mode,
+    toolApprovalMode,
     webSearch,
     thinking,
     citationRequired: currentTurn.citationRequired ?? false,

@@ -2,7 +2,7 @@ import { nanoid as nanoId } from "nanoid";
 import { getDb } from "../db";
 import type { ChatMode, WebSearchMode } from "./sessionData";
 import type { Turn, TurnStatus } from "@shared";
-import type { ThinkingMode } from "@shared";
+import type { ThinkingMode, ToolApprovalMode } from "@shared";
 
 type TurnRow = {
   id: string;
@@ -15,6 +15,7 @@ type TurnRow = {
   selectedModel: string;
   mcpServerIds: string | null;
   mode: string | null;
+  toolApprovalMode: string | null;
   webSearch: string | null;
   thinking: string | null;
   effectiveThinking: string | null;
@@ -82,6 +83,10 @@ function normalizeThinkingMode(value: string | null): ThinkingMode | undefined {
   return undefined;
 }
 
+function normalizeToolApprovalMode(value: string | null): ToolApprovalMode | undefined {
+  return value === "auto" ? "auto" : value === "default" ? "default" : undefined;
+}
+
 function parseTurn(row: TurnRow): Turn {
   return {
     id: row.id,
@@ -94,6 +99,7 @@ function parseTurn(row: TurnRow): Turn {
     selectedModel: row.selectedModel,
     mcpServerIds: row.mcpServerIds ? JSON.parse(row.mcpServerIds) : undefined,
     mode: row.mode as ChatMode | undefined,
+    toolApprovalMode: normalizeToolApprovalMode(row.toolApprovalMode),
     webSearch: row.webSearch as WebSearchMode | undefined,
     thinking: normalizeThinkingMode(row.thinking),
     effectiveThinking: normalizeThinkingMode(row.effectiveThinking),
@@ -123,6 +129,7 @@ export function createTurn(params: {
   selectedModel: string;
   mcpServerIds?: string[];
   mode?: ChatMode;
+  toolApprovalMode?: ToolApprovalMode;
   webSearch?: WebSearchMode;
   thinking?: ThinkingMode;
   effectiveThinking?: ThinkingMode;
@@ -143,6 +150,7 @@ export function createTurn(params: {
     selectedModel: params.selectedModel,
     mcpServerIds: params.mcpServerIds,
     mode: params.mode,
+    toolApprovalMode: params.toolApprovalMode,
     webSearch: params.webSearch,
     thinking: params.thinking,
     effectiveThinking: params.effectiveThinking,
@@ -158,9 +166,9 @@ export function createTurn(params: {
   db.prepare(`
     INSERT INTO turns (
       id, sessionId, userMessageId, assistantMessageId, parentTurnId,
-      triggerType, status, selectedModel, mcpServerIds, mode, webSearch, thinking, effectiveThinking, skillId,
+      triggerType, status, selectedModel, mcpServerIds, mode, toolApprovalMode, webSearch, thinking, effectiveThinking, skillId,
       citationRequired, citationStartIndex, tokenUsage, stateText, briefText, error, startedAt, endedAt, createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     turn.id,
     turn.sessionId,
@@ -172,6 +180,7 @@ export function createTurn(params: {
     turn.selectedModel ?? "",
     turn.mcpServerIds?.length ? JSON.stringify(turn.mcpServerIds) : null,
     turn.mode ?? null,
+    turn.toolApprovalMode ?? null,
     turn.webSearch ?? null,
     turn.thinking ?? null,
     turn.effectiveThinking ?? null,
@@ -248,6 +257,7 @@ export function updateTurn(
     selectedModel?: string;
     mcpServerIds?: string[] | null;
     mode?: ChatMode;
+    toolApprovalMode?: ToolApprovalMode;
     webSearch?: WebSearchMode;
     status?: TurnStatus;
     tokenUsage?: { inputTokens: number | null; outputTokens: number | null } | null;
@@ -291,6 +301,10 @@ export function updateTurn(
   if (updates.mode !== undefined) {
     sets.push("mode = ?");
     values.push(updates.mode ?? null);
+  }
+  if (updates.toolApprovalMode !== undefined) {
+    sets.push("toolApprovalMode = ?");
+    values.push(updates.toolApprovalMode ?? null);
   }
   if (updates.webSearch !== undefined) {
     sets.push("webSearch = ?");

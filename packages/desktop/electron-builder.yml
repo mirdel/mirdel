@@ -54,6 +54,7 @@ mac:
     - dmg
   category: public.app-category.developer-tools
   icon: build/icon.icns
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
   extraResources:
     # 本地模型服务运行时（llama-server，可执行文件 + 动态库）
     - from: .runtime/model-server/darwin-${arch}
@@ -91,8 +92,8 @@ mac:
 win:
   target:
     - nsis
-    - portable
   icon: build/icon.ico
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
   extraResources:
     # 本地模型服务运行时（llama-server，可执行文件 + 动态库）
     - from: .runtime/model-server/win32-${arch}

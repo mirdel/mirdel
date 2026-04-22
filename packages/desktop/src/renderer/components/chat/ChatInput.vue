@@ -11,8 +11,8 @@
             'border border-muted',
             chatStore.isTemporarySession && 'border-dashed',
             isDragOver && 'border-primary',
-            { 'fixed z-50 shadow-lg': isExpanded },
-            { 'shadow-sm': isFocused && !isExpanded }
+            isExpanded ? 'fixed z-50 border-accented' : 'relative z-10',
+            { 'border-accented': isFocused && !isExpanded }
           ]"
           :style="expandedInputStyle"
           @dragenter.prevent="handleDragEnter"
@@ -239,30 +239,6 @@
         >
           <!-- 左侧工具按钮 -->
           <div class="flex items-center gap-1">
-            <!-- 模式选择器（Chat/Agent） -->
-            <UTooltip :text="t('chat.input.toggleMode')" :kbds="['meta', '.']">
-              <USelect
-                v-model="sessionMode"
-                :items="modeOptions"
-                value-key="value"
-                :icon="modeIcon"
-                size="sm"
-                variant="soft"
-                class="w-25 rounded-full"
-                :content="{ side: 'top', align: 'start' }"
-              >
-                <template #item="{ item }">
-                  <UTooltip :text="item.description" side="right" :delay-duration="300">
-                    <div class="flex items-center gap-2 w-full cursor-pointer">
-                      <UIcon :name="item.icon" class="size-4" />
-                      <span class="flex-1">{{ item.label }}</span>
-                      <UIcon v-if="item.value === sessionMode" name="i-lucide-check" class="size-4" />
-                    </div>
-                  </UTooltip>
-                </template>
-              </USelect>
-            </UTooltip>
-            
             <UDropdownMenu 
               :items="addMenuItems" 
               size="sm" 
@@ -425,71 +401,123 @@
         </div>
       </div>
 
-      <!-- 提示文案 -->
-      <div :class="[
-        'flex items-center mt-1 px-3 text-xs select-none',
-        isExpanded ? 'justify-center' : 'justify-between'
-      ]">
-        <span class="text-dimmed">{{ t('chat.input.disclaimer') }}</span>
-        <div v-if="!isExpanded" class="flex items-center gap-2">
-          <USelect
-            v-model="sendShortcutMode"
-            :items="sendShortcutOptions"
-            size="xs"
-            variant="ghost"
-            @update:model-value="handleShortcutChange"
-          />
-          <!-- 上下文轮数环形进度条 + Popover -->
-          <UPopover mode="hover" :content="{ side: 'top', align: 'end', sideOffset: 8 }">
-            <div class="flex items-center justify-center shrink-0 cursor-default">
-              <svg class="size-4 -rotate-90" viewBox="0 0 48 48" shape-rendering="geometricPrecision">
-                <!-- 背景环：浅色 neutral -->
-                <circle
-                  cx="24"
-                  cy="24"
-                  r="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="6"
-                  class="text-neutral-200 dark:text-neutral-600"
-                />
-                <!-- 进度环：主色，占比 = min(turns/contextCount, 1) -->
-                <circle
-                  cx="24"
-                  cy="24"
-                  r="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                  :stroke-dasharray="circumference"
-                  :stroke-dashoffset="contextProgressStrokeOffset"
-                  class="text-neutral-600 dark:text-neutral-200"
-                />
-              </svg>
-            </div>
-            <template #content>
-              <div class="p-3 min-w-50 space-y-2 text-xs">
-                <div class="flex justify-between gap-4">
-                  <span class="text-muted shrink-0">{{ t('chat.input.contextTurns') }}</span>
-                  <span class="text-default tabular-nums">{{ turnCount }} / {{ contextCount }}</span>
-                </div>
-                <div v-if="contextOverflow > 0" class="text-xs my-2 text-muted">
-                  {{ t('chat.input.contextOverflow') }}
-                </div>
-                <div class="border-t border-default pt-3 mt-3 space-y-2">
-                  <div class="flex justify-between gap-4">
-                    <span class="text-muted shrink-0">{{ t('chat.input.inputChars') }}</span>
-                    <span class="text-default tabular-nums">{{ inputCharCount }}</span>
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <span class="text-muted shrink-0">{{ t('chat.input.estimatedTokens') }}</span>
-                    <span class="text-default tabular-nums">{{ estimatedTokens }}</span>
-                  </div>
-                </div>
+      <!-- 底部面板（藏在输入框下层、只露出下半部的浅色延伸区：模式切换 + 快捷键 + 上下文进度） -->
+      <div
+        v-if="!isExpanded"
+        class="relative z-0 rounded-3xl bg-elevated/60 px-2 -mt-11 pt-12 pb-1.5"
+      >
+        <div class="flex items-center justify-between">
+          <!-- 左侧：模式选择器（Chat/Agent） -->
+          <div class="flex items-center gap-1">
+            <UTooltip :text="t('chat.input.toggleMode')" :kbds="['meta', '.']">
+              <USelect
+                v-model="sessionMode"
+                :items="modeOptions"
+                value-key="value"
+                :icon="modeIcon"
+                size="xs"
+                variant="ghost"
+                class="rounded-full"
+                :content="{ side: 'top', align: 'start' }"
+              >
+                <template #item="{ item }">
+                  <UTooltip :text="item.description" side="right" :delay-duration="300">
+                    <div class="flex items-center gap-2 w-full cursor-pointer">
+                      <UIcon :name="item.icon" class="size-4" />
+                      <span class="flex-1">{{ item.label }}</span>
+                      <UIcon v-if="item.value === sessionMode" name="i-lucide-check" class="size-4" />
+                    </div>
+                  </UTooltip>
+                </template>
+              </USelect>
+            </UTooltip>
+
+            <UTooltip v-if="sessionMode === 'agent'" :text="t('chat.input.toolApproval.title')">
+              <USelect
+                v-model="sessionToolApprovalMode"
+                :items="toolApprovalOptions"
+                value-key="value"
+                :leading-icon="toolApprovalIcon"
+                :color="sessionToolApprovalMode === 'auto' ? 'warning' : 'neutral'"
+                size="xs"
+                variant="ghost"
+                class="rounded-full"
+                :content="{ side: 'top', align: 'start' }"
+                :ui="toolApprovalSelectUi"
+              >
+                <template #item="{ item }">
+                  <UTooltip :text="item.description" side="right" :delay-duration="300">
+                    <div class="flex items-center gap-2 w-full cursor-pointer">
+                      <UIcon :name="item.icon" class="size-4" />
+                      <span class="flex-1">{{ item.label }}</span>
+                      <UIcon v-if="item.value === sessionToolApprovalMode" name="i-lucide-check" class="size-4" />
+                    </div>
+                  </UTooltip>
+                </template>
+              </USelect>
+            </UTooltip>
+          </div>
+
+          <!-- 右侧：发送快捷键 + 上下文轮数统计 -->
+          <div class="flex items-center gap-0.5">
+            <USelect
+              v-model="sendShortcutMode"
+              :items="sendShortcutOptions"
+              size="xs"
+              variant="ghost"
+              class="rounded-full"
+              @update:model-value="handleShortcutChange"
+            />
+            <!-- 上下文轮数环形进度条 + Popover -->
+            <UPopover mode="hover" :content="{ side: 'top', align: 'end', sideOffset: 8 }">
+              <div class="flex items-center justify-center shrink-0 cursor-default px-1.5">
+                <svg class="size-4 -rotate-90" viewBox="0 0 48 48" shape-rendering="geometricPrecision">
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="6"
+                    class="text-neutral-200 dark:text-neutral-600"
+                  />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="6"
+                    stroke-linecap="round"
+                    :stroke-dasharray="circumference"
+                    :stroke-dashoffset="contextProgressStrokeOffset"
+                    class="text-neutral-600 dark:text-neutral-200"
+                  />
+                </svg>
               </div>
-            </template>
-          </UPopover>
+              <template #content>
+                <div class="p-3 min-w-50 space-y-2 text-xs">
+                  <div class="flex justify-between gap-4">
+                    <span class="text-muted shrink-0">{{ t('chat.input.contextTurns') }}</span>
+                    <span class="text-default tabular-nums">{{ turnCount }} / {{ contextCount }}</span>
+                  </div>
+                  <div v-if="contextOverflow > 0" class="text-xs my-2 text-muted">
+                    {{ t('chat.input.contextOverflow') }}
+                  </div>
+                  <div class="border-t border-default pt-3 mt-3 space-y-2">
+                    <div class="flex justify-between gap-4">
+                      <span class="text-muted shrink-0">{{ t('chat.input.inputChars') }}</span>
+                      <span class="text-default tabular-nums">{{ inputCharCount }}</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span class="text-muted shrink-0">{{ t('chat.input.estimatedTokens') }}</span>
+                      <span class="text-default tabular-nums">{{ estimatedTokens }}</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </UPopover>
+          </div>
         </div>
       </div>
     </div>
@@ -534,6 +562,7 @@ import {
   supportsInputModality,
   getInputModalityFromMediaType,
   type ThinkingMode,
+  type ToolApprovalMode,
   type ModelModality
 } from '@shared'
 import { useChatStore } from '@/stores/useChatStore'
@@ -932,6 +961,13 @@ const sessionMode = computed({
   }
 })
 
+const sessionToolApprovalMode = computed({
+  get: () => chatStore.sessionToolApprovalMode || 'default',
+  set: (value: ToolApprovalMode) => {
+    chatStore.updateSessionToolApprovalMode(value)
+  }
+})
+
 const sessionSkillPolicy = computed({
   get: () => chatStore.sessionSkillPolicy || 'auto',
   set: (value: 'auto' | 'off') => {
@@ -949,6 +985,21 @@ const manualSkillLabel = computed(() => {
 const modeOptions = computed(() => ([
   { label: 'Chat', value: 'chat', icon: 'i-lucide-message-square', description: t('chat.input.mode.chat.description') },
   { label: 'Agent', value: 'agent', icon: 'i-lucide-infinity', description: t('chat.input.mode.agent.description') }
+]))
+
+const toolApprovalOptions = computed(() => ([
+  {
+    label: t('chat.input.toolApproval.default'),
+    value: 'default',
+    icon: 'i-lucide-shield-check',
+    description: t('chat.input.toolApproval.default.description')
+  },
+  {
+    label: t('chat.input.toolApproval.auto'),
+    value: 'auto',
+    icon: 'i-lucide-zap',
+    description: t('chat.input.toolApproval.auto.description')
+  }
 ]))
 
 // ===== 本地知识（知识库 + 笔记） =====
@@ -1145,6 +1196,16 @@ watch(
 
 // 当前选中模式的图标
 const modeIcon = computed(() => modeOptions.value.find(item => item.value === sessionMode.value)?.icon)
+const toolApprovalIcon = computed(() => toolApprovalOptions.value.find(item => item.value === sessionToolApprovalMode.value)?.icon)
+const toolApprovalSelectUi = computed(() => {
+  if (sessionToolApprovalMode.value !== 'auto') return {}
+  return {
+    base: 'text-warning hover:bg-warning/10 focus:bg-warning/10',
+    leadingIcon: 'text-warning',
+    trailingIcon: 'text-warning',
+    value: 'text-warning'
+  }
+})
 
 // 切换模式快捷键
 const toggleMode = () => {

@@ -295,6 +295,7 @@ export function initDb() {
       mcpPolicy TEXT NOT NULL DEFAULT 'manual',
       workingDirs TEXT,
       mode TEXT NOT NULL DEFAULT 'chat',
+      toolApprovalMode TEXT NOT NULL DEFAULT 'default',
       skillPolicy TEXT NOT NULL DEFAULT 'auto',
       webSearch TEXT NOT NULL DEFAULT 'auto',
       thinking TEXT NOT NULL DEFAULT 'auto',
@@ -355,6 +356,7 @@ export function initDb() {
       selectedModel TEXT NOT NULL,
       mcpServerIds TEXT,
       mode TEXT,
+      toolApprovalMode TEXT,
       webSearch TEXT,
       thinking TEXT,
       effectiveThinking TEXT,
@@ -778,6 +780,14 @@ export function initDb() {
   const sessionColumns = d.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
   if (!sessionColumns.some((column) => column.name === "stateCursorUserMessageId")) {
     d.exec("ALTER TABLE sessions ADD COLUMN stateCursorUserMessageId TEXT");
+  }
+  if (!sessionColumns.some((column) => column.name === "toolApprovalMode")) {
+    d.exec("ALTER TABLE sessions ADD COLUMN toolApprovalMode TEXT NOT NULL DEFAULT 'default'");
+  }
+
+  const turnColumns = d.prepare("PRAGMA table_info(turns)").all() as Array<{ name: string }>;
+  if (!turnColumns.some((column) => column.name === "toolApprovalMode")) {
+    d.exec("ALTER TABLE turns ADD COLUMN toolApprovalMode TEXT");
   }
 
   // 兼容旧版本数据库：为 scenarios 增加高级采样参数字段

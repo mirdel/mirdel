@@ -1,4 +1,4 @@
-import type { ThinkingMode, WebSearchMode } from "@shared";
+import type { ThinkingMode, ToolApprovalMode, WebSearchMode } from "@shared";
 import { app } from "electron";
 import { tMain } from "../../i18n";
 import { getDb } from "../db";
@@ -22,6 +22,7 @@ export type ChatMode = 'chat' | 'agent';
 export type SessionSkillPolicy = 'auto' | 'off';
 export type SessionMcpPolicy = 'auto' | 'manual' | 'off';
 export type TemporarySessionType = 'session' | 'ask';
+export type { ToolApprovalMode };
 export type { WebSearchMode };
 
 export type Session = {
@@ -37,6 +38,7 @@ export type Session = {
   mcpServerIds: string[];             // 会话级 MCP 服务器 ID 列表
   mcpPolicy: SessionMcpPolicy;        // MCP 策略（auto/manual/off）
   mode: ChatMode;                     // 会话模式（chat/agent）
+  toolApprovalMode: ToolApprovalMode; // 工具审批模式（默认审批/自动审批）
   skillPolicy: SessionSkillPolicy;    // 技能策略（auto/off）
   webSearch: WebSearchMode;           // 网络搜索模式（builtin/native/close）
   thinking: ThinkingMode;             // 思考深度模式（auto/off/on/standard/deep/ultra）
@@ -68,6 +70,7 @@ type SessionRow = {
   mcpServerIds: string | null;
   mcpPolicy: string | null;
   mode: string;
+  toolApprovalMode: string | null;
   skillPolicy: string | null;
   webSearch: string | null;
   thinking: string | null;
@@ -111,6 +114,7 @@ function rowToSession(row: SessionRow): Session {
     mcpServerIds: row.mcpServerIds ? JSON.parse(row.mcpServerIds) : [],
     mcpPolicy,
     mode: (row.mode as ChatMode) || 'chat',
+    toolApprovalMode: row.toolApprovalMode === 'auto' ? 'auto' : 'default',
     skillPolicy: row.skillPolicy === 'off' ? 'off' : 'auto',
     webSearch,
     thinking,
@@ -203,7 +207,8 @@ export function createSession(
   thinking: ThinkingMode = 'auto',
   kbIds: string[] = [],
   isTemporary: boolean = false,
-  temporaryType: TemporarySessionType | null = null
+  temporaryType: TemporarySessionType | null = null,
+  toolApprovalMode: ToolApprovalMode = 'default'
 ): Session {
   const db = getDb();
   const now = Date.now();
@@ -223,6 +228,7 @@ export function createSession(
     mcpServerIds,
     mcpPolicy,
     mode,
+    toolApprovalMode,
     skillPolicy,
     webSearch,
     thinking,
@@ -242,8 +248,8 @@ export function createSession(
   db.prepare(
     `INSERT INTO sessions (
       id, title, selectedModel, scenarioId, projectId, rootSessionId, parentSessionId,
-      forkFromMessageId, forkPointMessageId, mcpServerIds, mcpPolicy, mode, skillPolicy, webSearch, thinking, kbIds, isTemporary, temporaryType, expiresAt, contextCount, stateCursorUserMessageId, isFavorite, createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      forkFromMessageId, forkPointMessageId, mcpServerIds, mcpPolicy, mode, toolApprovalMode, skillPolicy, webSearch, thinking, kbIds, isTemporary, temporaryType, expiresAt, contextCount, stateCursorUserMessageId, isFavorite, createdAt, updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     session.id,
     session.title,
@@ -257,6 +263,7 @@ export function createSession(
     JSON.stringify(session.mcpServerIds),
     session.mcpPolicy,
     session.mode,
+    session.toolApprovalMode,
     session.skillPolicy,
     session.webSearch,
     session.thinking,
@@ -396,6 +403,7 @@ export function createBranch(params: {
       mcpServerIds: parentSession.mcpServerIds,
       mcpPolicy: parentSession.mcpPolicy,
       mode: parentSession.mode,
+      toolApprovalMode: parentSession.toolApprovalMode,
       skillPolicy: parentSession.skillPolicy,
       webSearch: parentSession.webSearch,
       thinking: parentSession.thinking,
@@ -415,8 +423,8 @@ export function createBranch(params: {
     db.prepare(`
       INSERT INTO sessions (
         id, title, selectedModel, scenarioId, projectId, rootSessionId, parentSessionId,
-        forkFromMessageId, forkPointMessageId, mcpServerIds, mcpPolicy, mode, skillPolicy, webSearch, thinking, kbIds, isTemporary, temporaryType, expiresAt, contextCount, stateText, briefText, stateCursorUserMessageId, isFavorite, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        forkFromMessageId, forkPointMessageId, mcpServerIds, mcpPolicy, mode, toolApprovalMode, skillPolicy, webSearch, thinking, kbIds, isTemporary, temporaryType, expiresAt, contextCount, stateText, briefText, stateCursorUserMessageId, isFavorite, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       branchSession.id,
       branchSession.title,
@@ -430,6 +438,7 @@ export function createBranch(params: {
       JSON.stringify(branchSession.mcpServerIds),
       branchSession.mcpPolicy,
       branchSession.mode,
+      branchSession.toolApprovalMode,
       branchSession.skillPolicy,
       branchSession.webSearch,
       branchSession.thinking,
@@ -492,9 +501,9 @@ export function createBranch(params: {
       db.prepare(`
         INSERT INTO turns (
           id, sessionId, userMessageId, assistantMessageId, parentTurnId,
-          triggerType, status, selectedModel, mcpServerIds, mode, webSearch, thinking, effectiveThinking, skillId,
+          triggerType, status, selectedModel, mcpServerIds, mode, toolApprovalMode, webSearch, thinking, effectiveThinking, skillId,
           citationRequired, citationStartIndex, tokenUsage, stateText, briefText, error, startedAt, endedAt, createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         newTurnId,
         branchSession.id,
@@ -506,6 +515,7 @@ export function createBranch(params: {
         oldTurn.selectedModel ?? "",
         oldTurn.mcpServerIds?.length ? JSON.stringify(oldTurn.mcpServerIds) : null,
         oldTurn.mode ?? null,
+        oldTurn.toolApprovalMode ?? null,
         oldTurn.webSearch ?? null,
         oldTurn.thinking ?? null,
         oldTurn.effectiveThinking ?? null,
@@ -666,7 +676,8 @@ export function createTemporarySession(
   webSearch: WebSearchMode = 'builtin',
   thinking: ThinkingMode = 'auto',
   kbIds: string[] = [],
-  temporaryType: TemporarySessionType = 'session'
+  temporaryType: TemporarySessionType = 'session',
+  toolApprovalMode: ToolApprovalMode = 'default'
 ): Session {
   return createSession(
     selectedModel,
@@ -681,7 +692,8 @@ export function createTemporarySession(
     thinking,
     kbIds,
     true,
-    temporaryType
+    temporaryType,
+    toolApprovalMode
   );
 }
 
@@ -864,6 +876,18 @@ export function updateSessionMode(sessionId: string, mode: ChatMode) {
   const db = getDb();
   db.prepare(`UPDATE sessions SET mode = ?, updatedAt = ? WHERE id = ?`).run(
     mode,
+    Date.now(),
+    sessionId
+  );
+}
+
+/**
+ * 更新会话的工具审批模式（默认审批/自动审批）
+ */
+export function updateSessionToolApprovalMode(sessionId: string, toolApprovalMode: ToolApprovalMode) {
+  const db = getDb();
+  db.prepare(`UPDATE sessions SET toolApprovalMode = ?, updatedAt = ? WHERE id = ?`).run(
+    toolApprovalMode,
     Date.now(),
     sessionId
   );

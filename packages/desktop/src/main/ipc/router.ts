@@ -76,6 +76,7 @@ import {
   updateSessionMcpServers,
   updateSessionMcpPolicy,
   updateSessionMode,
+  updateSessionToolApprovalMode,
   updateSessionSkillPolicy,
   updateSessionWebSearch,
   updateSessionThinking,
@@ -88,6 +89,7 @@ import {
   getSession,
   getBuiltinWorkingDir,
   type ChatMode,
+  type ToolApprovalMode,
   type SessionMcpPolicy,
   type SessionSkillPolicy,
   type TemporarySessionType,
@@ -1948,7 +1950,7 @@ export const router = ipcRouter({
     return getSessionOverview(input.rootSessionId);
   },
 
-  "sessions:create": async (_event, input?: { selectedModel?: string; scenarioId?: string; title?: string; projectId?: string | null; mcpServerIds?: string[]; mcpPolicy?: SessionMcpPolicy; mode?: ChatMode; skillPolicy?: SessionSkillPolicy; webSearch?: WebSearchMode; thinking?: ThinkingMode; kbIds?: string[]; isTemporary?: boolean; temporaryType?: TemporarySessionType }) => {
+  "sessions:create": async (_event, input?: { selectedModel?: string; scenarioId?: string; title?: string; projectId?: string | null; mcpServerIds?: string[]; mcpPolicy?: SessionMcpPolicy; mode?: ChatMode; toolApprovalMode?: ToolApprovalMode; skillPolicy?: SessionSkillPolicy; webSearch?: WebSearchMode; thinking?: ThinkingMode; kbIds?: string[]; isTemporary?: boolean; temporaryType?: TemporarySessionType }) => {
     if (input?.isTemporary) {
       return createTemporarySession(
         input?.selectedModel,
@@ -1961,10 +1963,11 @@ export const router = ipcRouter({
         input?.webSearch,
         input?.thinking,
         input?.kbIds ?? [],
-        input?.temporaryType ?? 'session'
+        input?.temporaryType ?? 'session',
+        input?.toolApprovalMode
       );
     }
-    return createSession(input?.selectedModel, input?.scenarioId, input?.title, input?.projectId, input?.mcpServerIds, input?.mcpPolicy, input?.mode, input?.skillPolicy, input?.webSearch, input?.thinking, input?.kbIds ?? []);
+    return createSession(input?.selectedModel, input?.scenarioId, input?.title, input?.projectId, input?.mcpServerIds, input?.mcpPolicy, input?.mode, input?.skillPolicy, input?.webSearch, input?.thinking, input?.kbIds ?? [], false, null, input?.toolApprovalMode);
   },
 
   "sessions:createBranch": async (_event, input: { parentSessionId: string; forkFromMessageId: string; title?: string }) => {
@@ -2016,6 +2019,11 @@ export const router = ipcRouter({
 
   "sessions:updateMode": async (_event, input: { id: string; mode: ChatMode }) => {
     updateSessionMode(input.id, input.mode);
+    return { ok: true };
+  },
+
+  "sessions:updateToolApprovalMode": async (_event, input: { id: string; toolApprovalMode: ToolApprovalMode }) => {
+    updateSessionToolApprovalMode(input.id, input.toolApprovalMode);
     return { ok: true };
   },
 
@@ -2226,6 +2234,7 @@ export const router = ipcRouter({
     mcpServerIds?: string[];  // MCP 服务器 ID 列表
     mcpSelection?: ChatMcpSelection;  // MCP 选择策略（自动/手动/不使用）
     mode?: ChatMode;  // 消息发送模式（chat/agent）
+    toolApprovalMode?: ToolApprovalMode;  // 工具审批模式（默认审批/自动审批）
     webSearch?: WebSearchMode;  // 网络搜索模式（auto/close）
     thinking?: ThinkingMode;  // 思考深度模式（auto/off/on/standard/deep/ultra）
     skillSelection?: ChatSkillSelection;  // 技能策略（自动/手动/不使用）
@@ -2244,6 +2253,7 @@ export const router = ipcRouter({
       mcpServerIds: input.mcpServerIds,
       mcpSelection: input.mcpSelection,
       mode: input.mode,
+      toolApprovalMode: input.toolApprovalMode,
       webSearch: input.webSearch,
       thinking: input.thinking,
       skillSelection: input.skillSelection
@@ -2287,6 +2297,7 @@ export const router = ipcRouter({
         selectedModel: input.selectedModel,
         mcpServerIds: routedMcpServerIds,
         mode: input.mode,
+        toolApprovalMode: input.toolApprovalMode,
         webSearch: input.webSearch,
         thinking: input.thinking,
         citationRequired: input.citationRequired,

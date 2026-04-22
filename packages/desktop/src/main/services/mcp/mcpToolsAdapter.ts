@@ -3,7 +3,7 @@
  * 负责聚合所有 MCP 服务器的工具，直接从运行中的服务器实时获取
  */
 import * as path from 'node:path';
-import { loggerServiceMain } from '@shared';
+import { loggerServiceMain, type ToolApprovalMode } from '@shared';
 import { getMcpServer, updateMcpServer } from './mcpData';
 import { lazyMcpManager } from './LazyMcpManager';
 import { mcpServerManager } from './mcpServerManager';
@@ -114,10 +114,10 @@ function wrapFilesystemTool(tool: any, toolName: string, sessionId: string | und
 /**
  * 给需要确认的工具添加 needsApproval：白名单内不弹确认，否则由 AI SDK 产出 tool-approval-request
  */
-function wrapToolWithNeedsApproval(tool: any, serverId: string, toolName: string): any {
+function wrapToolWithNeedsApproval(tool: any, serverId: string, toolName: string, toolApprovalMode: ToolApprovalMode): any {
   return {
     ...tool,
-    needsApproval: async (args: any) => !isInToolAllowlist(serverId, toolName, args)
+    needsApproval: async (args: any) => toolApprovalMode !== 'auto' && !isInToolAllowlist(serverId, toolName, args)
   };
 }
 
@@ -130,7 +130,12 @@ function wrapToolWithNeedsApproval(tool: any, serverId: string, toolName: string
  * @param sessionId 会话 ID（用于获取工作目录配置）
  * @returns 带前缀的工具对象
  */
-function prefixToolsWithServerId(tools: Record<string, any>, serverId: string, sessionId?: string): Record<string, any> {
+function prefixToolsWithServerId(
+  tools: Record<string, any>,
+  serverId: string,
+  toolApprovalMode: ToolApprovalMode,
+  sessionId?: string
+): Record<string, any> {
   const prefixedTools: Record<string, any> = {};
   const isFilesystemServer = serverId === FILESYSTEM_SERVER_ID;
 
@@ -140,7 +145,7 @@ function prefixToolsWithServerId(tools: Record<string, any>, serverId: string, s
     if (isFilesystemServer && FILESYSTEM_PATH_PARAMS[toolName]) {
       wrapped = wrapFilesystemTool(tool, toolName, sessionId);
     }
-    prefixedTools[prefixedName] = wrapToolWithNeedsApproval(wrapped, serverId, toolName);
+    prefixedTools[prefixedName] = wrapToolWithNeedsApproval(wrapped, serverId, toolName, toolApprovalMode);
   }
   return prefixedTools;
 }
@@ -173,6 +178,8 @@ export interface AggregateMcpToolsOptions {
   serverIds: string[];
   /** 会话 ID（用于获取工作目录配置，进行 filesystem 路径校验） */
   sessionId?: string;
+  /** 工具审批模式；auto 只跳过确认，不绕过工具自身校验 */
+  toolApprovalMode?: ToolApprovalMode;
   /** 网络搜索服务提供者 ID（用于 web_search 选择搜索服务） */
   webSearchProviderId?: string;
   /** 网络搜索来源起始序号（0=无知识库，N=前 N 条为知识库，用于统一 [S1] 编号） */
@@ -187,7 +194,7 @@ export interface AggregateMcpToolsOptions {
  * @returns 聚合后的工具对象和统计信息
  */
 export async function aggregateMcpTools(options: AggregateMcpToolsOptions): Promise<AggregatedMcpToolsResult> {
-  const { serverIds, sessionId, webSearchProviderId, citationStartIndex } = options;
+  const { serverIds, sessionId, toolApprovalMode = 'default', webSearchProviderId, citationStartIndex } = options;
   const startTime = Date.now();
   
   logger.info('Aggregating MCP tools', {
@@ -227,7 +234,7 @@ export async function aggregateMcpTools(options: AggregateMcpToolsOptions): Prom
       
       // 给工具添加 serverId:: 前缀，避免多服务器同名工具冲突
       // 对于 filesystem 服务器，会额外包装工具以进行路径校验
-      const prefixedTools = prefixToolsWithServerId(rawTools, serverId, sessionId);
+      const prefixedTools = prefixToolsWithServerId(rawTools, serverId, toolApprovalMode, sessionId);
       
       Object.assign(allTools, prefixedTools);
 
@@ -276,7 +283,7 @@ export async function aggregateMcpTools(options: AggregateMcpToolsOptions): Prom
   const systemServerId = 'system';
   for (const [name, tool] of Object.entries(rawSystemTools)) {
     const toolName = name.includes('::') ? name.split('::')[1] : name;
-    allTools[name] = wrapToolWithNeedsApproval(tool, systemServerId, toolName);
+    allTools[name] = wrapToolWithNeedsApproval(tool, systemServerId, toolName, toolApprovalMode);
   }
 
   const totalTime = Date.now() - startTime;

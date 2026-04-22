@@ -32,7 +32,7 @@ jobs:
           - id: win-x64
             runner: windows-latest
             runtime_target: win32-x64
-            electron_builder_args: --win nsis portable --x64
+            electron_builder_args: --win nsis --x64
 
     defaults:
       run:

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, toRaw } from 'vue'
 import { nanoid } from 'nanoid'
-import { loggerServiceRenderer, type MessageContentPart, type MessageQuote, type MessageRole, type AppUIMessage, type ChatMode, type WebSearchMode, type ThinkingMode, type CitationSource, type Turn } from '@shared'
+import { loggerServiceRenderer, type MessageContentPart, type MessageQuote, type MessageRole, type AppUIMessage, type ChatMode, type ToolApprovalMode, type WebSearchMode, type ThinkingMode, type CitationSource, type Turn } from '@shared'
 import { AbstractChat, type ChatState, type ChatTransport, type UIDataTypes, type UIMessageChunk } from 'ai'
 import { useSettingsStore } from './useSettingsStore'
 import { useMyToast } from '@/composables/useMyToast'
@@ -149,6 +149,7 @@ export type SessionPublic = {
   mcpServerIds: string[]             // 会话级 MCP 服务器配置
   mcpPolicy: SessionMcpPolicy         // MCP 策略（auto/manual/off）
   mode: ChatMode                     // 会话模式（chat/agent）
+  toolApprovalMode?: ToolApprovalMode // 工具审批模式（默认审批/自动审批）
   skillPolicy: SessionSkillPolicy    // 技能策略（auto/off）
   webSearch?: WebSearchMode          // 网络搜索模式（auto/close）
   thinking?: ThinkingMode            // 思考深度（auto/off/on/standard/deep/ultra）
@@ -209,6 +210,7 @@ type GenerationRequestPayload = {
   mcpServerIds: string[]
   mcpSelection?: McpSelectionPayload
   mode: ChatMode
+  toolApprovalMode: ToolApprovalMode
   webSearch?: WebSearchMode
   thinking?: ThinkingMode
   skillSelection?: SkillSelectionPayload
@@ -337,6 +339,7 @@ export const useChatStore = defineStore('chat', () => {
   const pendingMcpServerIds = ref<string[]>([])  // 新会话的 MCP 配置
   const pendingMcpPolicy = ref<SessionMcpPolicy>('auto')  // 新会话的 MCP 策略
   const pendingMode = ref<ChatMode>('chat')  // 新会话的模式，默认 Chat
+  const pendingToolApprovalMode = ref<ToolApprovalMode>('default')  // 新会话的工具审批模式
   const pendingSkillPolicy = ref<SessionSkillPolicy>('auto')  // 新会话的技能策略（auto/off）
   const pendingWebSearch = ref<WebSearchMode>('builtin')  // 新会话的网络搜索模式，默认内置搜索
   const pendingThinking = ref<ThinkingMode>('auto')  // 新会话的思考深度模式，默认自动
@@ -758,6 +761,13 @@ export const useChatStore = defineStore('chat', () => {
     return pendingMode.value
   })
 
+  const sessionToolApprovalMode = computed(() => {
+    if (currentSessionId.value && currentSession.value) {
+      return currentSession.value.toolApprovalMode || 'default'
+    }
+    return pendingToolApprovalMode.value
+  })
+
   // 会话级技能策略（auto/off）
   const sessionSkillPolicy = computed(() => {
     if (currentSessionId.value && currentSession.value) {
@@ -943,6 +953,7 @@ export const useChatStore = defineStore('chat', () => {
     selectedModel: string
     mcpServerIds?: string[]
     mode?: ChatMode
+    toolApprovalMode?: ToolApprovalMode
     webSearch?: WebSearchMode
     thinking?: ThinkingMode
     effectiveThinking?: ThinkingMode
@@ -963,6 +974,7 @@ export const useChatStore = defineStore('chat', () => {
       selectedModel: params.selectedModel,
       mcpServerIds: params.mcpServerIds,
       mode: params.mode,
+      toolApprovalMode: params.toolApprovalMode,
       webSearch: params.webSearch,
       thinking: params.thinking,
       effectiveThinking: params.effectiveThinking,
@@ -1044,6 +1056,7 @@ export const useChatStore = defineStore('chat', () => {
     pendingModel.value = SCENARIO_MODEL_PLACEHOLDER
     pendingMcpPolicy.value = 'auto'
     pendingMode.value = 'chat'  // 重置为默认 Chat 模式
+    pendingToolApprovalMode.value = 'default'
     pendingSkillPolicy.value = 'auto'  // 重置为默认技能策略
     pendingWebSearch.value = 'builtin'  // 重置为默认内置搜索
     pendingThinking.value = 'auto'  // 重置为默认自动思考
@@ -1053,6 +1066,7 @@ export const useChatStore = defineStore('chat', () => {
     const scenario = selectedScenario.value
     pendingMcpServerIds.value = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
     pendingMcpPolicy.value = scenario?.mcpPolicy ?? 'auto'
+    pendingToolApprovalMode.value = 'default'
     pendingSkillPolicy.value = scenario?.skillPolicy ?? 'auto'
     pendingKbIds.value = scenario?.kbIds ? [...scenario.kbIds] : []
     tempKbIds.value = []
@@ -1342,6 +1356,7 @@ export const useChatStore = defineStore('chat', () => {
       const scenario = settingsStore.scenarios.find(s => s.id === scenarioId)
       pendingMcpServerIds.value = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
       pendingMcpPolicy.value = scenario?.mcpPolicy ?? 'auto'
+      pendingToolApprovalMode.value = 'default'
       pendingSkillPolicy.value = scenario?.skillPolicy ?? 'auto'
       pendingKbIds.value = scenario?.kbIds ? [...scenario.kbIds] : []
       tempKbIds.value = []
@@ -1439,6 +1454,24 @@ export const useChatStore = defineStore('chat', () => {
     } else {
       // 新会话：只更新 pending 状态，待会话创建后保存到后端
       pendingMode.value = mode
+    }
+  }
+
+  function updateSessionToolApprovalMode(toolApprovalMode: ToolApprovalMode) {
+    logger.info('updateSessionToolApprovalMode', { toolApprovalMode })
+
+    if (currentSessionId.value) {
+      window.ipc('sessions:updateToolApprovalMode', {
+        id: currentSessionId.value,
+        toolApprovalMode
+      })
+      const session = currentSession.value
+      if (session) {
+        session.toolApprovalMode = toolApprovalMode
+        touchLocalSession(session.id)
+      }
+    } else {
+      pendingToolApprovalMode.value = toolApprovalMode
     }
   }
 
@@ -1552,6 +1585,7 @@ export const useChatStore = defineStore('chat', () => {
     mcpServerIds: string[];
     mcpSelection?: McpSelectionPayload;  // MCP 策略（本次请求）
     mode: ChatMode;  // 发送模式
+    toolApprovalMode: ToolApprovalMode;  // 工具审批模式
     skillSelection?: SkillSelectionPayload;  // 技能策略（本次请求）
     webSearch?: WebSearchMode;  // 网络搜索模式
     thinking?: ThinkingMode;  // 思考深度模式
@@ -1588,6 +1622,7 @@ export const useChatStore = defineStore('chat', () => {
       mcpServerIds: params.mcpServerIds,
       ...(mcpSelectionToUse && { mcpSelection: mcpSelectionToUse }),
       mode: params.mode,
+      toolApprovalMode: params.toolApprovalMode,
       ...(skillSelectionToUse && { skillSelection: skillSelectionToUse }),
       webSearch: params.webSearch,
       thinking: params.thinking,
@@ -1633,6 +1668,7 @@ export const useChatStore = defineStore('chat', () => {
         const mcpServerIds = pendingMcpServerIds.value
         const mcpPolicy = pendingMcpPolicy.value
         const mode = pendingMode.value
+        const toolApprovalMode = pendingToolApprovalMode.value
         const skillPolicy = pendingSkillPolicy.value
         const webSearch = pendingWebSearch.value
         const thinking = pendingThinking.value
@@ -1645,6 +1681,7 @@ export const useChatStore = defineStore('chat', () => {
           mcpServerIds,
           mcpPolicy,
           mode,
+          toolApprovalMode,
           skillPolicy,
           webSearch,
           thinking,
@@ -1665,11 +1702,12 @@ export const useChatStore = defineStore('chat', () => {
         pendingMcpServerIds.value = []
         pendingMcpPolicy.value = 'auto'
         pendingMode.value = 'chat'  // 重置为默认值
+        pendingToolApprovalMode.value = 'default'
         pendingSkillPolicy.value = 'auto'  // 重置为默认值
         pendingWebSearch.value = 'builtin'  // 重置为默认值
         pendingThinking.value = 'auto'  // 重置为默认值
 
-        logger.info('sendMessage: created new session', { sessionId, mcpServerIds, mcpPolicy, mode, skillPolicy, webSearch, thinking })
+        logger.info('sendMessage: created new session', { sessionId, mcpServerIds, mcpPolicy, mode, toolApprovalMode, skillPolicy, webSearch, thinking })
       } else {
         isTemporarySession.value = !!sessionById.value.get(sessionId)?.isTemporary
       }
@@ -1728,6 +1766,7 @@ export const useChatStore = defineStore('chat', () => {
       // 3. 创建用户消息 + assistant 占位并展示（displayContent 已含 data-kb，与笔记一致）
       const mcpServerIds = mcpServerIdsToUse
       const mode = sessionMode.value
+      const toolApprovalMode = mode === 'agent' ? sessionToolApprovalMode.value : 'default'
       const webSearch = webSearchToUse
       const thinking = thinkingToUse
       pendingTurnId = nanoid()
@@ -1762,6 +1801,7 @@ export const useChatStore = defineStore('chat', () => {
         selectedModel: model,
         mcpServerIds,
         mode,
+        toolApprovalMode,
         webSearch,
         thinking,
         effectiveThinking: thinking,
@@ -1871,6 +1911,7 @@ export const useChatStore = defineStore('chat', () => {
           ? { mode: 'manual', serverIds: mcpServerIdsToUse }
           : { mode: sessionMcpPolicy.value },
         mode: sessionMode.value,
+        toolApprovalMode,
         skillSelection: manualSkillId
           ? { mode: 'manual', skillId: manualSkillId }
           : { mode: sessionSkillPolicy.value },
@@ -2007,6 +2048,7 @@ export const useChatStore = defineStore('chat', () => {
       selectedModel: model,
       mcpServerIds: [],
       mode: 'chat',
+      toolApprovalMode: 'default',
       webSearch: 'close',
       thinking: 'auto',
       effectiveThinking: 'auto',
@@ -2039,6 +2081,7 @@ export const useChatStore = defineStore('chat', () => {
         mcpServerIds: [],
         mcpSelection: { mode: 'off' },
         mode: 'chat',
+        toolApprovalMode: 'default',
         skillSelection: { mode: 'off' },
         webSearch: 'close',
         thinking: 'auto',
@@ -3101,13 +3144,16 @@ ${userQuestionPart}`
   function getTurnConfigFromUserMessage(userMessage: MessagePublic) {
     const turn = getTurnByMessage(userMessage)
     const mode = turn?.mode ?? sessionMode.value
+    const toolApprovalMode = mode === 'agent'
+      ? (turn?.toolApprovalMode ?? sessionToolApprovalMode.value)
+      : 'default'
     const mcpServerIds = turn?.mcpServerIds ?? sessionMcpServerIds.value
     const webSearch = turn?.webSearch ?? sessionWebSearch.value
     const thinking = turn?.thinking ?? sessionThinking.value
     const kbContextCount = userMessage.contextSources?.length ?? 0
     const citationRequired = kbContextCount > 0 || (webSearch !== 'close' && webSearch !== 'native')
     const citationStartIndex = kbContextCount
-    return { turn, mode, mcpServerIds, webSearch, thinking, citationRequired, citationStartIndex }
+    return { turn, mode, toolApprovalMode, mcpServerIds, webSearch, thinking, citationRequired, citationStartIndex }
   }
   
   /**
@@ -3255,6 +3301,7 @@ ${userQuestionPart}`
         selectedModel: context.model,
         mcpServerIds: context.turnConfig.mcpServerIds,
         mode: context.turnConfig.mode,
+        toolApprovalMode: context.turnConfig.toolApprovalMode,
         webSearch: context.turnConfig.webSearch,
         thinking: context.turnConfig.thinking,
         effectiveThinking: context.turnConfig.thinking,
@@ -3283,6 +3330,7 @@ ${userQuestionPart}`
       }
 
       const originalMode = context.turnConfig.mode
+      const originalToolApprovalMode = context.turnConfig.toolApprovalMode
       const originalMcpServerIds = context.turnConfig.mcpServerIds
       const originalWebSearch = context.turnConfig.webSearch
       const originalThinking = context.turnConfig.thinking
@@ -3299,6 +3347,7 @@ ${userQuestionPart}`
         mcpServerIds: originalMcpServerIds,
         mcpSelection: { mode: 'manual', serverIds: originalMcpServerIds },
         mode: originalMode,
+        toolApprovalMode: originalToolApprovalMode,
         webSearch: originalWebSearch,
         thinking: originalThinking,
         citationRequired,
@@ -3420,6 +3469,7 @@ ${userQuestionPart}`
         selectedModel: context.model,
         mcpServerIds: context.turnConfig.mcpServerIds,
         mode: context.turnConfig.mode,
+        toolApprovalMode: context.turnConfig.toolApprovalMode,
         webSearch: context.turnConfig.webSearch,
         thinking: context.turnConfig.thinking,
         effectiveThinking: context.turnConfig.thinking,
@@ -3449,6 +3499,7 @@ ${userQuestionPart}`
       }
       
       const originalMode = context.turnConfig.mode
+      const originalToolApprovalMode = context.turnConfig.toolApprovalMode
       const originalMcpServerIds = context.turnConfig.mcpServerIds
       const originalWebSearch = context.turnConfig.webSearch
       const originalThinking = context.turnConfig.thinking
@@ -3465,6 +3516,7 @@ ${userQuestionPart}`
         mcpServerIds: originalMcpServerIds,
         mcpSelection: { mode: 'manual', serverIds: originalMcpServerIds },
         mode: originalMode,
+        toolApprovalMode: originalToolApprovalMode,
         webSearch: originalWebSearch,
         thinking: originalThinking,
         citationRequired,
@@ -3536,6 +3588,7 @@ ${userQuestionPart}`
         mcpServerIds: sourceSession.mcpServerIds,
         mcpPolicy: sourceSession.mcpPolicy,
         mode: sourceSession.mode,
+        toolApprovalMode: sourceSession.toolApprovalMode || 'default',
         skillPolicy: sourceSession.skillPolicy,
         webSearch: sourceSession.webSearch,
         thinking: sourceSession.thinking,
@@ -3685,6 +3738,7 @@ ${userQuestionPart}`
       if (scenario) {
         pendingMcpServerIds.value = scenario.mcpServerIds ? [...scenario.mcpServerIds] : []
         pendingMcpPolicy.value = scenario.mcpPolicy ?? 'auto'
+        pendingToolApprovalMode.value = 'default'
         pendingSkillPolicy.value = scenario.skillPolicy ?? 'auto'
         pendingKbIds.value = scenario.kbIds ? [...scenario.kbIds] : []
         tempKbIds.value = []
@@ -3721,6 +3775,7 @@ ${userQuestionPart}`
     pendingProjectId,
     pendingMcpServerIds,
     pendingMcpPolicy,
+    pendingToolApprovalMode,
     pendingSkillPolicy,
     pendingThinking,
     pendingQuote,
@@ -3732,6 +3787,7 @@ ${userQuestionPart}`
     sessionMcpServerIds,
     sessionMcpPolicy,
     sessionMode,
+    sessionToolApprovalMode,
     sessionSkillPolicy,
     pendingMode,
     pendingManualSkillId,
@@ -3767,6 +3823,7 @@ ${userQuestionPart}`
     updateSessionMcpServers,
     updateSessionMcpPolicy,
     updateSessionMode,
+    updateSessionToolApprovalMode,
     updateSessionSkillPolicy,
     updateSessionWebSearch,
     updateSessionThinking,
