@@ -80,7 +80,14 @@
             <!-- 消息内容 -->
             <div class="space-y-2">
               <!-- 文本内容 -->
-              <div v-if="messageText" class="whitespace-pre-wrap wrap-break-word">{{ messageText }}</div>
+              <CollapsibleText
+                v-if="messageText"
+                :source="messageText"
+                :collapsed-height="200"
+                fade-from-class="from-elevated"
+              >
+                <div class="whitespace-pre-wrap wrap-break-word">{{ messageText }}</div>
+              </CollapsibleText>
               <!-- 图片内容 -->
               <div v-if="messageImages.length > 0" class="flex flex-wrap gap-2">
                 <div
@@ -359,6 +366,7 @@ import MessageDebugModal from "./MessageDebugModal.vue";
 import MessageThinkingBlock from "./MessageThinkingBlock.vue";
 import MessageTextBlock from "./MessageTextBlock.vue";
 import MessageToolBlock from "./MessageToolBlock.vue";
+import CollapsibleText from "./CollapsibleText.vue";
 import ModelLogo from "../ModelLogo.vue";
 import UImage from "../UImage.vue";
 import { copyToClipboard } from "../../utils/clipboard";

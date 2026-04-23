@@ -65,10 +65,10 @@
       <!-- 组级别 toolbar：完成后显示 -->
       <div 
         v-if="isComplete && !isDeleted"
-        class="mt-4 flex items-center justify-between"
+        class="mt-4 flex items-center flex-wrap gap-y-1"
       >
-        <!-- 左侧操作按钮组 -->
-        <div class="flex items-center gap-1">
+        <!-- 操作按钮组（含统计、更多菜单等） -->
+        <div class="flex items-center flex-wrap gap-1">
           <!-- 复制按钮 -->
           <UTooltip :text="isCopied ? t('chat.thinking.copied') : t('chat.thinking.copy')">
             <UButton
@@ -214,6 +214,49 @@
               @click="handleTempAsk"
             />
           </UTooltip>
+
+          <!-- 统计信息（三点菜单左侧） -->
+          <div
+            v-if="settingsStore.sessionPreferences.showTokenUsage && tokenUsage && (tokenUsage.inputTokens !== null || tokenUsage.outputTokens !== null)"
+            class="flex items-center"
+          >
+            <UPopover
+              mode="click"
+              :content="{ side: 'top', align: 'center', sideOffset: 8 }"
+              :ui="{ content: 'w-60 p-2' }"
+            >
+              <UTooltip :text="t('chat.turnGroup.tokens.statisticsLabel')">
+                <UButton
+                  icon="i-lucide-info"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  square
+                  :aria-label="t('chat.turnGroup.tokens.statisticsLabel')"
+                />
+              </UTooltip>
+              <template #content>
+                <div class="flex flex-wrap gap-2">
+                  <div class="w-[calc(50%-0.25rem)] rounded-lg bg-blue-50 p-3 text-center">
+                    <div class="text-xs text-blue-600">{{ t("chat.debug.inputTokens") }}</div>
+                    <div class="mt-2 text-sm font-bold font-mono text-blue-700">{{ formatTokenCount(tokenUsage.inputTokens) }}</div>
+                  </div>
+                  <div class="w-[calc(50%-0.25rem)] rounded-lg bg-green-50 p-3 text-center">
+                    <div class="text-xs text-green-600">{{ t("chat.debug.outputTokens") }}</div>
+                    <div class="mt-2 text-sm font-bold font-mono text-green-700">{{ formatTokenCount(tokenUsage.outputTokens) }}</div>
+                  </div>
+                  <div class="w-[calc(50%-0.25rem)] rounded-lg bg-orange-50 p-3 text-center">
+                    <div class="text-xs text-orange-600">{{ t("chat.debug.totalTokens") }}</div>
+                    <div class="mt-2 text-sm font-bold font-mono text-orange-700">{{ formatTokenCount(totalTokenCount) }}</div>
+                  </div>
+                  <div class="w-[calc(50%-0.25rem)] rounded-lg bg-purple-50 p-3 text-center">
+                    <div class="text-xs text-purple-600">{{ t("chat.debug.totalDuration") }}</div>
+                    <div class="mt-2 text-sm font-bold font-mono text-purple-700">{{ formatDurationSeconds(totalDurationMs) }}</div>
+                  </div>
+                </div>
+              </template>
+            </UPopover>
+          </div>
           
           <!-- 更多操作菜单（含编辑、删除等） -->
           <UDropdownMenu :items="moreMenuItems" :content="{ align: 'start', side: 'top' }">
@@ -264,49 +307,6 @@
               {{ t('chat.turnGroup.historicalMemoryRecall', { count: autoHistoricalMemoryRecall.hits.length }) }}
             </span>
           </UButton>
-        </div>
-        
-        <!-- 统计信息（右侧） -->
-        <div 
-          v-if="settingsStore.sessionPreferences.showTokenUsage && tokenUsage && (tokenUsage.inputTokens !== null || tokenUsage.outputTokens !== null)"
-          class="flex items-center"
-        >
-          <UPopover
-            mode="click"
-            :content="{ side: 'top', align: 'end', sideOffset: 8 }"
-            :ui="{ content: 'w-60 p-2' }"
-          >
-            <UTooltip :text="t('chat.turnGroup.tokens.statisticsLabel')">
-              <UButton
-                icon="i-lucide-info"
-                size="sm"
-                color="neutral"
-                variant="ghost"
-                square
-                :aria-label="t('chat.turnGroup.tokens.statisticsLabel')"
-              />
-            </UTooltip>
-            <template #content>
-              <div class="flex flex-wrap gap-2">
-                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-blue-50 p-3 text-center">
-                  <div class="text-xs text-blue-600">{{ t("chat.debug.inputTokens") }}</div>
-                  <div class="mt-2 text-sm font-bold font-mono text-blue-700">{{ formatTokenCount(tokenUsage.inputTokens) }}</div>
-                </div>
-                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-green-50 p-3 text-center">
-                  <div class="text-xs text-green-600">{{ t("chat.debug.outputTokens") }}</div>
-                  <div class="mt-2 text-sm font-bold font-mono text-green-700">{{ formatTokenCount(tokenUsage.outputTokens) }}</div>
-                </div>
-                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-orange-50 p-3 text-center">
-                  <div class="text-xs text-orange-600">{{ t("chat.debug.totalTokens") }}</div>
-                  <div class="mt-2 text-sm font-bold font-mono text-orange-700">{{ formatTokenCount(totalTokenCount) }}</div>
-                </div>
-                <div class="w-[calc(50%-0.25rem)] rounded-lg bg-purple-50 p-3 text-center">
-                  <div class="text-xs text-purple-600">{{ t("chat.debug.totalDuration") }}</div>
-                  <div class="mt-2 text-sm font-bold font-mono text-purple-700">{{ formatDurationSeconds(totalDurationMs) }}</div>
-                </div>
-              </div>
-            </template>
-          </UPopover>
         </div>
       </div>
 

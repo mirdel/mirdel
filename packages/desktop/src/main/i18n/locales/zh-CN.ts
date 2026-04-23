@@ -110,6 +110,7 @@ export const mainZhCN = {
     "web.loadFailed": "加载失败 ({errorCode})",
     "menu.edit": "编辑",
     "menu.view": "视图",
+    "menu.toggleDevTools": "切换开发者工具",
     "menu.window": "窗口",
     "menu.help": "帮助",
     "storage.exportDialogTitle": "导出应用数据",

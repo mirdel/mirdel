@@ -10,13 +10,12 @@ concurrency:
   group: desktop-release-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-
 jobs:
   build:
     name: Build ${{ matrix.id }}
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -24,11 +23,11 @@ jobs:
           - id: mac-arm64
             runner: macos-15
             runtime_target: darwin-arm64
-            electron_builder_args: --mac dmg --arm64
+            electron_builder_args: --mac dmg zip --arm64
           - id: mac-x64
             runner: macos-15-intel
             runtime_target: darwin-x64
-            electron_builder_args: --mac dmg --x64
+            electron_builder_args: --mac dmg zip --x64
           - id: win-x64
             runner: windows-latest
             runtime_target: win32-x64
@@ -107,4 +106,51 @@ jobs:
           path: |
             packages/desktop/release/*.dmg
             packages/desktop/release/*.exe
+            packages/desktop/release/*.zip
             packages/desktop/release/*.yml
+            packages/desktop/release/*.blockmap
+
+      - name: Upload mac update feed fragment
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.runtime_target, 'darwin-')
+        uses: actions/upload-artifact@v6
+        with:
+          name: mac-update-feed-${{ matrix.id }}
+          if-no-files-found: error
+          path: packages/desktop/release/latest-mac.yml
+
+  merge-mac-update-feed:
+    name: Merge mac update feed
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download arm64 mac update feed
+        uses: actions/download-artifact@v6
+        with:
+          name: mac-update-feed-mac-arm64
+          path: .mac-feed/arm64
+
+      - name: Download x64 mac update feed
+        uses: actions/download-artifact@v6
+        with:
+          name: mac-update-feed-mac-x64
+          path: .mac-feed/x64
+
+      - name: Merge latest-mac.yml
+        run: |
+          node packages/desktop/scripts/merge-mac-update-feed.mjs \
+            --arm64=.mac-feed/arm64/latest-mac.yml \
+            --x64=.mac-feed/x64/latest-mac.yml \
+            --output=.mac-feed/latest-mac.yml
+
+      - name: Upload merged latest-mac.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" .mac-feed/latest-mac.yml --clobber

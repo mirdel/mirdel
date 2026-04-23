@@ -1,5 +1,6 @@
 import type { Router } from "../main/ipc/router";
 import type { createIpcClient } from "typed-electron-ipc";
+import type { ServerStatusSnapshot } from "../main/services/model-server";
 import type { UIDataTypes, UIMessageChunk } from "ai";
 import type { NotesAiStreamEvent, TranslateStreamEvent } from "@shared";
 import type { AppletToastInput, UINode } from "@mirdel/applet-core";
@@ -41,6 +42,7 @@ type TtsStreamEvent =
     };
 
 type LogLevel = "error" | "warn" | "info" | "debug";
+type UpdateState = Awaited<ReturnType<Router["updates:getState"]>>;
 
 type ImageInput = {
   src?: string;
@@ -78,6 +80,12 @@ declare global {
     };
     tts: {
       onStream: (handler: (evt: TtsStreamEvent) => void) => () => void;
+    };
+    updates: {
+      onState: (handler: (state: UpdateState) => void) => () => void;
+    };
+    modelServer: {
+      onStatusChanged: (handler: (status: ServerStatusSnapshot) => void) => () => void;
     };
     imagePreview: {
       open: (info: ImageInput) => void;

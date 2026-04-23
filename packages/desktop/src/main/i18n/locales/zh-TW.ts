@@ -110,6 +110,7 @@ export const mainZhTW = {
     "web.loadFailed": "載入失敗 ({errorCode})",
     "menu.edit": "編輯",
     "menu.view": "檢視",
+    "menu.toggleDevTools": "切換開發者工具",
     "menu.window": "視窗",
     "menu.help": "說明",
     "storage.exportDialogTitle": "匯出應用資料",

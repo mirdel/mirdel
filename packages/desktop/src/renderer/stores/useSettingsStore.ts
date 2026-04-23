@@ -41,6 +41,7 @@ export type Scenario = {
   id: string
   name: string
   description?: string
+  mode?: 'chat' | 'agent'
   selectedModel: string  // '__default__' 或 'providerId::modelId'
   temperature?: number
   topP?: number
@@ -196,6 +197,7 @@ export const useSettingsStore = defineStore('settings', () => {
   let localModelRuntimePollTimer: ReturnType<typeof setTimeout> | null = null
   let localModelRuntimePollingRefCount = 0
   let localModelRuntimePollingRunning = false
+  let modelServerStatusUnsubscribe: (() => void) | null = null
   
   // ===== Computed =====
   const enabledProviders = computed(() => 
@@ -220,6 +222,7 @@ export const useSettingsStore = defineStore('settings', () => {
     logger.info('initializing settings store...')
     isLoading.value = true
     try {
+      subscribeModelServerStatus()
       await Promise.all([
         loadProviders(),
         loadScenarios(),
@@ -240,6 +243,18 @@ export const useSettingsStore = defineStore('settings', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  function subscribeModelServerStatus() {
+    if (modelServerStatusUnsubscribe || !window.modelServer?.onStatusChanged) return
+    modelServerStatusUnsubscribe = window.modelServer.onStatusChanged((status) => {
+      logger.info('model server status changed', status)
+      if (status.status === 'starting') return
+      void (async () => {
+        await loadProviders()
+        await refreshLocalModelRuntimes()
+      })()
+    })
   }
   
   /**

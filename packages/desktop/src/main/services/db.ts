@@ -384,6 +384,7 @@ export function initDb() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
+      mode TEXT NOT NULL DEFAULT 'chat',
       selectedModel TEXT NOT NULL DEFAULT '__default__',
       temperature REAL,
       topP REAL,
@@ -792,6 +793,9 @@ export function initDb() {
 
   // 兼容旧版本数据库：为 scenarios 增加高级采样参数字段
   const scenarioColumns = d.prepare("PRAGMA table_info(scenarios)").all() as Array<{ name: string }>;
+  if (!scenarioColumns.some((column) => column.name === "mode")) {
+    d.exec("ALTER TABLE scenarios ADD COLUMN mode TEXT NOT NULL DEFAULT 'chat'");
+  }
   if (!scenarioColumns.some((column) => column.name === "topK")) {
     d.exec("ALTER TABLE scenarios ADD COLUMN topK INTEGER");
   }
@@ -817,14 +821,15 @@ export function initDb() {
     
     d.prepare(`
       INSERT INTO scenarios (
-        id, name, description, selectedModel,
+        id, name, description, mode, selectedModel,
         temperature, topP, topK, presencePenalty, frequencyPenalty, stopSequences, seed, contextCount, maxOutputTokens,
         systemPrompt, mcpServerIds, mcpPolicy, skillPolicy, maxToolSteps, workingDirs, kbIds, kbRecallTopK, kbRecallMinScore, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       defaultScenarioId,
       tMain("scenario.defaultName"),
       tMain("scenario.defaultDescription"),
+      'chat',
       '__default__',
       null,
       null,

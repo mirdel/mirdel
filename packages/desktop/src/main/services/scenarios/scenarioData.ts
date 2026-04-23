@@ -8,6 +8,7 @@ export type Scenario = {
   id: string;
   name: string;
   description?: string;
+  mode: 'chat' | 'agent';
   selectedModel: string;  // '__default__' 或 'providerId::modelId'
   temperature?: number;
   topP?: number;
@@ -35,6 +36,7 @@ type ScenarioRow = {
   id: string;
   name: string;
   description: string | null;
+  mode: string | null;
   selectedModel: string;
   temperature: number | null;
   topP: number | null;
@@ -83,6 +85,7 @@ function rowToScenario(row: ScenarioRow): Scenario {
     id: row.id,
     name: row.name,
     description: row.description ?? undefined,
+    mode: row.mode === 'agent' ? 'agent' : 'chat',
     selectedModel: row.selectedModel,
     temperature: row.temperature ?? undefined,
     topP: row.topP ?? undefined,
@@ -132,14 +135,15 @@ export function createScenario(input: {
 
   db.prepare(
     `INSERT INTO scenarios (
-      id, name, description, selectedModel, 
+      id, name, description, mode, selectedModel,
       temperature, topP, topK, presencePenalty, frequencyPenalty, stopSequences, seed, contextCount, maxOutputTokens,
       systemPrompt, mcpServerIds, mcpPolicy, skillPolicy, maxToolSteps, workingDirs, kbIds, kbRecallTopK, kbRecallMinScore, createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.name,
     input.description ?? null,
+    'chat',
     '__default__',
     null,
     null,
@@ -185,6 +189,7 @@ export function updateScenario(
   input: Partial<{
     name: string;
     description: string;
+    mode: 'chat' | 'agent';
     selectedModel: string;
     temperature: number | null;
     topP: number | null;
@@ -223,6 +228,10 @@ export function updateScenario(
   if (input.selectedModel !== undefined) {
     fields.push("selectedModel = ?");
     values.push(input.selectedModel);
+  }
+  if (input.mode !== undefined) {
+    fields.push("mode = ?");
+    values.push(input.mode === 'agent' ? 'agent' : 'chat');
   }
   if (input.temperature !== undefined) {
     fields.push("temperature = ?");
@@ -330,14 +339,38 @@ export function deleteScenario(id: string): void {
     if (!defaultScenario) {
       throw new Error("Default scenario is missing");
     }
+    const fallbackScenario = getScenario(DEFAULT_SCENARIO_ID);
+    if (!fallbackScenario) {
+      throw new Error("Default scenario is missing");
+    }
 
     // 迁移场景引用到默认场景，不改 updatedAt，避免影响列表排序。
     db.prepare(`UPDATE projects SET scenarioId = ? WHERE scenarioId = ?`).run(
       DEFAULT_SCENARIO_ID,
       id
     );
-    db.prepare(`UPDATE sessions SET scenarioId = ? WHERE scenarioId = ?`).run(
+    db.prepare(`
+      UPDATE sessions
+      SET scenarioId = ?,
+          selectedModel = ?,
+          mcpServerIds = ?,
+          mcpPolicy = ?,
+          mode = ?,
+          toolApprovalMode = ?,
+          skillPolicy = ?,
+          kbIds = ?,
+          contextCount = ?
+      WHERE scenarioId = ?
+    `).run(
       DEFAULT_SCENARIO_ID,
+      '__scenario__',
+      JSON.stringify(fallbackScenario.mcpServerIds ?? []),
+      fallbackScenario.mcpPolicy ?? 'auto',
+      fallbackScenario.mode ?? 'chat',
+      'default',
+      fallbackScenario.skillPolicy ?? 'auto',
+      JSON.stringify(fallbackScenario.kbIds ?? []),
+      fallbackScenario.contextCount ?? 10,
       id
     );
 

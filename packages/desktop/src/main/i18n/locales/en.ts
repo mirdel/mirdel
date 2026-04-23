@@ -108,6 +108,7 @@ export const mainEn = {
     "web.loadFailed": "Load failed ({errorCode})",
     "menu.edit": "Edit",
     "menu.view": "View",
+    "menu.toggleDevTools": "Toggle Developer Tools",
     "menu.window": "Window",
     "menu.help": "Help",
     "storage.exportDialogTitle": "Export app data",

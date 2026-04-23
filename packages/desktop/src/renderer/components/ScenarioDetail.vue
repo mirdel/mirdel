@@ -32,8 +32,17 @@
 
     <!-- 详情右侧：配置表单 -->
     <div class="flex-1 min-h-0 flex flex-col overflow-y-auto p-4">
-      <!-- 模型设置 -->
-      <div v-if="selectedConfigTab === 'model'" class="flex flex-col gap-5">
+      <!-- 基础设置 -->
+      <div v-if="selectedConfigTab === 'base'" class="flex flex-col gap-5">
+        <UFormField :label="t('scenario.form.mode')">
+          <URadioGroup
+            v-model="scenarioForm.mode"
+            :items="modeOptions"
+            variant="card"
+            @update:model-value="handleFormChange"
+          />
+        </UFormField>
+
         <UFormField :label="t('scenario.form.selectModel')">
           <ModelSelector
             v-model="scenarioForm.model"
@@ -41,6 +50,27 @@
           />
         </UFormField>
 
+        <UFormField>
+          <template #label>
+            <div class="inline-flex items-center gap-1">
+              <span>{{ t('scenario.form.contextCount') }}</span>
+              <UTooltip :text="t('scenario.form.contextCountDesc')">
+                <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
+              </UTooltip>
+            </div>
+          </template>
+          <UInput
+            v-model.number="scenarioForm.contextCount"
+            type="number"
+            :min="1"
+            :max="100"
+            @blur="handleFormChange"
+          />
+        </UFormField>
+      </div>
+
+      <!-- 模型参数 -->
+      <div v-else-if="selectedConfigTab === 'params'" class="flex flex-col gap-5">
         <UFormField :description="getSamplerDescription(scenarioForm.temperature, scenarioForm.temperatureUseModelDefault)">
           <template #label>
             <div class="inline-flex items-center gap-1">
@@ -171,24 +201,6 @@
         <UFormField>
           <template #label>
             <div class="inline-flex items-center gap-1">
-              <span>{{ t('scenario.form.contextCount') }}</span>
-              <UTooltip :text="t('scenario.form.contextCountDesc')">
-                <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
-              </UTooltip>
-            </div>
-          </template>
-          <UInput
-            v-model.number="scenarioForm.contextCount"
-            type="number"
-            :min="1"
-            :max="100"
-            @blur="handleFormChange"
-          />
-        </UFormField>
-
-        <UFormField>
-          <template #label>
-            <div class="inline-flex items-center gap-1">
               <span>{{ t('scenario.form.maxOutputTokens') }}</span>
               <UTooltip :text="t('scenario.form.maxOutputTokensDesc')">
                 <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
@@ -236,24 +248,6 @@
             v-model="scenarioForm.stopSequencesText"
             :placeholder="t('scenario.form.stopSequencesPlaceholder')"
             class="w-full"
-            @blur="handleFormChange"
-          />
-        </UFormField>
-
-        <UFormField>
-          <template #label>
-            <div class="inline-flex items-center gap-1">
-              <span>{{ t('scenario.form.maxToolSteps') }}</span>
-              <UTooltip :text="t('scenario.form.maxToolStepsDesc')">
-                <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
-              </UTooltip>
-            </div>
-          </template>
-          <UInput
-            v-model.number="scenarioForm.maxToolSteps"
-            type="number"
-            :min="1"
-            :max="20"
             @blur="handleFormChange"
           />
         </UFormField>
@@ -367,8 +361,15 @@
         </UFormField>
       </div>
 
-      <!-- 工具使用 -->
-      <div v-else-if="selectedConfigTab === 'mcp'" class="flex flex-col gap-4">
+      <!-- Agent 设置 -->
+      <div v-else-if="selectedConfigTab === 'agent'" class="flex flex-col gap-4">
+        <UAlert
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-info"
+          :title="t('scenario.form.agentOnlyTitle')"
+        />
+
         <UFormField>
           <template #label>
             <div class="inline-flex items-center gap-1">
@@ -443,10 +444,25 @@
           </div>
           <div v-else class="text-sm text-muted">{{ t("scenario.form.noMcpServers") }}</div>
         </UFormField>
-      </div>
 
-      <!-- 工作目录 -->
-      <div v-else-if="selectedConfigTab === 'workingDirs'" class="flex flex-col gap-4">
+        <UFormField>
+          <template #label>
+            <div class="inline-flex items-center gap-1">
+              <span>{{ t('scenario.form.maxToolSteps') }}</span>
+              <UTooltip :text="t('scenario.form.maxToolStepsDesc')">
+                <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
+              </UTooltip>
+            </div>
+          </template>
+          <UInput
+            v-model.number="scenarioForm.maxToolSteps"
+            type="number"
+            :min="1"
+            :max="20"
+            @blur="handleFormChange"
+          />
+        </UFormField>
+
         <UFormField>
           <template #label>
             <div class="inline-flex items-center gap-1">
@@ -501,7 +517,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
 import { loggerServiceRenderer } from "@shared";
 import { useMyToast } from "@/composables/useMyToast";
 import { useSettingsStore } from "@/stores/useSettingsStore";
@@ -515,7 +530,6 @@ import KbSelector from "@/components/chat/KbSelector.vue";
 
 const logger = loggerServiceRenderer.withContext("ScenarioDetail");
 const toast = useMyToast();
-const router = useRouter();
 const { t } = useI18n();
 const settingsStore = useSettingsStore();
 const mcpStore = useMcpStore();
@@ -528,14 +542,33 @@ const props = defineProps<{
 
 // ===== 配置标签页 =====
 const configTabs = computed(() => [
-  { id: "model", name: t("scenario.tabs.model"), icon: "i-lucide-cpu" },
+  { id: "base", name: t("scenario.tabs.base"), icon: "i-lucide-settings-2" },
+  { id: "params", name: t("scenario.tabs.params"), icon: "i-lucide-sliders-horizontal" },
   { id: "prompt", name: t("scenario.tabs.prompt"), icon: "i-lucide-message-square" },
   { id: "knowledge", name: t("scenario.tabs.knowledge"), icon: "i-lucide-book-search" },
-  { id: "mcp", name: t("scenario.tabs.mcp"), icon: "i-lucide-hammer" },
-  { id: "workingDirs", name: t("scenario.tabs.workingDirs"), icon: "i-lucide-folder-open" }
+  { id: "agent", name: t("scenario.tabs.agent"), icon: "i-lucide-hammer" }
 ]);
 
-const selectedConfigTab = ref(props.initialTab || "model");
+function normalizeInitialTab(tab?: string) {
+  if (tab === "model") return "base";
+  if (tab === "mcp" || tab === "workingDirs") return "agent";
+  return tab || "base";
+}
+
+const selectedConfigTab = ref(normalizeInitialTab(props.initialTab));
+
+const modeOptions = computed(() => [
+  {
+    label: t("scenario.form.mode.chat"),
+    value: "chat",
+    description: t("chat.input.mode.chat.description")
+  },
+  {
+    label: t("scenario.form.mode.agent"),
+    value: "agent",
+    description: t("chat.input.mode.agent.description")
+  }
+]);
 
 // ===== 工作目录：内置目录（仅展示，不可删） =====
 const builtinWorkingDirPath = ref("");
@@ -544,8 +577,6 @@ const builtinWorkingDirPath = ref("");
 const scenario = computed(() => 
   settingsStore.scenarios.find((s) => s.id === props.scenarioId)
 );
-
-const scenarioName = computed(() => scenario.value?.name || "");
 
 const CONTEXT_COUNT_MIN = 1;
 const CONTEXT_COUNT_MAX = 100;
@@ -556,6 +587,7 @@ const MAX_TOOL_STEPS_DEFAULT = 20;
 
 // ===== 场景表单 =====
 const scenarioForm = ref({
+  mode: "chat" as "chat" | "agent",
   model: "__default__",
   temperature: 0.7,
   temperatureUseModelDefault: false,
@@ -646,6 +678,7 @@ const removeWorkingDir = (index: number) => {
 function createFormSnapshot() {
   return {
     model: scenarioForm.value.model,
+    mode: scenarioForm.value.mode,
     temperature: scenarioForm.value.temperature,
     temperatureUseModelDefault: scenarioForm.value.temperatureUseModelDefault,
     topP: scenarioForm.value.topP,
@@ -679,6 +712,7 @@ function buildScenarioUpdates(snapshot = createFormSnapshot()) {
   const stopSequences = parseStopSequences(snapshot.stopSequencesText);
   return {
     selectedModel: snapshot.model,
+    mode: snapshot.mode,
     temperature: snapshot.temperatureUseModelDefault
       ? null
       : normalizeOptionalNumber(snapshot.temperature),
@@ -735,6 +769,7 @@ watch(
 );
 
 function syncFormFromScenario(scenario: Scenario) {
+  scenarioForm.value.mode = scenario.mode ?? "chat";
   scenarioForm.value.model = scenario.selectedModel;
   scenarioForm.value.temperatureUseModelDefault = scenario.temperature === undefined;
   scenarioForm.value.temperature = scenario.temperature ?? 0.7;

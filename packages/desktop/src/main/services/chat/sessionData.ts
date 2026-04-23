@@ -201,7 +201,7 @@ export function createSession(
   projectId: string | null = null,
   mcpServerIds: string[] = [],
   mcpPolicy: SessionMcpPolicy = 'manual',
-  mode: ChatMode = 'chat',
+  mode?: ChatMode,
   skillPolicy: SessionSkillPolicy = 'auto',
   webSearch: WebSearchMode = 'builtin',
   thinking: ThinkingMode = 'auto',
@@ -214,6 +214,7 @@ export function createSession(
   const now = Date.now();
   const scenario = getScenario(scenarioId);
   const contextCount = scenario?.contextCount ?? 10;
+  const effectiveMode = mode ?? scenario?.mode ?? 'chat';
 
   const session: Session = {
     id: nanoId(),
@@ -227,7 +228,7 @@ export function createSession(
     forkPointMessageId: null,
     mcpServerIds,
     mcpPolicy,
-    mode,
+    mode: effectiveMode,
     toolApprovalMode,
     skillPolicy,
     webSearch,
@@ -727,8 +728,32 @@ export function updateSessionModel(sessionId: string, selectedModel: string) {
  */
 export function updateSessionScenario(sessionId: string, scenarioId: string) {
   const db = getDb();
-  db.prepare(`UPDATE sessions SET scenarioId = ?, updatedAt = ? WHERE id = ?`).run(
+  const scenario = getScenario(scenarioId);
+  if (!scenario) throw new Error(tMain("scenario.notFoundWithId", { scenarioId }));
+
+  db.prepare(`
+    UPDATE sessions
+    SET scenarioId = ?,
+        selectedModel = ?,
+        mcpServerIds = ?,
+        mcpPolicy = ?,
+        mode = ?,
+        toolApprovalMode = ?,
+        skillPolicy = ?,
+        kbIds = ?,
+        contextCount = ?,
+        updatedAt = ?
+    WHERE id = ?
+  `).run(
     scenarioId,
+    '__scenario__',
+    JSON.stringify(scenario.mcpServerIds ?? []),
+    scenario.mcpPolicy ?? 'auto',
+    scenario.mode ?? 'chat',
+    'default',
+    scenario.skillPolicy ?? 'auto',
+    JSON.stringify(scenario.kbIds ?? []),
+    scenario.contextCount ?? 10,
     Date.now(),
     sessionId
   );

@@ -1146,6 +1146,15 @@ const initialValues = ref({
   nativeSearchText: "",
 });
 
+watch(
+  () => activeProvider.value?.enabled,
+  (enabled) => {
+    if (activeProvider.value?.id !== LOCAL_PROVIDER_ID || typeof enabled !== "boolean") return;
+    providerForm.value.enabled = enabled;
+    initialValues.value.enabled = enabled;
+  }
+);
+
 // 防抖自动保存
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 const scheduleAutoSave = () => {

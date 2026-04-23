@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { createIpcClient } from "typed-electron-ipc";
 import type { Router } from "../main/ipc/router";
+import type { ServerStatusSnapshot } from "../main/services/model-server";
 import type { UIDataTypes, UIMessageChunk } from "ai";
 import type { NotesAiStreamEvent, TranslateStreamEvent } from "@shared";
 
@@ -47,6 +48,8 @@ type TtsStreamEvent =
     };
 
 type LogLevel = "error" | "warn" | "info" | "debug";
+
+type UpdateState = Awaited<ReturnType<Router["updates:getState"]>>;
 
 /**
  * typed-electron-ipc client，自动推导类型
@@ -101,6 +104,22 @@ contextBridge.exposeInMainWorld("tts", {
     const listener = (_: unknown, evt: TtsStreamEvent) => handler(evt);
     ipcRenderer.on("tts:stream", listener);
     return () => ipcRenderer.removeListener("tts:stream", listener);
+  },
+});
+
+contextBridge.exposeInMainWorld("updates", {
+  onState: (handler: (state: UpdateState) => void) => {
+    const listener = (_: unknown, state: UpdateState) => handler(state);
+    ipcRenderer.on("updates:state", listener);
+    return () => ipcRenderer.removeListener("updates:state", listener);
+  },
+});
+
+contextBridge.exposeInMainWorld("modelServer", {
+  onStatusChanged: (handler: (status: ServerStatusSnapshot) => void) => {
+    const listener = (_: unknown, status: ServerStatusSnapshot) => handler(status);
+    ipcRenderer.on("model-server:statusChanged", listener);
+    return () => ipcRenderer.removeListener("model-server:statusChanged", listener);
   },
 });
 

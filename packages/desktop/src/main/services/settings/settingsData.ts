@@ -31,6 +31,7 @@ const KEY_SESSION_PREFERENCES = "chat:sessionPreferences";
 const KEY_PROXY_SETTINGS = "general:proxySettings";
 const KEY_APP_BEHAVIOR_SETTINGS = "general:appBehaviorSettings";
 const KEY_ONBOARDING_WELCOME_DISMISSED_AT = "onboarding:welcome-dismissed-at";
+const KEY_UPDATES_LAST_SEEN_RELEASE_NOTES_VERSION = "updates:lastSeenReleaseNotesVersion";
 const DEFAULT_PROXY_BYPASS_RULES = ["localhost", "127.0.0.1", "::1"];
 
 export function getDefaultModel(): DefaultModelRef {
@@ -551,4 +552,23 @@ export function dismissWelcomeOnboarding(timestamp: number = Date.now()) {
   const nextValue = String(timestamp);
   db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
               ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_ONBOARDING_WELCOME_DISMISSED_AT, nextValue);
+}
+
+export function getLastSeenReleaseNotesVersion(): string | null {
+  const db = getDb();
+  const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_UPDATES_LAST_SEEN_RELEASE_NOTES_VERSION) as { value: string } | undefined;
+  const version = String(row?.value || "").trim();
+  return version || null;
+}
+
+export function setLastSeenReleaseNotesVersion(version: string) {
+  const normalizedVersion = String(version || "").trim();
+  if (!normalizedVersion) return;
+
+  const db = getDb();
+  db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+              ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(
+    KEY_UPDATES_LAST_SEEN_RELEASE_NOTES_VERSION,
+    normalizedVersion
+  );
 }

@@ -50,6 +50,9 @@
         </UButton>
       </template>
     </UModal>
+
+    <UpdateReadyModal />
+    <ReleaseNotesModal />
   </UApp>
 </template>
 
@@ -58,12 +61,16 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useUpdateStore } from "@/stores/useUpdateStore";
 import { loggerServiceRenderer } from "@shared";
+import UpdateReadyModal from "@/components/updates/UpdateReadyModal.vue";
+import ReleaseNotesModal from "@/components/updates/ReleaseNotesModal.vue";
 import mirdelLogoSvgRaw from "@/assets/mirdel.svg?raw";
 import { en, zh_cn, zh_tw } from '@nuxt/ui/locale'
 
 const logger = loggerServiceRenderer.withContext("App");
 const settingsStore = useSettingsStore();
+const updateStore = useUpdateStore();
 const router = useRouter();
 const { locale, t } = useI18n();
 const isAppReady = ref(false);
@@ -86,6 +93,9 @@ watch(
   (nextLocale) => {
     locale.value = nextLocale;
     document.documentElement.lang = nextLocale;
+    if (isAppReady.value) {
+      void updateStore.loadChangelog(nextLocale);
+    }
   },
   { immediate: true }
 );
@@ -95,6 +105,7 @@ onMounted(async () => {
     await settingsStore.initialize();
     const result = await window.ipc("settings:getWelcomeOnboardingDismissedAt") as { dismissedAt: number | null };
     welcomeModalOpen.value = !result?.dismissedAt;
+    await updateStore.initialize(settingsStore.resolvedLanguage);
     isAppReady.value = true;
     logger.info("app initialized successfully");
   } catch (error) {
@@ -150,6 +161,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener("click", handleGlobalClick, true);
+  updateStore.dispose();
 });
 
 async function dismissWelcomeModal() {
@@ -164,5 +176,12 @@ async function handleSkipWelcome() {
 async function handleOpenModelService() {
   await dismissWelcomeModal();
   await router.push("/settings/model-service");
+}
+
+if (import.meta.env.DEV) {
+  Object.assign(window, {
+    __mirdelMockReleaseNotes: () => updateStore.openMockReleaseNotes(),
+    __mirdelMockUpdateDownloaded: () => updateStore.mockDownloadedUpdateReady(),
+  });
 }
 </script>

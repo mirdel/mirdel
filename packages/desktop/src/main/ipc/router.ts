@@ -174,6 +174,16 @@ import { LOCAL_PROVIDER_ID } from "../services/providers/localModelConstants";
 import { resolveModelInvocation } from "../services/providers/modelInvocation";
 import { getAiDevToolsViewerStatus, startAiDevToolsViewer } from "../services/devtools/aiDevToolsService";
 import {
+  checkForUpdates,
+  getUpdateState,
+  quitAndInstallUpdate,
+} from "../services/app/updateService";
+import {
+  getChangelog,
+  getPendingReleaseNotes,
+  markReleaseNotesSeen,
+} from "../services/app/changelogService";
+import {
   appendImageGenerationAssets,
   createImageGeneration,
   deleteImageGeneration,
@@ -511,6 +521,26 @@ async function resolveMcpServerIdsForRequest(input: {
 }
 
 export const router = ipcRouter({
+  // ==================== Updates ====================
+  "updates:getState": async () => {
+    return getUpdateState();
+  },
+  "updates:check": async () => {
+    return checkForUpdates();
+  },
+  "updates:install": async () => {
+    return quitAndInstallUpdate();
+  },
+  "updates:getChangelog": async (_event, input?: { locale?: string }) => {
+    return getChangelog(input?.locale);
+  },
+  "updates:getPendingReleaseNotes": async (_event, input?: { locale?: string }) => {
+    return getPendingReleaseNotes(input?.locale);
+  },
+  "updates:markReleaseNotesSeen": async (_event, input?: { version?: string }) => {
+    return markReleaseNotesSeen(input?.version);
+  },
+
   // ==================== Providers ====================
   "providers:list": async () => {
     return listProviders();

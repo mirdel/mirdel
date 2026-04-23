@@ -1066,6 +1066,7 @@ export const useChatStore = defineStore('chat', () => {
     const scenario = selectedScenario.value
     pendingMcpServerIds.value = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
     pendingMcpPolicy.value = scenario?.mcpPolicy ?? 'auto'
+    pendingMode.value = scenario?.mode ?? 'chat'
     pendingToolApprovalMode.value = 'default'
     pendingSkillPolicy.value = scenario?.skillPolicy ?? 'auto'
     pendingKbIds.value = scenario?.kbIds ? [...scenario.kbIds] : []
@@ -1080,9 +1081,9 @@ export const useChatStore = defineStore('chat', () => {
     const scenario = selectedScenario.value
     const mcpServerIds = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
     const mcpPolicy = scenario?.mcpPolicy ?? 'auto'
+    const mode: ChatMode = scenario?.mode ?? 'chat'
     const skillPolicy = scenario?.skillPolicy ?? 'auto'
     const kbIds = scenario?.kbIds ? [...scenario.kbIds] : []
-    const mode: ChatMode = 'chat'
     const webSearch: WebSearchMode = 'builtin'
     const thinking: ThinkingMode = 'auto'
 
@@ -1336,6 +1337,7 @@ export const useChatStore = defineStore('chat', () => {
   
   function setScenario(scenarioId: string) {
     logger.info('setScenario', { scenarioId })
+    const scenario = settingsStore.scenarios.find(s => s.id === scenarioId)
 
     if (currentSessionId.value) {
       // 普通会话：更新后端会话场景
@@ -1346,6 +1348,14 @@ export const useChatStore = defineStore('chat', () => {
       const session = currentSession.value
       if (session) {
         session.scenarioId = scenarioId
+        session.selectedModel = SCENARIO_MODEL_PLACEHOLDER
+        session.mcpServerIds = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
+        session.mcpPolicy = scenario?.mcpPolicy ?? 'auto'
+        session.mode = scenario?.mode ?? 'chat'
+        session.toolApprovalMode = 'default'
+        session.skillPolicy = scenario?.skillPolicy ?? 'auto'
+        session.kbIds = scenario?.kbIds ? [...scenario.kbIds] : []
+        session.contextCount = scenario?.contextCount ?? 10
         touchLocalSession(session.id)
       }
     } else {
@@ -1353,9 +1363,9 @@ export const useChatStore = defineStore('chat', () => {
       pendingScenarioId.value = scenarioId
       
       // 同步新场景的 MCP、知识库配置
-      const scenario = settingsStore.scenarios.find(s => s.id === scenarioId)
       pendingMcpServerIds.value = scenario?.mcpServerIds ? [...scenario.mcpServerIds] : []
       pendingMcpPolicy.value = scenario?.mcpPolicy ?? 'auto'
+      pendingMode.value = scenario?.mode ?? 'chat'
       pendingToolApprovalMode.value = 'default'
       pendingSkillPolicy.value = scenario?.skillPolicy ?? 'auto'
       pendingKbIds.value = scenario?.kbIds ? [...scenario.kbIds] : []
@@ -3738,6 +3748,7 @@ ${userQuestionPart}`
       if (scenario) {
         pendingMcpServerIds.value = scenario.mcpServerIds ? [...scenario.mcpServerIds] : []
         pendingMcpPolicy.value = scenario.mcpPolicy ?? 'auto'
+        pendingMode.value = scenario.mode ?? 'chat'
         pendingToolApprovalMode.value = 'default'
         pendingSkillPolicy.value = scenario.skillPolicy ?? 'auto'
         pendingKbIds.value = scenario.kbIds ? [...scenario.kbIds] : []

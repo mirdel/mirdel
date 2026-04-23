@@ -15,6 +15,7 @@ import { lazyMcpManager } from "./services/mcp/LazyMcpManager";
 import { listEnabledMcpServers, updateMcpServer } from "./services/mcp/mcpData";
 import { mcpServerManager } from "./services/mcp/mcpServerManager";
 import { modelServerManager } from "./services/model-server";
+import type { ServerStatusSnapshot } from "./services/model-server";
 import { searxngServerManager } from "./services/web-search/SearxngServerManager";
 import { ensureSkillsDirAndCopyBuiltin } from "./services/skill";
 import { stopAiDevToolsViewer } from "./services/devtools/aiDevToolsService";
@@ -28,6 +29,7 @@ import { applyProxySettings, installProxyAwareFetch } from "./services/network/p
 import { getAppBehaviorSettings } from "./services/settings/settingsData";
 import { applyLaunchAtLoginSetting } from "./services/app/loginItemService";
 import { destroyTray, ensureTray } from "./services/app/trayService";
+import { initializeUpdateService, scheduleAutomaticUpdateCheck } from "./services/app/updateService";
 
 const logger = loggerServiceMain.withContext("main");
 
@@ -39,6 +41,14 @@ let webPreviewContentView: WebContentsView | null = null;
 let aiDevToolsWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let temporarySessionCleanupTimer: NodeJS.Timeout | null = null;
+
+function broadcastModelServerStatus(status: ServerStatusSnapshot) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send("model-server:statusChanged", status);
+    }
+  }
+}
 
 const WEB_PREVIEW_TOOLBAR_HEIGHT = 50;
 const CHROME_USER_AGENT =
@@ -102,6 +112,19 @@ function quitApplication() {
   app.quit();
 }
 
+function toggleDevToolsAtBottom() {
+  const targetWindow = BrowserWindow.getFocusedWindow() ?? mainWindow;
+  if (!targetWindow || targetWindow.isDestroyed()) return;
+
+  const { webContents } = targetWindow;
+  if (webContents.isDevToolsOpened()) {
+    webContents.closeDevTools();
+    return;
+  }
+
+  webContents.openDevTools({ mode: "bottom" });
+}
+
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1080,
@@ -163,6 +186,8 @@ async function createMainWindow() {
   } else {
     await mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
+
+  scheduleAutomaticUpdateCheck();
 }
 
 function getImagePreviewUrl(devUrl: string | undefined) {
@@ -851,7 +876,11 @@ function setupApplicationMenu() {
     {
       label: tMain("menu.view"),
       submenu: [
-        { role: "toggleDevTools" as const },
+        {
+          label: tMain("menu.toggleDevTools"),
+          accelerator: isMac ? "Alt+Command+I" : "Ctrl+Shift+I",
+          click: toggleDevToolsAtBottom
+        },
         { role: "reload" as const },
         { type: "separator" as const },
         { role: "resetZoom" as const },
@@ -1109,6 +1138,7 @@ app.on("ready", async () => {
   await initializeConfigManager();
 
   const localProviderApiKey = ensureLocalProviderApiKey();
+  modelServerManager.onStatusChange(broadcastModelServerStatus);
   
   // 启动本地模型服务（后台运行，不阻塞）
   modelServerManager.start({ apiKey: localProviderApiKey }).then(port => {
@@ -1159,6 +1189,12 @@ app.on("ready", async () => {
   }
   
   registerIpc();
+  initializeUpdateService({
+    getWindows: () => BrowserWindow.getAllWindows(),
+    beforeQuitForUpdate: () => {
+      isQuitting = true;
+    }
+  });
   await ensureDataDir();
   ensureSkillsDirAndCopyBuiltin();
   applyLaunchAtLoginSetting(getAppBehaviorSettings().launchAtLogin);

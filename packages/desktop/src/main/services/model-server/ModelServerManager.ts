@@ -41,6 +41,7 @@ function shouldSkipModelServerStdoutLog(message: string): boolean {
 }
 
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'error'
+export type ServerStatusSnapshot = { status: ServerStatus; port: number | null; error: string | null }
 
 interface ServerState {
   status: ServerStatus
@@ -63,16 +64,22 @@ class ModelServerManager {
   private startupPromise: Promise<number> | null = null
   private localApiKey: string | null = null
   private stopping = false
+  private statusListeners = new Set<(status: ServerStatusSnapshot) => void>()
 
   /**
    * 获取服务器状态
    */
-  getStatus(): { status: ServerStatus; port: number | null; error: string | null } {
+  getStatus(): ServerStatusSnapshot {
     return {
       status: this.state.status,
       port: this.state.port,
       error: this.state.error
     }
+  }
+
+  onStatusChange(listener: (status: ServerStatusSnapshot) => void): () => void {
+    this.statusListeners.add(listener)
+    return () => this.statusListeners.delete(listener)
   }
 
   /**
@@ -243,6 +250,7 @@ class ModelServerManager {
       restartCount: 0,
       process: null
     }
+    this.emitStatusChange()
 
     logger.info('Model server stopped')
   }
@@ -252,6 +260,7 @@ class ModelServerManager {
   private async doStart(): Promise<number> {
     this.state.status = 'starting'
     this.state.error = null
+    this.emitStatusChange()
 
     const serverPath = this.getServerPath()
     const modelsDir = this.getModelsDirPath()
@@ -259,6 +268,7 @@ class ModelServerManager {
     if (!fs.existsSync(serverPath)) {
       this.state.status = 'error'
       this.state.error = `llama-server binary not found: ${serverPath}`
+      this.emitStatusChange()
       throw new Error(`llama-server binary not found: ${serverPath}`)
     }
 
@@ -271,13 +281,11 @@ class ModelServerManager {
     return new Promise<number>((resolve, reject) => {
       let probeTimer: NodeJS.Timeout | null = null
       const timeout = setTimeout(() => {
-        this.state.status = 'error'
-        this.state.error = 'Startup timeout'
         if (this.state.process) {
           this.state.process.kill('SIGKILL')
           this.state.process = null
         }
-        reject(new Error('Model server startup timeout'))
+        settleReject(new Error('Model server startup timeout'))
       }, STARTUP_TIMEOUT_MS)
 
       let settled = false
@@ -296,6 +304,7 @@ class ModelServerManager {
         cleanup()
         this.state.status = 'error'
         this.state.error = error.message
+        this.emitStatusChange()
         reject(error)
       }
 
@@ -307,6 +316,7 @@ class ModelServerManager {
         this.state.port = port
         this.state.restartCount = 0
         this.state.error = null
+        this.emitStatusChange()
         this.startHealthCheck()
         resolve(port)
       }
@@ -384,6 +394,7 @@ class ModelServerManager {
     this.stopHealthCheck()
     this.state.status = 'error'
     this.state.port = null
+    this.emitStatusChange()
 
     if (this.state.restartCount < MAX_RESTART_ATTEMPTS) {
       this.state.restartCount++
@@ -397,7 +408,19 @@ class ModelServerManager {
       }, 1000)
     } else {
       this.state.error = 'Max restart attempts reached'
+      this.emitStatusChange()
       logger.error('Model server max restart attempts reached')
+    }
+  }
+
+  private emitStatusChange(): void {
+    const snapshot = this.getStatus()
+    for (const listener of this.statusListeners) {
+      try {
+        listener(snapshot)
+      } catch (error) {
+        logger.warn('Model server status listener failed', { error: error instanceof Error ? error.message : String(error) })
+      }
     }
   }
 

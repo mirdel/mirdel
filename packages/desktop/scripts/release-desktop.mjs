@@ -111,6 +111,7 @@ async function main() {
   await runPnpm(["run", "prepare:packaged-main-chunks"]);
   await runPnpm(["run", "prepare:platform-runtime", "--", `--target=${runtimeTarget}`]);
   await runPnpm(["run", "prepare:electron-native"]);
+  await runPnpm(["run", "prepare:release-metadata"]);
 
   const finalBuilderArgs = [...builderArgs];
   if (!hasPublishArg(finalBuilderArgs)) {

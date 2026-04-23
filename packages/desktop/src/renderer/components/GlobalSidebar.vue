@@ -33,6 +33,15 @@
 
     <!-- 底部固定区域：搜索 + 主题切换 + 设置 -->
     <div class="flex flex-col items-center gap-1 shrink-0 mt-2">
+      <UTooltip v-if="updateStore.updateReady" :text="t('updates.sidebar.ready')" :content="{ side: 'right' }">
+        <div
+          class="size-8 flex items-center justify-center app-no-drag mb-2 rounded-full bg-primary hover:bg-primary/90 cursor-pointer shadow-sm"
+          @click="updateStore.openRestartModal"
+        >
+          <UIcon name="i-lucide-refresh-cw" class="size-4 text-white" />
+        </div>
+      </UTooltip>
+
       <UTooltip :text="t('tooltip.globalSearch')" :kbds="searchShortcutKbds" :content="{ side: 'right' }">
         <div
           class="size-8 flex items-center justify-center app-no-drag mb-2 rounded-full bg-neutral-400/30 hover:bg-neutral-400/80 cursor-pointer"
@@ -77,12 +86,14 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAppColorModeState } from "@/composables/useAppColorModeState";
 import { useRouteMemory } from "@/composables/useRouteMemory";
+import { useUpdateStore } from "@/stores/useUpdateStore";
 import mirdelLogoSvgRaw from "@/assets/mirdel.svg?raw";
 
 const emit = defineEmits<{
   (e: "open-search"): void;
 }>();
 const { t } = useI18n();
+const updateStore = useUpdateStore();
 const mirdelLogoSvg = mirdelLogoSvgRaw;
 
 // VueUse useColorMode: store 为 "auto"|"light"|"dark"，对应 system|light|dark
