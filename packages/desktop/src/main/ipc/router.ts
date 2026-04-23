@@ -118,6 +118,7 @@ import { generateSessionTitleByFastModel } from "../services/chat/titleService";
 import {
   listScenarios,
   createScenario,
+  duplicateScenario,
   getScenario,
   updateScenario,
   deleteScenario
@@ -1881,6 +1882,10 @@ export const router = ipcRouter({
 
   "scenarios:create": async (_event, input: { name: string; description?: string }) => {
     return createScenario(input);
+  },
+
+  "scenarios:duplicate": async (_event, input: { id: string }) => {
+    return duplicateScenario(input.id);
   },
 
   "scenarios:get": async (_event, input: { id: string }) => {

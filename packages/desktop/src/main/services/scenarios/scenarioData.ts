@@ -1,6 +1,7 @@
 import * as os from "node:os";
 import { getDb } from "../db";
 import { nanoid as nanoId } from "nanoid";
+import { tMain } from "../../i18n";
 
 const DEFAULT_SCENARIO_ID = "default-scenario";
 
@@ -168,6 +169,77 @@ export function createScenario(input: {
   );
 
   return getScenario(id)!;
+}
+
+function generateDuplicateScenarioName(sourceName: string): string {
+  const db = getDb();
+  const suffix = tMain("scenario.copySuffix");
+  const baseName = `${sourceName} ${suffix}`;
+  const existingNames = new Set(
+    (db.prepare(`SELECT name FROM scenarios`).all() as Array<{ name: string }>)
+      .map((row) => row.name)
+  );
+
+  if (!existingNames.has(baseName)) {
+    return baseName;
+  }
+
+  let index = 2;
+  while (existingNames.has(`${baseName} ${index}`)) {
+    index += 1;
+  }
+  return `${baseName} ${index}`;
+}
+
+/**
+ * 复制场景，完整继承场景配置，只重置 id/name/createdAt/updatedAt。
+ */
+export function duplicateScenario(id: string): Scenario {
+  const db = getDb();
+  const source = getScenario(id);
+  if (!source) {
+    throw new Error(tMain("scenario.notFoundWithId", { scenarioId: id }));
+  }
+
+  const now = Date.now();
+  const newId = nanoId();
+  const name = generateDuplicateScenarioName(source.name);
+
+  db.prepare(
+    `INSERT INTO scenarios (
+      id, name, description, mode, selectedModel,
+      temperature, topP, topK, presencePenalty, frequencyPenalty, stopSequences, seed, contextCount, maxOutputTokens,
+      systemPrompt, mcpServerIds, mcpPolicy, skillPolicy, maxToolSteps, workingDirs, kbIds, kbRecallTopK, kbRecallMinScore, createdAt, updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    newId,
+    name,
+    source.description ?? null,
+    source.mode === 'agent' ? 'agent' : 'chat',
+    source.selectedModel,
+    source.temperature ?? null,
+    source.topP ?? null,
+    source.topK ?? null,
+    source.presencePenalty ?? null,
+    source.frequencyPenalty ?? null,
+    source.stopSequences && source.stopSequences.length > 0 ? JSON.stringify(source.stopSequences) : null,
+    source.seed ?? null,
+    source.contextCount,
+    source.maxOutputTokens ?? null,
+    source.systemPrompt ?? null,
+    JSON.stringify(source.mcpServerIds ?? []),
+    source.mcpPolicy ?? 'auto',
+    source.skillPolicy ?? 'auto',
+    source.maxToolSteps ?? 20,
+    JSON.stringify(source.workingDirs ?? []),
+    JSON.stringify(source.kbIds ?? []),
+    source.kbRecallTopK ?? 5,
+    source.kbRecallMinScore ?? 0.75,
+    now,
+    now
+  );
+
+  return getScenario(newId)!;
 }
 
 /**

@@ -28,6 +28,7 @@ export const mainEn = {
     "scenario.notFoundWithId": "Scenario {scenarioId} does not exist",
     "scenario.defaultName": "Default Scenario",
     "scenario.defaultDescription": "A general configuration suitable for everyday conversations",
+    "scenario.copySuffix": "Copy",
     "message.notFoundWithId": "Message {messageId} does not exist",
     "model.notFound": "Model not found",
     "common.missingField": "Missing {field}",

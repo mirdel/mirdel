@@ -722,6 +722,13 @@ export const useSettingsStore = defineStore('settings', () => {
     await window.ipc('scenarios:update', { id, data })
     await loadScenarios()
   }
+
+  async function duplicateScenario(id: string) {
+    logger.info('duplicating scenario', { id })
+    const scenario = await window.ipc('scenarios:duplicate', { id })
+    await loadScenarios()
+    return scenario as Scenario
+  }
   
   async function deleteScenario(id: string) {
     logger.info('deleting scenario', { id })
@@ -819,6 +826,7 @@ export const useSettingsStore = defineStore('settings', () => {
     // Scenario CRUD
     createScenario,
     updateScenario,
+    duplicateScenario,
     deleteScenario,
     loadPromptLibrary,
     setPromptLibraryCreateRequest,

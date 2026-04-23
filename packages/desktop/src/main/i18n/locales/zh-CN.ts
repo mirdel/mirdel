@@ -30,6 +30,7 @@ export const mainZhCN = {
     "scenario.notFoundWithId": "场景 {scenarioId} 不存在",
     "scenario.defaultName": "默认场景",
     "scenario.defaultDescription": "适用于日常对话的通用配置",
+    "scenario.copySuffix": "副本",
     "message.notFoundWithId": "消息 {messageId} 不存在",
     "model.notFound": "模型不存在",
     "common.missingField": "缺少 {field}",

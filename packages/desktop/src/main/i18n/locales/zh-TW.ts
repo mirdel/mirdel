@@ -30,6 +30,7 @@ export const mainZhTW = {
     "scenario.notFoundWithId": "場景 {scenarioId} 不存在",
     "scenario.defaultName": "預設場景",
     "scenario.defaultDescription": "適用於日常對話的通用配置",
+    "scenario.copySuffix": "副本",
     "message.notFoundWithId": "訊息 {messageId} 不存在",
     "model.notFound": "模型不存在",
     "common.missingField": "缺少 {field}",

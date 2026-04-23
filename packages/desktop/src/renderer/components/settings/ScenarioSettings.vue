@@ -177,6 +177,11 @@ const getScenarioMenuItems = (scenarioId: string) => {
       label: t("settings.scenario.edit"),
       icon: "i-lucide-square-pen",
       onSelect: () => openEditModal(scenarioId)
+    },
+    {
+      label: t("settings.scenario.duplicate"),
+      icon: "i-lucide-copy",
+      onSelect: () => handleDuplicateScenario(scenarioId)
     }
   ];
   
@@ -192,6 +197,20 @@ const getScenarioMenuItems = (scenarioId: string) => {
   
   return [items];
 };
+
+async function handleDuplicateScenario(scenarioId: string) {
+  try {
+    const newScenario = await settingsStore.duplicateScenario(scenarioId);
+    selectedScenarioId.value = newScenario.id;
+    toast.success(t("settings.scenario.duplicated"));
+  } catch (error) {
+    logger.error("Failed to duplicate scenario", { error });
+    toast.error({
+      title: t("settings.scenario.duplicateFailed"),
+      description: String(error)
+    });
+  }
+}
 
 // 删除场景
 async function confirmDeleteScenario(scenarioId: string) {
