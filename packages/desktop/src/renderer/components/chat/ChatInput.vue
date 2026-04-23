@@ -418,6 +418,7 @@
                 size="xs"
                 variant="ghost"
                 class="rounded-full"
+                :ui="bottomPanelSelectUi"
                 :content="{ side: 'top', align: 'start' }"
               >
                 <template #item="{ item }">
@@ -466,6 +467,7 @@
               size="xs"
               variant="ghost"
               class="rounded-full"
+              :ui="bottomPanelSelectUi"
               @update:model-value="handleShortcutChange"
             />
             <!-- 上下文轮数环形进度条 + Popover -->
@@ -1197,10 +1199,13 @@ watch(
 // 当前选中模式的图标
 const modeIcon = computed(() => modeOptions.value.find(item => item.value === sessionMode.value)?.icon)
 const toolApprovalIcon = computed(() => toolApprovalOptions.value.find(item => item.value === sessionToolApprovalMode.value)?.icon)
+const bottomPanelSelectUi = {
+  base: 'hover:bg-accented/70 focus:bg-accented/70 data-[state=open]:bg-accented/70'
+}
 const toolApprovalSelectUi = computed(() => {
-  if (sessionToolApprovalMode.value !== 'auto') return {}
+  if (sessionToolApprovalMode.value !== 'auto') return bottomPanelSelectUi
   return {
-    base: 'text-warning hover:bg-warning/10 focus:bg-warning/10',
+    base: 'text-warning hover:bg-warning/10 focus:bg-warning/10 data-[state=open]:bg-warning/10',
     leadingIcon: 'text-warning',
     trailingIcon: 'text-warning',
     value: 'text-warning'
