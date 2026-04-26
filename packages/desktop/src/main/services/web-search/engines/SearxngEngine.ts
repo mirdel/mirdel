@@ -31,6 +31,7 @@ const BUILTIN_WEB_ENGINE_ALLOWLIST = new Set<string>([
 interface SearxngSearchResult {
   title?: string;
   url?: string;
+  content?: string;
 }
 
 interface SearxngSearchResponse {
@@ -58,6 +59,7 @@ interface SearxngSearchOptions {
   timeRange: SearchTimeRange;
   safeSearch: 0 | 1 | 2;
   engines?: string[];
+  maxPages?: number;
 }
 
 export class SearxngEngine implements SearchEngine {
@@ -82,7 +84,8 @@ export class SearxngEngine implements SearchEngine {
     const startTime = Date.now();
     const port = await searxngServerManager.start();
 
-    const pagesNeeded = Math.min(3, Math.max(1, Math.ceil(limit / 10)));
+    const maxPages = Math.max(1, Math.min(10, options?.maxPages ?? 3));
+    const pagesNeeded = Math.min(maxPages, Math.max(1, Math.ceil(limit / 10)));
     logger.info('Starting SearXNG search', { query: sanitizedQuery, limit, pagesNeeded });
 
     const pageResults = await Promise.allSettled(
@@ -110,12 +113,13 @@ export class SearxngEngine implements SearchEngine {
     for (const row of rows) {
       const url = typeof row.url === 'string' ? row.url.trim() : '';
       const title = typeof row.title === 'string' ? row.title.trim() : '';
+      const snippet = typeof row.content === 'string' ? row.content.trim() : '';
       if (!url || !title) continue;
       if (!this.isValidSearchUrl(url)) continue;
       if (deduped.has(url)) continue;
 
       deduped.add(url);
-      mapped.push({ title, url });
+      mapped.push({ title, url, ...(snippet ? { snippet } : {}) });
       if (mapped.length >= limit) break;
     }
 

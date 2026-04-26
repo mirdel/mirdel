@@ -92,31 +92,49 @@ interface RawHtmlCacheEntry {
   createdAt: number;
 }
 
+export type PageContentFormat = 'llm' | 'reader';
+
+export interface FetchPageContentOptions {
+  timeout?: number;
+  abortSignal?: AbortSignal;
+  debugMode?: boolean;
+  format?: PageContentFormat;
+}
+
 const testRawHtmlCache = new Map<string, RawHtmlCacheEntry>();
 
-const turndownService = new TurndownService({
-  headingStyle: 'atx',
-  codeBlockStyle: 'fenced',
-  linkStyle: 'inlined',
-  emDelimiter: '*',
-  bulletListMarker: '-',
-});
+function createTurndownService(format: PageContentFormat): TurndownService {
+  const service = new TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    linkStyle: 'inlined',
+    emDelimiter: '*',
+    bulletListMarker: '-',
+  });
 
-turndownService.addRule('imagePlaceholder', {
-  filter: 'img',
-  replacement: (_content, node) => {
-    const alt = node.getAttribute('alt')?.trim() || '';
-    if (!alt) {
-      return '';
-    }
-    return `![${alt}]()`;
-  },
-});
+  if (format === 'llm') {
+    service.addRule('imagePlaceholder', {
+      filter: 'img',
+      replacement: (_content, node) => {
+        const alt = node.getAttribute('alt')?.trim() || '';
+        if (!alt) {
+          return '';
+        }
+        return `![${alt}]()`;
+      },
+    });
 
-turndownService.addRule('linkTextOnly', {
-  filter: 'a',
-  replacement: (content) => content.trim(),
-});
+    service.addRule('linkTextOnly', {
+      filter: 'a',
+      replacement: (content) => content.trim(),
+    });
+  }
+
+  return service;
+}
+
+const llmTurndownService = createTurndownService('llm');
+const readerTurndownService = createTurndownService('reader');
 
 /**
  * 网页内容抓取结果
@@ -198,15 +216,18 @@ class ContentExtractionError extends Error {
  * 策略：先尝试 HTTP 请求，清洗并提取主内容；无效时再用 Browser Window 兜底
  * 
  * @param url 页面 URL
- * @param timeout 超时时间（毫秒），HTTP 和 Browser Window 各自独立使用完整的超时时间
- * @param abortSignal 外部中止信号（如用户点击中止）
+ * @param options 抓取选项
  */
 export async function fetchPageContent(
   url: string,
-  timeout?: number,
-  abortSignal?: AbortSignal,
-  debugMode: boolean = false
+  options: FetchPageContentOptions = {}
 ): Promise<PageContent> {
+  const {
+    timeout,
+    abortSignal,
+    debugMode = false,
+    format = 'llm',
+  } = options;
   const startTime = Date.now();
   let fallbackReasons: string[] | null = null;
   
@@ -214,7 +235,7 @@ export async function fetchPageContent(
   
   try {
     // 第一步：尝试用 HTTP 请求抓取
-    const result = await fetchWithHttp(url, timeout, abortSignal);
+    const result = await fetchWithHttp(url, timeout, abortSignal, format);
 
     if (result.pageContent) {
       if (debugMode) {
@@ -263,7 +284,7 @@ export async function fetchPageContent(
     });
   }
 
-  return await fetchWithBrowserWindow(url, timeout, abortSignal, debugMode, fallbackReasons ?? ['content_invalid']).then(
+  return await fetchWithBrowserWindow(url, timeout, abortSignal, format, debugMode, fallbackReasons ?? ['content_invalid']).then(
     ({ pageContent, html }) => {
       if (debugMode) {
         pageContent.debug = {
@@ -280,7 +301,12 @@ export async function fetchPageContent(
 /**
  * 使用 HTTP 请求抓取网页
  */
-async function fetchWithHttp(url: string, timeout?: number, abortSignal?: AbortSignal): Promise<FetchAttemptResult> {
+async function fetchWithHttp(
+  url: string,
+  timeout?: number,
+  abortSignal?: AbortSignal,
+  format: PageContentFormat = 'llm'
+): Promise<FetchAttemptResult> {
   const startTime = Date.now();
   
   // 创建 AbortController 用于超时控制
@@ -323,7 +349,7 @@ async function fetchWithHttp(url: string, timeout?: number, abortSignal?: AbortS
       return {
         html,
         realUrl,
-        pageContent: parseHtmlContent(html, url, realUrl),
+        pageContent: parseHtmlContent(html, url, realUrl, format),
       };
     } catch (error) {
       if (error instanceof ContentExtractionError) {
@@ -366,6 +392,7 @@ async function fetchWithBrowserWindow(
   url: string,
   timeout?: number,
   abortSignal?: AbortSignal,
+  format: PageContentFormat = 'llm',
   _debugMode: boolean = false,
   _fallbackReasons: string[] = []
 ): Promise<FetchAttemptResult> {
@@ -434,7 +461,7 @@ async function fetchWithBrowserWindow(
     });
     
     // 解析 HTML 提取正文
-    const result = parseHtmlContent(html, url, realUrl);
+    const result = parseHtmlContent(html, url, realUrl, format);
     
     logger.info('Page content fetched via Browser Window', {
       url,
@@ -477,7 +504,12 @@ async function fetchWithBrowserWindow(
 /**
  * 解析 HTML 提取正文内容
  */
-function parseHtmlContent(html: string, originalUrl: string, realUrl: string): PageContent {
+function parseHtmlContent(
+  html: string,
+  originalUrl: string,
+  realUrl: string,
+  format: PageContentFormat = 'llm'
+): PageContent {
   const publishedDate = extractPublishedDate(html);
   const title = extractTitle(html);
   const byline = extractByline(html);
@@ -486,7 +518,7 @@ function parseHtmlContent(html: string, originalUrl: string, realUrl: string): P
 
   return {
     title,
-    content: truncateMarkdown(extraction.markdown),
+    content: truncateMarkdown(renderMarkdown(extraction.contentHtml, format)),
     byline,
     siteName,
     realUrl: realUrl !== originalUrl ? realUrl : undefined,
@@ -495,7 +527,7 @@ function parseHtmlContent(html: string, originalUrl: string, realUrl: string): P
 }
 
 function extractContentFromHtml(html: string, url: string): {
-  markdown: string;
+  contentHtml: string;
 } {
   const attempts = [
     { onlyMainContent: true },
@@ -513,8 +545,7 @@ function extractContentFromHtml(html: string, url: string): {
       continue;
     }
 
-    const markdown = normalizeMarkdown(turndownService.turndown(candidate.html));
-    const markdownTextLength = getEffectiveTextLength(markdown);
+    const markdownTextLength = getEffectiveTextLength(renderMarkdown(candidate.html, 'llm'));
 
     if (markdownTextLength <= 0) {
       bestAttemptLength = Math.max(bestAttemptLength, markdownTextLength);
@@ -522,7 +553,7 @@ function extractContentFromHtml(html: string, url: string): {
     }
 
     return {
-      markdown,
+      contentHtml: candidate.html,
     };
   }
 
@@ -687,6 +718,11 @@ function extractSiteName(html: string, url: string): string | undefined {
 
 function getEffectiveTextLength(content: string): number {
   return content.replace(/\s+/g, ' ').trim().length;
+}
+
+function renderMarkdown(html: string, format: PageContentFormat): string {
+  const service = format === 'reader' ? readerTurndownService : llmTurndownService;
+  return normalizeMarkdown(service.turndown(html));
 }
 
 function normalizeMarkdown(markdown: string): string {

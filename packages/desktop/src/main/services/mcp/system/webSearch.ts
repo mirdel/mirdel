@@ -46,7 +46,7 @@ function extractHostname(url: string): string {
  * @param providerId 指定使用的搜索服务提供者 ID（可选，默认使用全局激活的）
  * @param citationStartIndex 来源起始序号（0=无前置知识库，N=前 N 条为知识库，本条起用 [S(N+1)]）
  */
-export function createWebSearch(providerId?: string, citationStartIndex: number = 0) {
+export function createWebSearch(providerId?: string, citationStartIndex: number = 0, plannerModelRef?: string) {
   // 同一轮内工具可能被多次调用，需连续编号避免 [Sx] 冲突。
   let nextCitationIndex = Math.max(1, citationStartIndex + 1);
 
@@ -89,7 +89,7 @@ Cite sources at the end of the relevant sentence or paragraph, for example [S${c
       let result;
       try {
         result = await raceWithAbort(
-          webSearchService.searchByRequest(request, providerId, options.abortSignal),
+          webSearchService.searchByRequest(request, providerId, options.abortSignal, plannerModelRef),
           options.abortSignal
         );
       } catch (error) {

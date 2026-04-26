@@ -165,6 +165,11 @@ import {
   deleteSearchProvider,
   getActiveProviderId,
   setActiveProviderId,
+  getAiSearchConfig,
+  setAiSearchConfig,
+  listAiSearchHistory,
+  addAiSearchHistoryKeyword,
+  clearAiSearchHistory,
   type WebSearchConfig 
 } from "../services/web-search/webSearchData";
 import { listPresetTemplates } from "../services/web-search/presets";
@@ -1873,6 +1878,49 @@ export const router = ipcRouter({
 
   "webSearch:listPresets": async () => {
     return listPresetTemplates();
+  },
+
+  // ==================== AI Search ====================
+  "aiSearch:getConfig": async () => {
+    return getAiSearchConfig();
+  },
+
+  "aiSearch:setConfig": async (_event, input: { model?: string; perQueryLimit?: number; maxResults?: number; pageSize?: number }) => {
+    return setAiSearchConfig(input);
+  },
+
+  "aiSearch:listHistory": async () => {
+    return listAiSearchHistory();
+  },
+
+  "aiSearch:clearHistory": async () => {
+    clearAiSearchHistory();
+    return { ok: true };
+  },
+
+  "aiSearch:search": async (_event, input: { query: string; model?: string | null; perQueryLimit?: number; maxResults?: number }) => {
+    const query = String(input.query || '').trim();
+    if (!query) {
+      return { success: false as const, error: tMain("common.missingField", { field: "query" }) };
+    }
+    const result = await webSearchService.aiSearch({
+      query,
+      modelRef: input.model,
+      perQueryLimit: input.perQueryLimit,
+      maxResults: input.maxResults,
+    });
+    if (result.success) {
+      addAiSearchHistoryKeyword(query);
+    }
+    return result;
+  },
+
+  "aiSearch:fetchPage": async (_event, input: { url: string }) => {
+    const url = String(input.url || '').trim();
+    if (!url) {
+      return { success: false as const, url, error: tMain("common.missingField", { field: "url" }) };
+    }
+    return webSearchService.fetchPageContent(url, { format: 'reader' });
   },
 
   // ==================== Scenarios ====================

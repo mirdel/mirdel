@@ -15,6 +15,7 @@ import 'vue-stream-markdown/index.css'
 import 'vue-stream-markdown/theme.css'
 import { useAppColorModeState } from '@/composables/useAppColorModeState'
 import StreamMarkdownLink from './StreamMarkdownLink.vue'
+import StreamMarkdownImage from './StreamMarkdownImage.vue'
 
 const props = defineProps<{
   content: string
@@ -26,5 +27,6 @@ const { isDark } = useAppColorModeState()
 const mode = computed<'streaming' | 'static'>(() => (props.isStreaming ? 'streaming' : 'static'))
 const nodeRenderers = {
   link: StreamMarkdownLink,
+  image: StreamMarkdownImage,
 }
 </script>

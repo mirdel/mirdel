@@ -184,6 +184,8 @@ export interface AggregateMcpToolsOptions {
   webSearchProviderId?: string;
   /** 网络搜索来源起始序号（0=无知识库，N=前 N 条为知识库，用于统一 [S1] 编号） */
   citationStartIndex?: number;
+  /** 当前会话本轮模型，作为 web_search 规划模型的兜底 */
+  selectedModel?: string;
 }
 
 /**
@@ -194,7 +196,7 @@ export interface AggregateMcpToolsOptions {
  * @returns 聚合后的工具对象和统计信息
  */
 export async function aggregateMcpTools(options: AggregateMcpToolsOptions): Promise<AggregatedMcpToolsResult> {
-  const { serverIds, sessionId, toolApprovalMode = 'default', webSearchProviderId, citationStartIndex } = options;
+  const { serverIds, sessionId, toolApprovalMode = 'default', webSearchProviderId, citationStartIndex, selectedModel } = options;
   const startTime = Date.now();
   
   logger.info('Aggregating MCP tools', {
@@ -279,7 +281,7 @@ export async function aggregateMcpTools(options: AggregateMcpToolsOptions): Prom
   }
 
   // 注入系统工具（始终可用，不依赖用户选择），同样需要执行确认包装
-  const rawSystemTools = buildSystemTools({ sessionId, webSearchProviderId, citationStartIndex });
+  const rawSystemTools = buildSystemTools({ sessionId, webSearchProviderId, citationStartIndex, selectedModel });
   const systemServerId = 'system';
   for (const [name, tool] of Object.entries(rawSystemTools)) {
     const toolName = name.includes('::') ? name.split('::')[1] : name;

@@ -52,22 +52,76 @@ function normalizeQueries(value: unknown): string[] {
 export async function generateSearchPlan(params: {
   request: string;
   timeoutMs?: number;
+  modelRefs?: string[];
+  useDefaultFallbacks?: boolean;
 }): Promise<SearchPlannerResult> {
   const request = (params.request ?? "").trim();
   if (!request) {
     return { ok: false, error: tMain("search.plan.failed") };
   }
 
-  const fast = getDefaultModelByType("fast");
-  if (!fast?.providerId || !fast?.modelId) {
+  const candidates = resolvePlannerModelCandidates(params);
+  if (candidates.length === 0) {
     return { ok: false, error: tMain("search.plan.fastModelNotConfigured") };
   }
 
+  let lastError = tMain("search.plan.failed");
+  for (const candidate of candidates) {
+    const result = await generateSearchPlanWithModel({
+      request,
+      timeoutMs: params.timeoutMs,
+      providerId: candidate.providerId,
+      modelId: candidate.modelId,
+    });
+    if (result.ok) return result;
+    if (result.ok === false) {
+      lastError = result.error;
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
+
+function resolvePlannerModelCandidates(params: {
+  modelRefs?: string[];
+  useDefaultFallbacks?: boolean;
+}): Array<{ providerId: string; modelId: string }> {
+  const candidates: Array<{ providerId: string; modelId: string }> = [];
+  const seen = new Set<string>();
+  const add = (providerId?: string | null, modelId?: string | null) => {
+    if (!providerId || !modelId) return;
+    const key = `${providerId}::${modelId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ providerId, modelId });
+  };
+
+  if (params.useDefaultFallbacks !== false) {
+    const fast = getDefaultModelByType("fast");
+    add(fast?.providerId, fast?.modelId);
+    const general = getDefaultModelByType("general");
+    add(general?.providerId, general?.modelId);
+  }
+
+  for (const ref of params.modelRefs ?? []) {
+    const [providerId, modelId] = String(ref || "").split("::");
+    add(providerId, modelId);
+  }
+
+  return candidates;
+}
+
+async function generateSearchPlanWithModel(params: {
+  request: string;
+  providerId: string;
+  modelId: string;
+  timeoutMs?: number;
+}): Promise<SearchPlannerResult> {
   let client: ReturnType<typeof resolveModelInvocation>["client"];
   try {
     client = resolveModelInvocation({
-      providerId: fast.providerId,
-      modelId: fast.modelId,
+      providerId: params.providerId,
+      modelId: params.modelId,
     }).client;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -80,7 +134,7 @@ export async function generateSearchPlan(params: {
       role: "user",
       content: `Research request:
 <<<
-${request}
+${params.request}
 >>>`,
     },
   ];
@@ -90,13 +144,13 @@ ${request}
 
   try {
     const { text } = await generateText({
-      model: client(fast.modelId),
+      model: client(params.modelId),
       messages,
       temperature: 0.1,
       maxOutputTokens: 256,
       abortSignal: abort.signal,
       providerOptions: {
-        [fast.providerId]: { think: { type: "disable" as const } },
+        [params.providerId]: { think: { type: "disable" as const } },
       },
     });
 
@@ -106,8 +160,8 @@ ${request}
 
     if (queries.length === 0) {
       logger.warn("searchPlanner: empty queries from model", {
-        providerId: fast.providerId,
-        modelId: fast.modelId,
+        providerId: params.providerId,
+        modelId: params.modelId,
         raw: text,
       });
       return { ok: false, error: tMain("search.plan.failed") };
@@ -117,13 +171,13 @@ ${request}
       ok: true,
       data: {
         queries,
-        plannerModel: `${fast.providerId}::${fast.modelId}`,
+        plannerModel: `${params.providerId}::${params.modelId}`,
       },
     };
   } catch (error) {
     logger.warn("searchPlanner: generation failed", {
-      providerId: fast.providerId,
-      modelId: fast.modelId,
+      providerId: params.providerId,
+      modelId: params.modelId,
       error: error instanceof Error ? error.message : String(error),
     });
     return { ok: false, error: tMain("search.plan.failed") };

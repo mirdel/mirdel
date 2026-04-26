@@ -16,6 +16,8 @@ export interface SystemToolsOptions {
   webSearchProviderId?: string;
   /** 网络搜索来源起始序号（0=无知识库，用于统一 [S1] 编号） */
   citationStartIndex?: number;
+  /** 当前会话本轮模型，作为 web_search 规划模型的兜底 */
+  selectedModel?: string;
 }
 
 /**
@@ -23,9 +25,9 @@ export interface SystemToolsOptions {
  * @param options 配置选项
  */
 export function buildSystemTools(options?: SystemToolsOptions): Record<string, any> {
-  const { sessionId, webSearchProviderId, citationStartIndex } = options || {};
+  const { sessionId, webSearchProviderId, citationStartIndex, selectedModel } = options || {};
   return {
-    'system::web_search': createWebSearch(webSearchProviderId, citationStartIndex),
+    'system::web_search': createWebSearch(webSearchProviderId, citationStartIndex, selectedModel),
     'system::web_scrape': createWebScrape(),
     'system::historical_memory_search': createHistoricalMemorySearch(sessionId),
     'system::historical_memory_review': createHistoricalMemoryReview(sessionId),

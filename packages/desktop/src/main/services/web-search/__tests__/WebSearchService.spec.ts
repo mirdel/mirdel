@@ -7,6 +7,7 @@ const {
   embedManyMock,
   embedMock,
   fetchPageMock,
+  generateTextMock,
   generateSearchPlanMock,
   getActiveProviderMock,
   getAppLanguagePreferenceMock,
@@ -37,6 +38,7 @@ const {
   embedManyMock: vi.fn(),
   embedMock: vi.fn(),
   fetchPageMock: vi.fn(),
+  generateTextMock: vi.fn(),
   generateSearchPlanMock: vi.fn(),
   getActiveProviderMock: vi.fn(),
   getAppLanguagePreferenceMock: vi.fn(),
@@ -96,6 +98,7 @@ vi.mock("../searchPlannerService", () => ({
 vi.mock("ai", () => ({
   embed: embedMock,
   embedMany: embedManyMock,
+  generateText: generateTextMock,
 }));
 
 vi.mock("electron", () => ({
@@ -158,6 +161,7 @@ describe("WebSearchService", () => {
     listBuiltinSearchEnginesMock.mockReset();
     createCustomEngineMock.mockReset();
     fetchPageMock.mockReset();
+    generateTextMock.mockReset();
     generateSearchPlanMock.mockReset();
     getActiveProviderMock.mockReset();
     getSearchProviderMock.mockReset();
@@ -309,18 +313,40 @@ describe("WebSearchService", () => {
     });
   });
 
-  it("returns planner errors for request-based search before any fetch starts", async () => {
+  it("falls back to a single query when request planning is unavailable", async () => {
     generateSearchPlanMock.mockResolvedValue({
       ok: false,
       error: "planner unavailable",
     });
-
-    await expect(webSearchService.searchByRequest("find release blockers")).resolves.toEqual({
-      success: false,
-      error: "planner unavailable",
+    searxngSearchMock.mockResolvedValue([
+      {
+        title: "Fallback Result",
+        url: "https://example.com/fallback",
+      },
+    ]);
+    fetchPageMock.mockResolvedValue({
+      title: "Fallback Page",
+      realUrl: "https://example.com/fallback",
+      content: "fallback content",
     });
-    expect(searxngSearchMock).not.toHaveBeenCalled();
-    expect(fetchPageMock).not.toHaveBeenCalled();
+
+    const result = await webSearchService.searchByRequest("find release blockers");
+
+    expect(searxngSearchMock).toHaveBeenCalledWith(
+      "find release blockers",
+      3,
+      expect.objectContaining({ engines: ["google", "bing"] })
+    );
+    expect(fetchPageMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(expect.objectContaining({
+      success: true,
+      source: "searxng",
+      plan: expect.objectContaining({
+        request: "find release blockers",
+        queries: [{ query: "find release blockers", resultCount: 1 }],
+        plannerModel: "single-query",
+      }),
+    }));
   });
 
   it("dedupes planned-query results by normalized url and fetches only missing content", async () => {
@@ -408,6 +434,32 @@ describe("WebSearchService", () => {
       success: false,
       url: "https://example.com/private",
       error: 'search.fetchPageFailed:{"message":"403 forbidden"}',
+    });
+  });
+
+  it("passes reader format through when fetching page content for display", async () => {
+    fetchPageMock.mockResolvedValue({
+      title: "Example",
+      content: "reader content",
+      byline: "Author",
+      siteName: "Example Site",
+    });
+
+    await expect(
+      webSearchService.fetchPageContent("https://example.com/reader", { format: "reader" })
+    ).resolves.toEqual({
+      success: true,
+      url: "https://example.com/reader",
+      title: "Example",
+      content: "reader content",
+      wordCount: 2,
+      byline: "Author",
+      siteName: "Example Site",
+    });
+
+    expect(fetchPageMock).toHaveBeenCalledWith("https://example.com/reader", {
+      abortSignal: undefined,
+      format: "reader",
     });
   });
 });

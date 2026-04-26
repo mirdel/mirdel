@@ -698,12 +698,13 @@ async function aggregateToolsForMode(params: {
   skillId?: string | null;
   webSearch: WebSearchMode;
   citationStartIndex: number;
+  selectedModel: string;
 }): Promise<{
   tools: Record<string, any> | undefined;
   mcpStats: AggregatedToolStat[];
   mcpAggregationTime: number;
 }> {
-  const { sessionId, mode, toolApprovalMode, mcpServerIds, skillId, webSearch, citationStartIndex } = params;
+  const { sessionId, mode, toolApprovalMode, mcpServerIds, skillId, webSearch, citationStartIndex, selectedModel } = params;
   let tools: Record<string, any> | undefined;
   let mcpStats: AggregatedToolStat[] = [];
   const mcpAggregationStartTime = Date.now();
@@ -728,7 +729,8 @@ async function aggregateToolsForMode(params: {
         sessionId,
         toolApprovalMode,
         webSearchProviderId,
-        citationStartIndex
+        citationStartIndex,
+        selectedModel
       });
       tools = result.tools;
       mcpStats = result.stats;
@@ -749,7 +751,8 @@ async function aggregateToolsForMode(params: {
         sessionId,
         toolApprovalMode,
         webSearchProviderId,
-        citationStartIndex
+        citationStartIndex,
+        selectedModel
       });
 
       const filteredTools: Record<string, any> = {};
@@ -1062,7 +1065,8 @@ async function executeChatCore(params: {
     mcpServerIds,
     skillId,
     webSearch: effectiveWebSearch,
-    citationStartIndex
+    citationStartIndex,
+    selectedModel
   });
   let tools = aggregatedTools.tools;
   const mcpStats = aggregatedTools.mcpStats;

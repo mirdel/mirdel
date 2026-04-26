@@ -7,12 +7,15 @@ import { getDb } from '../db';
 import { loggerServiceMain } from '@shared';
 import type { SearchProvider } from './types';
 import { tMain } from '../../i18n';
+import { getDefaultModelByType } from '../settings/settingsData';
 
 const logger = loggerServiceMain.withContext('WebSearchData');
 
 const KEY_WEB_SEARCH_CONFIG = 'webSearch:config';
 const KEY_WEB_SEARCH_PROVIDERS = 'webSearch:providers';
 const KEY_WEB_SEARCH_ACTIVE_PROVIDER = 'webSearch:activeProvider';
+const KEY_AI_SEARCH_CONFIG = 'aiSearch:config';
+const KEY_AI_SEARCH_HISTORY = 'aiSearch:history';
 
 /**
  * 搜索结果处理模式
@@ -61,6 +64,23 @@ export interface WebSearchConfig {
   contentMaxLength: number | null;
 }
 
+export interface AiSearchConfig {
+  /** providerId::modelId，空字符串表示不使用 AI 增强 */
+  model: string;
+  /** AI 多关键词搜索时，每个关键词请求的候选结果数 */
+  perQueryLimit: number;
+  /** 聚合去重后最多返回给智搜页面的结果数 */
+  maxResults: number;
+  /** 前端每批展示的结果数 */
+  pageSize: number;
+}
+
+const DEFAULT_AI_SEARCH_CONFIG: Omit<AiSearchConfig, 'model'> = {
+  perQueryLimit: 20,
+  maxResults: 50,
+  pageSize: 15,
+};
+
 /**
  * 默认配置
  */
@@ -79,6 +99,26 @@ export const DEFAULT_WEB_SEARCH_CONFIG: WebSearchConfig = {
   ragTopN: 8,
   contentMaxLength: 2000,
 };
+
+function resolveDefaultAiSearchModel(): string {
+  const fast = getDefaultModelByType('fast');
+  if (!fast?.providerId || !fast?.modelId) return '';
+  return `${fast.providerId}::${fast.modelId}`;
+}
+
+function normalizeAiSearchConfig(input: unknown): AiSearchConfig {
+  const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const perQueryLimit = Number(source.perQueryLimit ?? DEFAULT_AI_SEARCH_CONFIG.perQueryLimit);
+  const maxResults = Number(source.maxResults ?? DEFAULT_AI_SEARCH_CONFIG.maxResults);
+  const pageSize = Number(source.pageSize ?? DEFAULT_AI_SEARCH_CONFIG.pageSize);
+
+  return {
+    model: typeof source.model === 'string' ? source.model.trim() : resolveDefaultAiSearchModel(),
+    perQueryLimit: Math.max(5, Math.min(50, Number.isFinite(perQueryLimit) ? Math.round(perQueryLimit) : DEFAULT_AI_SEARCH_CONFIG.perQueryLimit)),
+    maxResults: Math.max(20, Math.min(100, Number.isFinite(maxResults) ? Math.round(maxResults) : DEFAULT_AI_SEARCH_CONFIG.maxResults)),
+    pageSize: Math.max(5, Math.min(30, Number.isFinite(pageSize) ? Math.round(pageSize) : DEFAULT_AI_SEARCH_CONFIG.pageSize)),
+  };
+}
 
 function cloneDefaultConfig(): WebSearchConfig {
   return {
@@ -209,6 +249,59 @@ export function setWebSearchConfig(config: Partial<WebSearchConfig>): WebSearchC
   
   logger.info('Web search config saved successfully');
   return merged;
+}
+
+export function getAiSearchConfig(): AiSearchConfig {
+  const db = getDb();
+  const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_AI_SEARCH_CONFIG) as { value: string } | undefined;
+  if (!row?.value) return normalizeAiSearchConfig({});
+  try {
+    return normalizeAiSearchConfig(JSON.parse(row.value));
+  } catch {
+    return normalizeAiSearchConfig({});
+  }
+}
+
+export function setAiSearchConfig(config: Partial<AiSearchConfig>): AiSearchConfig {
+  const db = getDb();
+  const current = getAiSearchConfig();
+  const merged = normalizeAiSearchConfig({ ...current, ...(config || {}) });
+  db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+              ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_AI_SEARCH_CONFIG, JSON.stringify(merged));
+  return merged;
+}
+
+export function listAiSearchHistory(): string[] {
+  const db = getDb();
+  const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_AI_SEARCH_HISTORY) as { value: string } | undefined;
+  if (!row?.value) return [];
+  try {
+    const parsed = JSON.parse(row.value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
+export function addAiSearchHistoryKeyword(keyword: string): string[] {
+  const normalized = keyword.trim().replace(/\s+/g, ' ');
+  if (!normalized) return listAiSearchHistory();
+  const current = listAiSearchHistory();
+  const next = [normalized, ...current.filter((item) => item !== normalized)].slice(0, 50);
+  const db = getDb();
+  db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+              ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_AI_SEARCH_HISTORY, JSON.stringify(next));
+  return next;
+}
+
+export function clearAiSearchHistory(): void {
+  const db = getDb();
+  db.prepare(`DELETE FROM settings WHERE key = ?`).run(KEY_AI_SEARCH_HISTORY);
 }
 
 // ==================== 搜索服务提供者管理 ====================

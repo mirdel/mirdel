@@ -42,7 +42,7 @@ Supports pages that require JavaScript rendering.`,
     execute: async ({ url }, options: { abortSignal?: AbortSignal } = {}) => {
       let result;
       try {
-        result = await raceWithAbort(webSearchService.fetchPageContent(url, options.abortSignal), options.abortSignal);
+        result = await raceWithAbort(webSearchService.fetchPageContent(url, { abortSignal: options.abortSignal }), options.abortSignal);
       } catch (error) {
         if ((error as Error)?.message === 'ABORTED') {
           return {

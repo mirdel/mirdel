@@ -8,7 +8,7 @@
 
 import { searxngEngine } from './engines/SearxngEngine';
 import { createCustomEngine, type CustomSearchResultItem } from './engines/CustomEngine';
-import { fetchPageContent as fetchPage } from './PageFetcher';
+import { fetchPageContent as fetchPage, type PageContentFormat } from './PageFetcher';
 import {
   DEFAULT_WEB_SEARCH_CONFIG,
   getActiveProvider,
@@ -22,7 +22,7 @@ import { destroyPagePool } from './PagePool';
 import { chunkText } from './chunking';
 import { MemoryVectorStore, batchEmbed, RETRIEVAL_TOP_K, MAX_CHUNKS_PER_URL, EMBED_BATCH_SIZE } from './vectorSearch';
 import { getDefaultModelByType, getAppLanguagePreference } from '../settings/settingsData';
-import { embed, embedMany } from 'ai';
+import { embed, embedMany, generateText, type ModelMessage } from 'ai';
 import { getEmbeddingModel } from '../providers/llmProviderFactory';
 import { resolveModelInvocation } from '../providers/modelInvocation';
 import type { 
@@ -82,6 +82,19 @@ type SearchPlanMeta = {
 
 type SearchByRequestResult =
   | (SearchWithContentSuccessResult & { plan: SearchPlanMeta })
+  | { success: false; error: string };
+
+type AiSearchResult =
+  | {
+      success: true;
+      source: string;
+      results: SearchResultItem[];
+      searchDuration: number;
+      duration: number;
+      plan?: SearchPlanMeta;
+      summary?: string | null;
+      aiEnabled: boolean;
+    }
   | { success: false; error: string };
 
 // ==================== Embedding 辅助函数 ====================
@@ -338,16 +351,27 @@ class WebSearchService {
   async searchByRequest(
     request: string,
     providerId?: string,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    plannerModelRef?: string
   ): Promise<SearchByRequestResult> {
     const normalizedRequest = request.trim();
-    const planResult = await generateSearchPlan({ request: normalizedRequest });
+    const planResult = await generateSearchPlan({
+      request: normalizedRequest,
+      modelRefs: plannerModelRef ? [plannerModelRef] : [],
+    });
 
     if (planResult.ok === false) {
-      return {
-        success: false,
+      logger.info('Search plan unavailable, falling back to single query', {
+        request: normalizedRequest,
         error: planResult.error,
-      };
+      });
+      return this.searchWithPlannedQueries({
+        request: normalizedRequest,
+        queries: [normalizedRequest],
+        plannerModel: 'single-query',
+        providerId,
+        abortSignal,
+      });
     }
 
     return this.searchWithPlannedQueries({
@@ -357,6 +381,213 @@ class WebSearchService {
       providerId,
       abortSignal,
     });
+  }
+
+  async aiSearch(params: {
+    query: string;
+    modelRef?: string | null;
+    perQueryLimit?: number;
+    maxResults?: number;
+    abortSignal?: AbortSignal;
+  }): Promise<AiSearchResult> {
+    const query = params.query.trim();
+    if (!query) {
+      return { success: false, error: tMain("common.missingField", { field: "query" }) };
+    }
+
+    const modelRef = typeof params.modelRef === 'string' ? params.modelRef.trim() : '';
+    const perQueryLimit = Math.max(5, Math.min(50, Math.round(params.perQueryLimit ?? 20)));
+    const maxResults = Math.max(20, Math.min(100, Math.round(params.maxResults ?? 50)));
+    const planResult = modelRef
+      ? await generateSearchPlan({
+          request: query,
+          modelRefs: [modelRef],
+          useDefaultFallbacks: false,
+        })
+      : { ok: false as const, error: 'model-not-configured' };
+
+    const aiEnabled = planResult.ok === true;
+    const searchResult = await this.searchPlannedResultsOnly({
+      request: query,
+      queries: aiEnabled ? planResult.data.queries : [query],
+      plannerModel: aiEnabled ? planResult.data.plannerModel : 'single-query',
+      perQueryLimit: aiEnabled ? perQueryLimit : maxResults,
+      maxResults,
+      abortSignal: params.abortSignal,
+    });
+
+    if (searchResult.success === false) return searchResult;
+
+    const summary = aiEnabled
+      ? await this.summarizeSearchSnippets({
+          query,
+          results: searchResult.results,
+          modelRef,
+          abortSignal: params.abortSignal,
+        })
+      : null;
+
+    return {
+      ...searchResult,
+      summary,
+      aiEnabled,
+    };
+  }
+
+  private async searchPlannedResultsOnly(params: {
+    request: string;
+    queries: string[];
+    plannerModel: string;
+    perQueryLimit: number;
+    maxResults: number;
+    abortSignal?: AbortSignal;
+  }): Promise<AiSearchResult> {
+    const { request, queries, plannerModel, perQueryLimit, maxResults } = params;
+    const config = getConfig();
+    const source = 'searxng';
+    const searchStartTime = Date.now();
+
+    const queryResults = await Promise.allSettled(
+      queries.map(async (query): Promise<{ query: string; results: RawPlannedSearchResult[] }> => {
+        const results = await searxngEngine.search(query, perQueryLimit, {
+          language: resolveSearchLanguageByLocale(),
+          timeRange: config.timeRange,
+          safeSearch: config.safeSearch,
+          engines: config.selectedEngines,
+          maxPages: Math.ceil(perQueryLimit / 10),
+        });
+        return { query, results };
+      })
+    );
+
+    const queryStats: SearchPlanQueryStat[] = [];
+    const rawResults: RawPlannedSearchResult[] = [];
+    let firstError: string | null = null;
+
+    for (let index = 0; index < queryResults.length; index += 1) {
+      const settled = queryResults[index];
+      const fallbackQuery = queries[index];
+
+      if (settled.status === 'fulfilled') {
+        queryStats.push({
+          query: settled.value.query,
+          resultCount: settled.value.results.length,
+        });
+        rawResults.push(...settled.value.results);
+        continue;
+      }
+
+      queryStats.push({ query: fallbackQuery, resultCount: 0 });
+      if (!firstError) {
+        firstError = settled.reason instanceof Error ? settled.reason.message : String(settled.reason);
+      }
+    }
+
+    if (rawResults.length === 0) {
+      return {
+        success: false,
+        error: firstError || tMain("search.noResults"),
+      };
+    }
+
+    const uniqueResults = this.dedupeRawResults(rawResults).slice(0, maxResults);
+    if (uniqueResults.length === 0) {
+      return { success: false, error: tMain("search.noResults") };
+    }
+
+    const searchDuration = Date.now() - searchStartTime;
+    return {
+      success: true,
+      source,
+      results: uniqueResults.map((item) => ({
+        title: item.title,
+        url: item.url,
+        ...(item.snippet ? { snippet: item.snippet } : {}),
+      })),
+      searchDuration,
+      duration: Date.now() - searchStartTime,
+      aiEnabled: plannerModel !== 'single-query',
+      plan: {
+        request,
+        queries: queryStats,
+        plannerModel,
+        rawResultCount: rawResults.length,
+        uniqueUrlCount: uniqueResults.length,
+        fetchedCount: 0,
+      },
+    };
+  }
+
+  private async summarizeSearchSnippets(params: {
+    query: string;
+    results: SearchResultItem[];
+    modelRef: string;
+    abortSignal?: AbortSignal;
+  }): Promise<string | null> {
+    const [providerId, modelId] = params.modelRef.split('::');
+    if (!providerId || !modelId) return null;
+
+    let client: ReturnType<typeof resolveModelInvocation>["client"];
+    try {
+      client = resolveModelInvocation({ providerId, modelId }).client;
+    } catch (error) {
+      logger.info('AI search summary model unavailable', {
+        modelRef: params.modelRef,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+
+    const sourceText = params.results
+      .slice(0, 10)
+      .map((item, index) => {
+        const lines = [
+          `[${index + 1}] ${item.title}`,
+          item.url,
+          item.snippet ? `Snippet: ${item.snippet}` : '',
+        ].filter(Boolean);
+        return lines.join('\n');
+      })
+      .join('\n\n');
+
+    if (!sourceText.trim()) return null;
+
+    const messages: ModelMessage[] = [
+      {
+        role: 'system',
+        content: [
+          'You summarize search results for a desktop search view.',
+          'Use the same language as the user query when natural.',
+          'Base the summary only on the provided result titles, URLs, and snippets.',
+          'Do not invent facts that are not present in the search results.',
+          'If the snippets are insufficient, say that the available information is limited.',
+        ].join('\n'),
+      },
+      {
+        role: 'user',
+        content: `User query: ${params.query}\n\nSearch results:\n${sourceText}`,
+      },
+    ];
+
+    try {
+      const { text } = await generateText({
+        model: client(modelId),
+        messages,
+        temperature: 0.2,
+        maxOutputTokens: 800,
+        abortSignal: params.abortSignal,
+        providerOptions: {
+          [providerId]: { think: { type: 'disable' as const } },
+        },
+      });
+      return (text ?? '').trim() || null;
+    } catch (error) {
+      logger.info('AI search summary failed', {
+        modelRef: params.modelRef,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
   }
 
   private async searchWithPlannedQueries(params: {
@@ -1031,7 +1262,11 @@ class WebSearchService {
     const fetchPromises = items.map(async (item): Promise<SearchResultWithContent> => {
       const fetchStartTime = Date.now();
       try {
-        const result = await fetchPage(item.url, fetchTimeout, abortSignal, debugMode);
+        const result = await fetchPage(item.url, {
+          timeout: fetchTimeout,
+          abortSignal,
+          debugMode,
+        });
         const fetchDuration = Date.now() - fetchStartTime;
         
         let content = result.content;
@@ -1132,7 +1367,11 @@ class WebSearchService {
       
       try {
         // 1. 抓取网页
-        const result = await fetchPage(item.url, fetchTimeout, abortSignal, debugMode);
+        const result = await fetchPage(item.url, {
+          timeout: fetchTimeout,
+          abortSignal,
+          debugMode,
+        });
         const fetchDuration = Date.now() - fetchStartTime;
         
         const baseFetchedResult: SearchResultWithContent = {
@@ -1364,13 +1603,22 @@ class WebSearchService {
    * 获取网页内容
    * 使用 PageFetcher 抓取并提取网页主内容
    */
-  async fetchPageContent(url: string, abortSignal?: AbortSignal): Promise<FetchPageResult> {
+  async fetchPageContent(
+    url: string,
+    options: {
+      abortSignal?: AbortSignal;
+      format?: PageContentFormat;
+    } = {}
+  ): Promise<FetchPageResult> {
     logger.info('Fetching page content', { url });
     
     const startTime = Date.now();
     
     try {
-      const result = await fetchPage(url, undefined, abortSignal);
+      const result = await fetchPage(url, {
+        abortSignal: options.abortSignal,
+        format: options.format,
+      });
       
       const wordCount = result.content.split(/\s+/).filter(Boolean).length;
       

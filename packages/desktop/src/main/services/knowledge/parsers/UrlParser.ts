@@ -21,7 +21,7 @@ export async function parseUrl(url: string, timeout: number = DEFAULT_TIMEOUT): 
   content: string;
   realUrl?: string;
 }> {
-  const result = await fetchPageContent(url, timeout);
+  const result = await fetchPageContent(url, { timeout, format: 'llm' });
   
   return {
     title: result.title,

@@ -8,6 +8,8 @@
 export interface SearchResultItem {
   title: string;
   url: string;
+  /** 搜索引擎返回的摘要/片段，不是抓取后的正文 */
+  snippet?: string;
 }
 
 /**
