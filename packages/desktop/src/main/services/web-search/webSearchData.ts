@@ -7,7 +7,6 @@ import { getDb } from '../db';
 import { loggerServiceMain } from '@shared';
 import type { SearchProvider } from './types';
 import { tMain } from '../../i18n';
-import { getDefaultModelByType } from '../settings/settingsData';
 
 const logger = loggerServiceMain.withContext('WebSearchData');
 
@@ -16,6 +15,7 @@ const KEY_WEB_SEARCH_PROVIDERS = 'webSearch:providers';
 const KEY_WEB_SEARCH_ACTIVE_PROVIDER = 'webSearch:activeProvider';
 const KEY_AI_SEARCH_CONFIG = 'aiSearch:config';
 const KEY_AI_SEARCH_HISTORY = 'aiSearch:history';
+const AI_SEARCH_HISTORY_LIMIT = 100;
 
 /**
  * 搜索结果处理模式
@@ -65,7 +65,7 @@ export interface WebSearchConfig {
 }
 
 export interface AiSearchConfig {
-  /** providerId::modelId，空字符串表示不使用 AI 增强 */
+  /** providerId::modelId，__default__ 表示默认通用模型，空字符串表示不使用 AI 增强 */
   model: string;
   /** AI 多关键词搜索时，每个关键词请求的候选结果数 */
   perQueryLimit: number;
@@ -101,9 +101,7 @@ export const DEFAULT_WEB_SEARCH_CONFIG: WebSearchConfig = {
 };
 
 function resolveDefaultAiSearchModel(): string {
-  const fast = getDefaultModelByType('fast');
-  if (!fast?.providerId || !fast?.modelId) return '';
-  return `${fast.providerId}::${fast.modelId}`;
+  return '__default__';
 }
 
 function normalizeAiSearchConfig(input: unknown): AiSearchConfig {
@@ -282,7 +280,7 @@ export function listAiSearchHistory(): string[] {
       .filter((item): item is string => typeof item === 'string')
       .map((item) => item.trim())
       .filter(Boolean)
-      .slice(0, 50);
+      .slice(0, AI_SEARCH_HISTORY_LIMIT);
   } catch {
     return [];
   }
@@ -292,7 +290,17 @@ export function addAiSearchHistoryKeyword(keyword: string): string[] {
   const normalized = keyword.trim().replace(/\s+/g, ' ');
   if (!normalized) return listAiSearchHistory();
   const current = listAiSearchHistory();
-  const next = [normalized, ...current.filter((item) => item !== normalized)].slice(0, 50);
+  const next = [normalized, ...current.filter((item) => item !== normalized)].slice(0, AI_SEARCH_HISTORY_LIMIT);
+  const db = getDb();
+  db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
+              ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_AI_SEARCH_HISTORY, JSON.stringify(next));
+  return next;
+}
+
+export function deleteAiSearchHistoryKeyword(keyword: string): string[] {
+  const normalized = keyword.trim().replace(/\s+/g, ' ');
+  if (!normalized) return listAiSearchHistory();
+  const next = listAiSearchHistory().filter((item) => item !== normalized);
   const db = getDb();
   db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
               ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_AI_SEARCH_HISTORY, JSON.stringify(next));

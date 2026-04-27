@@ -54,6 +54,7 @@ export async function generateSearchPlan(params: {
   timeoutMs?: number;
   modelRefs?: string[];
   useDefaultFallbacks?: boolean;
+  abortSignal?: AbortSignal;
 }): Promise<SearchPlannerResult> {
   const request = (params.request ?? "").trim();
   if (!request) {
@@ -72,6 +73,7 @@ export async function generateSearchPlan(params: {
       timeoutMs: params.timeoutMs,
       providerId: candidate.providerId,
       modelId: candidate.modelId,
+      abortSignal: params.abortSignal,
     });
     if (result.ok) return result;
     if (result.ok === false) {
@@ -104,7 +106,13 @@ function resolvePlannerModelCandidates(params: {
   }
 
   for (const ref of params.modelRefs ?? []) {
-    const [providerId, modelId] = String(ref || "").split("::");
+    const normalizedRef = String(ref || "").trim();
+    if (normalizedRef === "__default__") {
+      const general = getDefaultModelByType("general");
+      add(general?.providerId, general?.modelId);
+      continue;
+    }
+    const [providerId, modelId] = normalizedRef.split("::");
     add(providerId, modelId);
   }
 
@@ -116,6 +124,7 @@ async function generateSearchPlanWithModel(params: {
   providerId: string;
   modelId: string;
   timeoutMs?: number;
+  abortSignal?: AbortSignal;
 }): Promise<SearchPlannerResult> {
   let client: ReturnType<typeof resolveModelInvocation>["client"];
   try {
@@ -141,6 +150,12 @@ ${params.request}
 
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), params.timeoutMs ?? SEARCH_PLANNER_TIMEOUT_MS);
+  const onAbort = () => abort.abort();
+  if (params.abortSignal?.aborted) {
+    abort.abort();
+  } else {
+    params.abortSignal?.addEventListener("abort", onAbort, { once: true });
+  }
 
   try {
     const { text } = await generateText({
@@ -183,5 +198,6 @@ ${params.request}
     return { ok: false, error: tMain("search.plan.failed") };
   } finally {
     clearTimeout(timer);
+    params.abortSignal?.removeEventListener("abort", onAbort);
   }
 }

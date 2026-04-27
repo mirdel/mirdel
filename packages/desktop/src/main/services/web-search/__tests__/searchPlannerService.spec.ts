@@ -107,6 +107,35 @@ describe("searchPlannerService", () => {
     });
   });
 
+  it("resolves explicit default model refs to the default general model", async () => {
+    getDefaultModelByTypeMock.mockImplementation((type: string) => (
+      type === "general"
+        ? { providerId: "mock", modelId: "general-model" }
+        : null
+    ));
+    generateTextMock.mockResolvedValue({
+      text: '{"queries":["AI search default model"]}',
+    });
+
+    await expect(
+      generateSearchPlan({
+        request: "AI search default model",
+        modelRefs: ["__default__"],
+        useDefaultFallbacks: false,
+      })
+    ).resolves.toEqual({
+      ok: true,
+      data: {
+        queries: ["AI search default model"],
+        plannerModel: "mock::general-model",
+      },
+    });
+    expect(resolveModelInvocationMock).toHaveBeenCalledWith({
+      providerId: "mock",
+      modelId: "general-model",
+    });
+  });
+
   it("returns a generic failure when generation or parsing fails", async () => {
     generateTextMock.mockResolvedValue({
       text: '{"queries":[]}',

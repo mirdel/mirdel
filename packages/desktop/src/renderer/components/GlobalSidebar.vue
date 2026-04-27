@@ -1,6 +1,6 @@
 <template>
   <!-- app-drag: 让第一列整体可拖拽窗口；可点击元素需 app-no-drag -->
-  <div class="w-16 h-screen flex flex-col items-center py-3 app-drag">
+  <div class="w-16 h-screen flex flex-col items-center py-1.5 app-drag">
     <!-- 顶部固定区域：traffic lights + Logo -->
     <div class="flex flex-col items-center gap-2 shrink-0">
       <div class="h-7 w-full"></div>

@@ -427,6 +427,61 @@ describe("WebSearchService", () => {
     );
   });
 
+  it("resolves the AI search default model placeholder for summaries", async () => {
+    const clientMock = vi.fn((modelId: string) => ({ modelId }));
+    getDefaultModelByTypeMock.mockImplementation((type: string) => (
+      type === "general"
+        ? { providerId: "mock", modelId: "general-model" }
+        : { providerId: "mock", modelId: "embedding-model" }
+    ));
+    resolveModelInvocationMock.mockReturnValue({
+      providerId: "mock",
+      modelId: "general-model",
+      client: clientMock,
+    });
+    generateSearchPlanMock.mockResolvedValue({
+      ok: true,
+      data: {
+        queries: ["ai search defaults"],
+        plannerModel: "mock::general-model",
+      },
+    });
+    searxngSearchMock.mockResolvedValue([
+      {
+        title: "AI Search Defaults",
+        url: "https://example.com/ai-search",
+        snippet: "Default model summary source",
+      },
+    ]);
+    generateTextMock.mockResolvedValue({ text: "Summary text" });
+
+    const result = await webSearchService.aiSearch({
+      query: "ai search defaults",
+      modelRef: "__default__",
+    });
+
+    expect(generateSearchPlanMock).toHaveBeenCalledWith({
+      request: "ai search defaults",
+      modelRefs: ["__default__"],
+      useDefaultFallbacks: false,
+    });
+    expect(resolveModelInvocationMock).toHaveBeenCalledWith({
+      modelRef: "__default__",
+      defaultModel: { providerId: "mock", modelId: "general-model" },
+    });
+    expect(generateTextMock).toHaveBeenCalledWith(expect.objectContaining({
+      model: { modelId: "general-model" },
+      providerOptions: {
+        mock: { think: { type: "disable" } },
+      },
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      success: true,
+      summary: "Summary text",
+      aiEnabled: true,
+    }));
+  });
+
   it("wraps page fetch failures in a user-facing error", async () => {
     fetchPageMock.mockRejectedValue(new Error("403 forbidden"));
 

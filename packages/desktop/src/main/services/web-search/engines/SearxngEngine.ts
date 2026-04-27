@@ -60,6 +60,27 @@ interface SearxngSearchOptions {
   safeSearch: 0 | 1 | 2;
   engines?: string[];
   maxPages?: number;
+  abortSignal?: AbortSignal;
+}
+
+function createAbortSignalWithTimeout(timeoutMs: number, parentSignal?: AbortSignal): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+
+  if (parentSignal?.aborted) {
+    controller.abort();
+  } else {
+    parentSignal?.addEventListener('abort', onAbort, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      parentSignal?.removeEventListener('abort', onAbort);
+    },
+  };
 }
 
 export class SearxngEngine implements SearchEngine {
@@ -79,6 +100,7 @@ export class SearxngEngine implements SearchEngine {
           .map((item) => item.trim())
           .filter(Boolean)
         : undefined,
+      abortSignal: options?.abortSignal,
     };
 
     const startTime = Date.now();
@@ -89,9 +111,9 @@ export class SearxngEngine implements SearchEngine {
     logger.info('Starting SearXNG search', { query: sanitizedQuery, limit, pagesNeeded });
 
     const pageResults = await Promise.allSettled(
-      Array.from({ length: pagesNeeded }).map((_, index) =>
-        this.searchSinglePage(port, sanitizedQuery, index + 1, searchOptions)
-      )
+	      Array.from({ length: pagesNeeded }).map((_, index) =>
+	        this.searchSinglePage(port, sanitizedQuery, index + 1, searchOptions)
+	      )
     );
 
     const rows: SearxngSearchResult[] = [];
@@ -156,18 +178,23 @@ export class SearxngEngine implements SearchEngine {
     }
     const searchUrl = `http://127.0.0.1:${port}/search?${params.toString()}`;
 
-    const response = await fetch(searchUrl, {
-      method: 'GET',
-      signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
-    });
+    const { signal, cleanup } = createAbortSignalWithTimeout(SEARCH_TIMEOUT_MS, options.abortSignal);
+    try {
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        signal,
+      });
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`SearXNG API request failed: ${response.status} ${response.statusText} ${body}`.trim());
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`SearXNG API request failed: ${response.status} ${response.statusText} ${body}`.trim());
+      }
+
+      const payload = await response.json() as SearxngSearchResponse;
+      return Array.isArray(payload.results) ? payload.results : [];
+    } finally {
+      cleanup();
     }
-
-    const payload = await response.json() as SearxngSearchResponse;
-    return Array.isArray(payload.results) ? payload.results : [];
   }
 
   async listWebSearchEngines(): Promise<BuiltinSearchEngineOption[]> {

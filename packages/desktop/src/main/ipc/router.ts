@@ -169,6 +169,7 @@ import {
   setAiSearchConfig,
   listAiSearchHistory,
   addAiSearchHistoryKeyword,
+  deleteAiSearchHistoryKeyword,
   clearAiSearchHistory,
   type WebSearchConfig 
 } from "../services/web-search/webSearchData";
@@ -312,6 +313,7 @@ const abortControllers = new Map<string, AbortController>();
 const noteAiAbortControllers = new Map<string, AbortController>();
 const ttsAbortControllers = new Map<string, AbortController>();
 const translateAbortControllers = new Map<string, AbortController>();
+const aiSearchAbortControllers = new Map<string, AbortController>();
 
 function clampInt(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -1898,21 +1900,110 @@ export const router = ipcRouter({
     return { ok: true };
   },
 
-  "aiSearch:search": async (_event, input: { query: string; model?: string | null; perQueryLimit?: number; maxResults?: number }) => {
+  "aiSearch:deleteHistory": async (_event, input: { keyword: string }) => {
+    return deleteAiSearchHistoryKeyword(String(input.keyword || ''));
+  },
+
+  "aiSearch:search": async (_event, input: { requestId?: string; query: string; model?: string | null; perQueryLimit?: number; maxResults?: number }) => {
+    const requestId = String(input.requestId || '').trim();
+    const abort = requestId ? new AbortController() : null;
+    if (requestId && abort) {
+      const previous = aiSearchAbortControllers.get(requestId);
+      if (previous) {
+        previous.abort();
+      }
+      aiSearchAbortControllers.set(requestId, abort);
+    }
+
     const query = String(input.query || '').trim();
     if (!query) {
       return { success: false as const, error: tMain("common.missingField", { field: "query" }) };
     }
-    const result = await webSearchService.aiSearch({
-      query,
-      modelRef: input.model,
-      perQueryLimit: input.perQueryLimit,
-      maxResults: input.maxResults,
-    });
-    if (result.success) {
-      addAiSearchHistoryKeyword(query);
+    try {
+      const result = await webSearchService.aiSearchResults({
+        query,
+        modelRef: input.model,
+        perQueryLimit: input.perQueryLimit,
+        maxResults: input.maxResults,
+        abortSignal: abort?.signal,
+      });
+      if (abort?.signal.aborted) {
+        return { success: false as const, error: tMain("common.cancelled"), aborted: true };
+      }
+      if (result.success) {
+        addAiSearchHistoryKeyword(query);
+      }
+      return result;
+    } catch (error) {
+      const aborted = !!abort?.signal.aborted;
+      return {
+        success: false as const,
+        error: aborted ? tMain("common.cancelled") : error instanceof Error ? error.message : String(error),
+        aborted,
+      };
+    } finally {
+      if (requestId) {
+        aiSearchAbortControllers.delete(requestId);
+      }
     }
-    return result;
+  },
+
+  "aiSearch:summarize": async (_event, input: { requestId?: string; query: string; model?: string | null; results?: Array<{ title: string; url: string; snippet?: string }> }) => {
+    const requestId = String(input.requestId || '').trim();
+    const abort = requestId ? new AbortController() : null;
+    if (requestId && abort) {
+      const previous = aiSearchAbortControllers.get(requestId);
+      if (previous) {
+        previous.abort();
+      }
+      aiSearchAbortControllers.set(requestId, abort);
+    }
+
+    try {
+      const query = String(input.query || '').trim();
+      const modelRef = typeof input.model === 'string' ? input.model.trim() : '';
+      const results = Array.isArray(input.results) ? input.results : [];
+      if (!query) {
+        return { success: false as const, error: tMain("common.missingField", { field: "query" }) };
+      }
+      if (!modelRef) {
+        return { success: false as const, error: tMain("common.missingField", { field: "model" }) };
+      }
+      const summary = await webSearchService.summarizeAiSearchSnippets({
+        query,
+        modelRef,
+        results,
+        abortSignal: abort?.signal,
+      });
+      if (abort?.signal.aborted) {
+        return { success: false as const, error: tMain("common.cancelled"), aborted: true };
+      }
+      return { success: true as const, summary };
+    } catch (error) {
+      const aborted = !!abort?.signal.aborted;
+      return {
+        success: false as const,
+        error: aborted ? tMain("common.cancelled") : error instanceof Error ? error.message : String(error),
+        aborted,
+      };
+    } finally {
+      if (requestId) {
+        aiSearchAbortControllers.delete(requestId);
+      }
+    }
+  },
+
+  "aiSearch:abort": async (_event, input: { requestId: string }) => {
+    const requestId = String(input.requestId || '').trim();
+    if (!requestId) {
+      return { ok: false, error: tMain("common.missingField", { field: "requestId" }) };
+    }
+    const abort = aiSearchAbortControllers.get(requestId);
+    if (abort) {
+      abort.abort();
+      aiSearchAbortControllers.delete(requestId);
+    }
+    return { ok: true };
   },
 
   "aiSearch:fetchPage": async (_event, input: { url: string }) => {

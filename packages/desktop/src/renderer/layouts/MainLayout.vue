@@ -8,9 +8,11 @@
     </aside>
 
     <!-- 页面内容区：由各路由页面渲染第二/三列 -->
-    <main class="flex-1 min-w-0 overflow-x-auto py-[6px] pr-[6px]">
-      <div class="h-full min-w-[1024px]">
-        <RouterView />
+    <main class="flex-1 min-w-0 py-[6px] pr-[6px]">
+      <div class="h-full overflow-x-auto rounded-xl">
+        <div class="h-full min-w-[1024px]">
+          <RouterView />
+        </div>
       </div>
     </main>
 

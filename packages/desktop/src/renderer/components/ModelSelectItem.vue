@@ -19,7 +19,7 @@
       :loading="actionLoading"
       :disabled="actionDisabled"
       :class="[
-        'shrink-0 transition-opacity',
+        'shrink-0 transition-opacity scale-90',
         actionLoading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
       ]"
       @click.stop="$emit('actionClick')"
@@ -34,7 +34,7 @@
       variant="ghost"
       color="warning"
       size="xs"
-      class="shrink-0 transition-opacity"
+      class="shrink-0 transition-opacity scale-90"
       :class="isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
       @click.stop="$emit('toggleFavorite')"
     />

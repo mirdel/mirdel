@@ -390,9 +390,38 @@ class WebSearchService {
     maxResults?: number;
     abortSignal?: AbortSignal;
   }): Promise<AiSearchResult> {
+    const searchResult = await this.aiSearchResults(params);
+    if (searchResult.success === false) return searchResult;
+
+    const modelRef = typeof params.modelRef === 'string' ? params.modelRef.trim() : '';
+    const summary = searchResult.aiEnabled
+      ? await this.summarizeAiSearchSnippets({
+          query: params.query.trim(),
+          results: searchResult.results,
+          modelRef,
+          abortSignal: params.abortSignal,
+        })
+      : null;
+
+    return {
+      ...searchResult,
+      summary,
+    };
+  }
+
+  async aiSearchResults(params: {
+    query: string;
+    modelRef?: string | null;
+    perQueryLimit?: number;
+    maxResults?: number;
+    abortSignal?: AbortSignal;
+  }): Promise<AiSearchResult> {
     const query = params.query.trim();
     if (!query) {
       return { success: false, error: tMain("common.missingField", { field: "query" }) };
+    }
+    if (params.abortSignal?.aborted) {
+      return { success: false, error: tMain("common.cancelled") };
     }
 
     const modelRef = typeof params.modelRef === 'string' ? params.modelRef.trim() : '';
@@ -403,8 +432,13 @@ class WebSearchService {
           request: query,
           modelRefs: [modelRef],
           useDefaultFallbacks: false,
+          abortSignal: params.abortSignal,
         })
       : { ok: false as const, error: 'model-not-configured' };
+
+    if (params.abortSignal?.aborted) {
+      return { success: false, error: tMain("common.cancelled") };
+    }
 
     const aiEnabled = planResult.ok === true;
     const searchResult = await this.searchPlannedResultsOnly({
@@ -418,18 +452,9 @@ class WebSearchService {
 
     if (searchResult.success === false) return searchResult;
 
-    const summary = aiEnabled
-      ? await this.summarizeSearchSnippets({
-          query,
-          results: searchResult.results,
-          modelRef,
-          abortSignal: params.abortSignal,
-        })
-      : null;
-
     return {
       ...searchResult,
-      summary,
+      summary: null,
       aiEnabled,
     };
   }
@@ -455,6 +480,7 @@ class WebSearchService {
           safeSearch: config.safeSearch,
           engines: config.selectedEngines,
           maxPages: Math.ceil(perQueryLimit / 10),
+          abortSignal: params.abortSignal,
         });
         return { query, results };
       })
@@ -518,18 +544,23 @@ class WebSearchService {
     };
   }
 
-  private async summarizeSearchSnippets(params: {
+  async summarizeAiSearchSnippets(params: {
     query: string;
     results: SearchResultItem[];
     modelRef: string;
     abortSignal?: AbortSignal;
   }): Promise<string | null> {
-    const [providerId, modelId] = params.modelRef.split('::');
-    if (!providerId || !modelId) return null;
-
     let client: ReturnType<typeof resolveModelInvocation>["client"];
+    let providerId = '';
+    let modelId = '';
     try {
-      client = resolveModelInvocation({ providerId, modelId }).client;
+      const resolved = resolveModelInvocation({
+        modelRef: params.modelRef,
+        defaultModel: params.modelRef === '__default__' ? getDefaultModelByType('general') : undefined,
+      });
+      client = resolved.client;
+      providerId = resolved.providerId;
+      modelId = resolved.modelId;
     } catch (error) {
       logger.info('AI search summary model unavailable', {
         modelRef: params.modelRef,

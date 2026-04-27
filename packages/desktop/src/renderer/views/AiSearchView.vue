@@ -2,25 +2,108 @@
   <div ref="pageRef" class="relative h-full min-h-0 flex flex-col bg-default rounded-xl overflow-hidden">
     <header class="shrink-0 px-12 py-5 border-b border-default">
       <div class="w-full flex items-center gap-4">
-        <UInput
-          v-model="query"
-          class="w-full max-w-3xl"
-          size="xl"
-          icon="i-lucide-search"
-          :placeholder="t('aiSearch.inputPlaceholder')"
-          :loading="loading"
-          enter-key-hint="search"
-          @keydown.enter.prevent="runSearch()"
-        />
+        <div ref="searchBoxRef" class="relative w-full max-w-3xl">
+          <UInput
+            v-model="query"
+            class="w-full"
+            size="xl"
+            icon="i-lucide-search"
+            :placeholder="t('aiSearch.inputPlaceholder')"
+            :loading="loading"
+            enter-key-hint="search"
+            @focus="closeHistoryPanel"
+            @click="closeHistoryPanel"
+            @keydown.enter.prevent="runSearch()"
+          >
+            <template #trailing>
+              <UTooltip :text="t('aiSearch.history')">
+                <UButton
+                  type="button"
+                  icon="i-lucide-history"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  @click.stop="toggleHistoryPanel"
+                />
+              </UTooltip>
+            </template>
+          </UInput>
+
+          <div
+            v-if="historyOpen"
+            class="absolute left-0 right-0 top-full z-30 mt-2 max-h-96 overflow-y-auto rounded-lg border border-default bg-default p-1.5 shadow-lg"
+          >
+            <div class="mb-1 flex items-center justify-between gap-3 px-1.5 py-1">
+              <div class="text-xs text-muted">
+                {{ t('aiSearch.historyCount', { count: history.length }) }}
+              </div>
+              <UButton
+                type="button"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                icon="i-lucide-trash-2"
+                :disabled="history.length === 0"
+                @click="clearHistory"
+              >
+                {{ t('aiSearch.clearHistory') }}
+              </UButton>
+            </div>
+            <div v-if="history.length > 0" class="space-y-0.5">
+              <button
+                v-for="item in history"
+                :key="item"
+                type="button"
+                class="group flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-elevated/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                @click="searchHistory(item)"
+              >
+                <UIcon name="i-lucide-history" class="size-4 shrink-0 text-muted" />
+                <span class="min-w-0 flex-1 truncate text-sm">{{ item }}</span>
+                <span class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <UTooltip :text="t('aiSearch.useHistoryKeyword')">
+                    <UButton
+                      type="button"
+                      icon="i-lucide-corner-down-left"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      square
+                      @click.stop="fillHistoryKeyword(item)"
+                    />
+                  </UTooltip>
+                  <UTooltip :text="t('aiSearch.deleteHistoryKeyword')">
+                    <UButton
+                      type="button"
+                      icon="i-lucide-trash-2"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      square
+                      @click.stop="deleteHistoryKeyword(item)"
+                    />
+                  </UTooltip>
+                </span>
+              </button>
+            </div>
+            <div v-else class="px-3 py-8">
+              <UEmpty
+                icon="i-lucide-history"
+                :title="t('aiSearch.historyEmptyTitle')"
+                :description="t('aiSearch.historyEmptyDescription')"
+                variant="naked"
+              />
+            </div>
+          </div>
+        </div>
         <div class="ml-auto flex shrink-0 items-center gap-2">
           <ModelSelector
             v-model="selectedModel"
             class="shrink-0"
-            :placeholder="t('aiSearch.modelPlaceholder')"
             placement="bottom"
             align="right"
             model-type="chat"
-            :show-default="false"
+            :show-default="true"
             @update:model-value="handleModelChange"
           />
           <UModal
@@ -87,36 +170,12 @@
         </div>
       </div>
 
-      <div v-if="history.length > 0" class="mt-3 w-full max-w-3xl flex items-center gap-2 min-w-0">
-        <span class="text-xs text-muted shrink-0">{{ t('aiSearch.history') }}</span>
-        <div class="flex-1 min-w-0 overflow-hidden">
-          <div class="flex gap-1.5 overflow-x-auto scrollbar-hide">
-            <button
-              v-for="item in history"
-              :key="item"
-              type="button"
-              class="shrink-0 max-w-52 truncate text-xs px-2 py-1 rounded-md border border-default text-muted hover:text-default hover:bg-elevated transition-colors"
-              @click="searchHistory(item)"
-            >
-              {{ item }}
-            </button>
-          </div>
-        </div>
-        <UTooltip :text="t('aiSearch.clearHistory')">
-          <UButton
-            type="button"
-            icon="i-lucide-trash-2"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            square
-            @click="clearHistory"
-          />
-        </UTooltip>
-      </div>
     </header>
 
-    <div class="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)_36%] gap-12 px-12 py-8 overflow-hidden">
+    <div
+      class="flex-1 min-h-0 grid gap-12 px-12 py-8 overflow-hidden"
+      :class="hasResolvedSummaryModel ? 'grid-cols-[minmax(0,1fr)_36%]' : 'grid-cols-1'"
+    >
       <section class="min-w-0 min-h-0 flex flex-col">
         <div ref="resultsScroller" class="flex-1 min-h-0 overflow-y-auto" @scroll="onResultsScroll">
           <div v-if="error" class="py-8">
@@ -128,12 +187,22 @@
             />
           </div>
 
-          <div v-else-if="loading" class="space-y-3">
+          <div v-else-if="loading" class="divide-y divide-default">
             <div
               v-for="index in 6"
               :key="index"
-              class="h-28 rounded-md border border-default bg-elevated/40 animate-pulse"
-            ></div>
+              class="py-4"
+            >
+              <div class="flex items-center gap-1">
+                <div class="size-8 shrink-0 rounded-md bg-elevated animate-pulse"></div>
+                <div class="h-5 flex-1 rounded bg-elevated animate-pulse"></div>
+              </div>
+              <div class="mt-2 h-3 w-1/2 rounded bg-elevated animate-pulse"></div>
+              <div class="mt-3 space-y-2">
+                <div class="h-4 w-full rounded bg-elevated animate-pulse"></div>
+                <div class="h-4 w-3/4 rounded bg-elevated animate-pulse"></div>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="results.length === 0" class="h-full flex items-center justify-center py-8">
@@ -166,12 +235,17 @@
                       @click="readResult(item)"
                     />
                   </UTooltip>
-                  <h3
-                    class="min-w-0 flex-1 truncate text-left text-lg font-medium text-primary hover:underline cursor-pointer"
-                    @click="openInPreview(item.url)"
+                  <a
+                    class="min-w-0 flex-1 truncate text-left text-lg font-medium hover:underline cursor-pointer"
+                    :class="isResultVisited(item.url) ? 'text-muted' : 'text-primary'"
+                    :href="item.url"
+                    target="_blank"
+                    rel="noreferrer"
+                    @pointerdown="markResultVisited(item.url)"
+                    @keydown.enter="markResultVisited(item.url)"
                   >
                     {{ item.title || t('aiSearch.untitled') }}
-                  </h3>
+                  </a>
                 </div>
                 <div class="mt-1 text-xs text-muted truncate">{{ item.url }}</div>
                 <p v-if="item.snippet" class="mt-2 text-sm text-muted leading-6 line-clamp-2">
@@ -195,7 +269,10 @@
         </div>
       </section>
 
-      <aside class="min-w-0 min-h-0 flex flex-col rounded-lg border border-default bg-default shadow-sm overflow-hidden">
+      <aside
+        v-if="hasResolvedSummaryModel"
+        class="min-w-0 min-h-0 flex flex-col rounded-lg border border-default bg-default shadow-sm overflow-hidden"
+      >
         <div class="shrink-0 px-4 py-3 border-b border-default flex items-center justify-between gap-3">
           <div class="flex items-center gap-2 text-sm font-medium">
             <UIcon name="i-lucide-sparkles" class="size-4 text-muted" />
@@ -223,7 +300,7 @@
             </div>
             <MarkdownBlock
               v-else-if="summary"
-              class="text-sm leading-6"
+              class="leading-6"
               :content="summary"
             />
             <UEmpty
@@ -298,8 +375,9 @@
         />
         <MarkdownBlock
           v-else-if="activeReadContent"
-          class="text-sm leading-6"
+          class="leading-6"
           :content="activeReadContent"
+          :base-url="activeReadUrl"
         />
       </div>
     </aside>
@@ -308,62 +386,56 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import MarkdownBlock from "@/components/MarkdownBlock.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
 import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
-import { useMyToast } from "@/composables/useMyToast";
 import { useResizableWidth } from "@/composables/useResizableWidth";
+import { DEFAULT_AI_SEARCH_MODEL, useAiSearchStore, type AiSearchItem } from "@/stores/useAiSearchStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 
-type AiSearchItem = {
-  title: string;
-  url: string;
-  snippet?: string;
-};
-
-type ReadCacheEntry = {
-  title: string;
-  content: string;
-  error: string | null;
-};
-
 const { t } = useI18n();
-const toast = useMyToast();
+const aiSearchStore = useAiSearchStore();
 const settingsStore = useSettingsStore();
-
-const query = ref("");
-const selectedModel = ref("");
-const perQueryLimit = ref(20);
-const maxResults = ref(50);
-const pageSize = ref(15);
-const loading = ref(false);
-const summaryLoading = ref(false);
-const error = ref("");
-const allResults = ref<AiSearchItem[]>([]);
-const visibleCount = ref(15);
-const summary = ref("");
-const history = ref<string[]>([]);
-const planQueries = ref<string[]>([]);
-const aiEnabled = ref(false);
-const hasSearched = ref(false);
-const settingsOpen = ref(false);
-const readerOpen = ref(false);
-const activeReadUrl = ref("");
-const readLoadingUrl = ref("");
-const readCache = ref<Record<string, ReadCacheEntry>>({});
+const {
+  initialized,
+  query,
+  selectedModel,
+  perQueryLimit,
+  maxResults,
+  pageSize,
+  loading,
+  summaryLoading,
+  error,
+  allResults,
+  visibleCount,
+  summary,
+  history,
+  planQueries,
+  aiEnabled,
+  settingsOpen,
+  historyOpen,
+  readerOpen,
+  activeReadUrl,
+  readLoadingUrl,
+  readCache,
+  activeReadContent,
+  activeReadError,
+  activeReadTitle,
+  isAiSummaryDisabled,
+  results,
+  canLoadMore,
+} = storeToRefs(aiSearchStore);
+const { loadVisitedResultUrls, isResultVisited, markResultVisited, resetForSearch } = aiSearchStore;
 const pageRef = ref<HTMLElement | null>(null);
+const searchBoxRef = ref<HTMLElement | null>(null);
 const resultsScroller = ref<HTMLElement | null>(null);
 const pageWidth = ref(0);
-
-const activeReadEntry = computed(() => activeReadUrl.value ? readCache.value[activeReadUrl.value] : undefined);
-const activeReadContent = computed(() => activeReadEntry.value?.content || "");
-const activeReadError = computed(() => activeReadEntry.value?.error || "");
-const activeReadTitle = computed(() => activeReadEntry.value?.title || "");
-const isAiSummaryDisabled = computed(() => !selectedModel.value || (hasSearched.value && !aiEnabled.value));
-const results = computed(() => allResults.value.slice(0, visibleCount.value));
-const canLoadMore = computed(() => visibleCount.value < allResults.value.length);
+const activeAiSearchRequestId = ref("");
 const readerPanelMaxWidth = computed(() => Math.max(520, pageWidth.value ? pageWidth.value - 32 : 1280));
+const resolvedSummaryModelRef = computed(() => resolveAiSearchConcreteModelRef());
+const hasResolvedSummaryModel = computed(() => !!resolvedSummaryModelRef.value);
 const readerPanelResize = useResizableWidth({
   storageKey: "ai-search-reader-panel-width",
   defaultWidth: 920,
@@ -382,18 +454,25 @@ onMounted(async () => {
     pageResizeObserver = new ResizeObserver(updatePageWidth);
     pageResizeObserver.observe(pageRef.value);
   }
-  const config = await window.ipc("aiSearch:getConfig");
-  selectedModel.value = config.model || "";
-  perQueryLimit.value = config.perQueryLimit ?? 20;
-  maxResults.value = config.maxResults ?? 50;
-  pageSize.value = config.pageSize ?? 15;
-  visibleCount.value = pageSize.value;
+  document.addEventListener("pointerdown", handleDocumentPointerDown);
+  if (!initialized.value) {
+    loadVisitedResultUrls();
+    const config = await window.ipc("aiSearch:getConfig");
+    selectedModel.value = typeof config.model === "string" ? config.model : DEFAULT_AI_SEARCH_MODEL;
+    perQueryLimit.value = config.perQueryLimit ?? 20;
+    maxResults.value = config.maxResults ?? 50;
+    pageSize.value = config.pageSize ?? 15;
+    visibleCount.value = pageSize.value;
+    initialized.value = true;
+  }
   history.value = await window.ipc("aiSearch:listHistory");
 });
 
 onUnmounted(() => {
+  void abortActiveAiSearch();
   pageResizeObserver?.disconnect();
   pageResizeObserver = null;
+  document.removeEventListener("pointerdown", handleDocumentPointerDown);
 });
 
 function updatePageWidth() {
@@ -402,46 +481,107 @@ function updatePageWidth() {
 
 async function runSearch(nextQuery?: string) {
   const q = (nextQuery ?? query.value).trim();
-  if (!q || loading.value) return;
+  if (!q) return;
 
-  query.value = q;
-  hasSearched.value = true;
-  loading.value = true;
-  summaryLoading.value = !!selectedModel.value;
-  error.value = "";
-  allResults.value = [];
-  visibleCount.value = pageSize.value;
-  summary.value = "";
-  planQueries.value = [];
-  aiEnabled.value = false;
-  activeReadUrl.value = "";
-  readerOpen.value = false;
+  void abortActiveAiSearch({ clearLocalState: false });
+  const requestId = createAiSearchRequestId();
+  activeAiSearchRequestId.value = requestId;
+  const requestModel = hasResolvedSummaryModel.value ? selectedModel.value : null;
+  resetForSearch(q);
+  summaryLoading.value = !!requestModel;
 
   try {
     await saveAiSearchConfig();
+    if (activeAiSearchRequestId.value !== requestId) return;
     const result = await window.ipc("aiSearch:search", {
+      requestId,
       query: q,
-      model: selectedModel.value || null,
+      model: requestModel,
       perQueryLimit: perQueryLimit.value,
       maxResults: maxResults.value,
     });
+    if (activeAiSearchRequestId.value !== requestId) return;
 
     if (!result.success) {
+      if (result.aborted) return;
       error.value = result.error;
+      summaryLoading.value = false;
+      activeAiSearchRequestId.value = "";
       return;
     }
 
     allResults.value = result.results;
     visibleCount.value = pageSize.value;
-    summary.value = result.summary || "";
+    summary.value = "";
     aiEnabled.value = result.aiEnabled;
     planQueries.value = result.plan?.queries?.map((item) => item.query) ?? [];
-    history.value = await window.ipc("aiSearch:listHistory");
+    loading.value = false;
+    void window.ipc("aiSearch:listHistory").then((items) => {
+      history.value = items;
+    });
+
+    if (result.aiEnabled && requestModel && result.results.length > 0) {
+      void runSearchSummary(requestId, q, requestModel, result.results);
+    } else {
+      summaryLoading.value = false;
+      activeAiSearchRequestId.value = "";
+    }
   } catch (err) {
+    if (activeAiSearchRequestId.value !== requestId) return;
     error.value = err instanceof Error ? err.message : String(err);
+    summaryLoading.value = false;
+    activeAiSearchRequestId.value = "";
   } finally {
+    if (activeAiSearchRequestId.value === requestId) {
+      loading.value = false;
+      if (!summaryLoading.value) {
+        activeAiSearchRequestId.value = "";
+      }
+    }
+  }
+}
+
+function createAiSearchRequestId() {
+  return `ai_search_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function abortActiveAiSearch(options?: { clearLocalState?: boolean }) {
+  const requestId = activeAiSearchRequestId.value;
+  if (!requestId) return;
+  if (options?.clearLocalState !== false) {
+    activeAiSearchRequestId.value = "";
     loading.value = false;
     summaryLoading.value = false;
+  }
+  try {
+    await window.ipc("aiSearch:abort", { requestId });
+  } catch {
+    // Ignore abort errors.
+  }
+}
+
+async function runSearchSummary(requestId: string, q: string, model: string, searchResults: AiSearchItem[]) {
+  try {
+    const result = await window.ipc("aiSearch:summarize", {
+      requestId,
+      query: q,
+      model,
+      results: searchResults,
+    });
+    if (activeAiSearchRequestId.value !== requestId) return;
+    if (result.success) {
+      summary.value = result.summary || "";
+    } else if (!result.aborted) {
+      summary.value = "";
+    }
+  } catch {
+    if (activeAiSearchRequestId.value !== requestId) return;
+    summary.value = "";
+  } finally {
+    if (activeAiSearchRequestId.value === requestId) {
+      summaryLoading.value = false;
+      activeAiSearchRequestId.value = "";
+    }
   }
 }
 
@@ -491,16 +631,66 @@ function handleModelChange(value: string) {
   void saveAiSearchConfig();
 }
 
+function resolveAiSearchConcreteModelRef(): string | null {
+  const model = String(selectedModel.value || "").trim();
+  if (!model) return null;
+
+  const concreteModel = model === DEFAULT_AI_SEARCH_MODEL
+    ? (() => {
+        const defaultModel = settingsStore.defaultModel;
+        if (!defaultModel?.providerId || !defaultModel?.modelId) return null;
+        return `${defaultModel.providerId}::${defaultModel.modelId}`;
+      })()
+    : model;
+
+  if (!concreteModel) return null;
+  const [providerId, modelId] = concreteModel.split("::");
+  if (!providerId || !modelId) return null;
+
+  const provider = settingsStore.enabledProviders.find((item) => item.id === providerId);
+  if (!provider) return null;
+  if (!provider.models.some((item) => item.id === modelId)) return null;
+  if (!settingsStore.isProviderModelSelectable(providerId, modelId)) return null;
+  return concreteModel;
+}
+
+function handleDocumentPointerDown(event: PointerEvent) {
+  const target = event.target;
+  if (target instanceof Node && searchBoxRef.value?.contains(target)) return;
+  historyOpen.value = false;
+}
+
+function toggleHistoryPanel() {
+  historyOpen.value = !historyOpen.value;
+}
+
+function closeHistoryPanel() {
+  historyOpen.value = false;
+}
+
 function searchHistory(item: string) {
+  historyOpen.value = false;
   void runSearch(item);
+}
+
+function fillHistoryKeyword(item: string) {
+  query.value = item;
+  historyOpen.value = false;
+}
+
+async function deleteHistoryKeyword(item: string) {
+  history.value = await window.ipc("aiSearch:deleteHistory", { keyword: item });
+  historyOpen.value = true;
 }
 
 async function clearHistory() {
   await window.ipc("aiSearch:clearHistory");
   history.value = [];
+  historyOpen.value = true;
 }
 
 async function readResult(item: AiSearchItem) {
+  markResultVisited(item.url);
   activeReadUrl.value = item.url;
   readerOpen.value = true;
   if (readCache.value[item.url]?.content || readCache.value[item.url]?.error) return;
@@ -552,11 +742,4 @@ async function readResult(item: AiSearchItem) {
   }
 }
 
-function openInPreview(url: string) {
-  if (!url) {
-    toast.error({ title: t("aiSearch.invalidUrl") });
-    return;
-  }
-  window.webPreview.open(url);
-}
 </script>

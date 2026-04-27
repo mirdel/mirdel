@@ -96,6 +96,10 @@
                   :show-provider="!!scenarioModelInfo?.provider"
                   :show-favorite="false"
                   :capabilities="{}"
+                  show-action
+                  action-icon="i-lucide-settings"
+                  :action-tooltip="t('model.selector.jumpToScenario')"
+                  @action-click="handleScenarioSettings"
                 />
               </div>
               
@@ -116,6 +120,10 @@
                   :show-provider="!!defaultModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
+                  show-action
+                  action-icon="i-lucide-settings"
+                  :action-tooltip="t('model.selector.jumpToDefaultModel')"
+                  @action-click="handleDefaultModelSettings"
                 />
               </div>
               
@@ -136,6 +144,10 @@
                   :show-provider="!!defaultTranslateModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
+                  show-action
+                  action-icon="i-lucide-settings"
+                  :action-tooltip="t('model.selector.jumpToDefaultModel')"
+                  @action-click="handleDefaultModelSettings"
                 />
               </div>
 
@@ -156,6 +168,10 @@
                   :show-provider="!!defaultEmbeddingModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
+                  show-action
+                  action-icon="i-lucide-settings"
+                  :action-tooltip="t('model.selector.jumpToDefaultModel')"
+                  @action-click="handleDefaultModelSettings"
                 />
               </div>
 
@@ -176,6 +192,10 @@
                   :show-provider="!!defaultImageModelInfo.provider"
                   :show-favorite="false"
                   :capabilities="{}"
+                  show-action
+                  action-icon="i-lucide-settings"
+                  :action-tooltip="t('model.selector.jumpToDefaultModel')"
+                  @action-click="handleDefaultModelSettings"
                 />
               </div>
               
@@ -287,6 +307,7 @@ import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import type { LocalModelRuntimeStatus } from '@/stores/useSettingsStore'
 import { DEFAULT_MODEL_PLACEHOLDER, SCENARIO_MODEL_PLACEHOLDER } from '@/stores/useChatStore'
+import emitter from '@/utils/emitter'
 import ModelSelectItem from './ModelSelectItem.vue'
 import ModelLogo from './ModelLogo.vue'
 import ModelUnconfiguredLogo from './ModelUnconfiguredLogo.vue'
@@ -697,6 +718,19 @@ const handleProviderSettings = (providerId: string) => {
     path: '/settings/model-service',
     query: { provider: providerId }
   })
+  isOpen.value = false
+}
+
+// 跳转到默认模型设置
+const handleDefaultModelSettings = () => {
+  router.push('/settings/default-model')
+  isOpen.value = false
+}
+
+// 打开当前场景设置
+const handleScenarioSettings = () => {
+  if (!props.scenarioId) return
+  emitter.emit('scenario:open-detail', props.scenarioId)
   isOpen.value = false
 }
 

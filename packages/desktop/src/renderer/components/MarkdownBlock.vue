@@ -1,11 +1,13 @@
 <template>
-  <Markdown
-    :content="content"
-    caret="block"
-    :mode="mode"
-    :node-renderers="nodeRenderers"
-    :is-dark="isDark"
-  />
+  <div :data-markdown-link-base-url="baseUrl || undefined">
+    <Markdown
+      :content="content"
+      caret="block"
+      :mode="mode"
+      :node-renderers="nodeRenderers"
+      :is-dark="isDark"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -20,6 +22,7 @@ import StreamMarkdownImage from './StreamMarkdownImage.vue'
 const props = defineProps<{
   content: string
   isStreaming?: boolean
+  baseUrl?: string
 }>()
 
 const { isDark } = useAppColorModeState()

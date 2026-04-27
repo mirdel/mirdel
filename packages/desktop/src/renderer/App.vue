@@ -114,15 +114,15 @@ onMounted(async () => {
   }
 });
 
-/**
- * 判断是否为外部链接
- */
-function isExternalUrl(url: string): boolean {
+function resolveExternalUrl(url: string, baseUrl?: string): string | null {
   try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    const parsed = new URL(url, baseUrl);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -131,7 +131,8 @@ function isExternalUrl(url: string): boolean {
  */
 function handleGlobalClick(event: MouseEvent) {
   // 查找点击目标是否为 <a> 标签或其子元素
-  const target = event.target as HTMLElement;
+  const target = event.target;
+  if (!(target instanceof Element)) return;
   const anchor = target.closest("a");
   
   if (!anchor) return;
@@ -142,16 +143,22 @@ function handleGlobalClick(event: MouseEvent) {
   
   const href = anchor.getAttribute("href");
   if (!href) return;
+
+  const markdownContainer = anchor.closest("[data-markdown-link-base-url]");
+  const markdownBaseUrl = markdownContainer instanceof HTMLElement
+    ? markdownContainer.dataset.markdownLinkBaseUrl
+    : undefined;
+  const resolvedUrl = resolveExternalUrl(href, markdownBaseUrl);
   
   // 只拦截外部链接
-  if (!isExternalUrl(href)) return;
+  if (!resolvedUrl) return;
   
   // 阻止默认行为
   event.preventDefault();
   event.stopPropagation();
   
   // 在预览窗口中打开
-  window.webPreview?.open(href);
+  window.webPreview?.open(resolvedUrl);
 }
 
 onMounted(() => {
