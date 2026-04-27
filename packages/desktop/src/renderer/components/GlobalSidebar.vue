@@ -158,7 +158,7 @@ const searchShortcutKbds = computed(() => (isMac ? ["meta", "K"] : ["ctrl", "K"]
 
 const topItems = computed<NavItem[]>(() => [
   { key: "chat", label: t("nav.chat"), icon: "i-lucide-message-square", to: "/chat" },
-  { key: "ai-search", label: t("nav.aiSearch"), icon: "i-mingcute-search-ai-line", to: "/ai-search" },
+  // { key: "ai-search", label: t("nav.aiSearch"), icon: "i-mingcute-search-ai-line", to: "/ai-search" },
   { key: "images", label: t("nav.images"), icon: "i-lucide-image-up", to: "/images" },
   { key: "videos", label: t("nav.videos"), icon: "i-lucide-clapperboard", to: "/videos" },
   { key: "translate", label: t("nav.translate"), icon: "i-lucide-languages", to: "/translate" },
