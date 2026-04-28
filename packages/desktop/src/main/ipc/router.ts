@@ -57,6 +57,12 @@ import {
 import { applyProxySettings } from "../services/network/proxyRuntime";
 import { exportUserDataToZip } from "../services/storage/userDataExport";
 import { runImportUserDataArchiveWithDialog } from "../services/storage/userDataImport";
+import {
+  getRendererStateSnapshot,
+  getRendererStateValue,
+  removeRendererStateValue,
+  setRendererStateValue
+} from "../services/rendererStateData";
 import { searxngServerManager } from "../services/web-search/SearxngServerManager";
 import { applyLaunchAtLoginSetting } from "../services/app/loginItemService";
 import {
@@ -297,6 +303,7 @@ import {
 import {
   spawnAppletProcess,
   registerAppletWindow,
+  registerAppletWebContents,
   getInitialStateSchema,
   dispatchAppletAction,
   closeAppletRun,
@@ -528,7 +535,40 @@ async function resolveMcpServerIdsForRequest(input: {
   });
 }
 
+function broadcastRendererStateChanged(payload: { key: string; value?: unknown; removed?: boolean; updatedAt?: number }) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send("renderer-state:changed", payload);
+    }
+  }
+}
+
 export const router = ipcRouter({
+  // ==================== Renderer state ====================
+  "rendererState:getAll": async () => {
+    return getRendererStateSnapshot();
+  },
+  "rendererState:get": async (_event, input: { key: string }) => {
+    return getRendererStateValue(input.key);
+  },
+  "rendererState:set": async (_event, input: { key: string; value: unknown }) => {
+    const entry = setRendererStateValue(input.key, input.value);
+    broadcastRendererStateChanged({
+      key: entry.key,
+      value: entry.value,
+      updatedAt: entry.updatedAt,
+    });
+    return { ok: true, entry };
+  },
+  "rendererState:remove": async (_event, input: { key: string }) => {
+    const result = removeRendererStateValue(input.key);
+    broadcastRendererStateChanged({
+      key: result.key,
+      removed: true,
+    });
+    return { ok: true, ...result };
+  },
+
   // ==================== Updates ====================
   "updates:getState": async () => {
     return getUpdateState();
@@ -2630,10 +2670,13 @@ export const router = ipcRouter({
   "applet:get": async (_event, input: { id: string }) => getApplet(input.id),
   "applet:create": async (
     _event,
-    input: { name: string; description?: string; logo?: string; entryFile?: string }
+    input: { type?: "applet" | "web"; name: string; description?: string; logo?: string; entryFile?: string; webUrl?: string }
   ) =>
     await createApplet(input),
-  "applet:update": async (_event, input: { id: string; name?: string; description?: string; logo?: string; entryFile?: string }) =>
+  "applet:update": async (
+    _event,
+    input: { id: string; name?: string; description?: string; logo?: string; entryFile?: string; webUrl?: string }
+  ) =>
     await updateApplet(input.id, input),
   "applet:delete": async (_event, input: { id: string }) => {
     const ok = await deleteApplet(input.id);
@@ -2672,9 +2715,28 @@ export const router = ipcRouter({
     const ok = await deleteAppletFile(input.id, input.path);
     return { ok };
   },
+  "applet:workspaceOpen": async (event, input: { appletId: string }) => {
+    const applet = await getApplet(input.appletId);
+    if (!applet) return { ok: false as const, error: tMain("applet.notFound") };
+    if (applet.type === "web") return { ok: true as const, appletId: applet.id };
+    try {
+      const result = await spawnAppletProcess(input.appletId);
+      registerAppletWebContents(result.appletId, event.sender);
+      return { ok: true as const, appletId: result.appletId };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      logger.error("applet:workspaceOpen failed", { appletId: input.appletId, message });
+      return { ok: false as const, error: message };
+    }
+  },
+  "applet:close": async (_event, input: { appletId: string }) => {
+    closeAppletRun(input.appletId);
+    return { ok: true as const };
+  },
   "applet:open": async (_event, input: { appletId: string }) => {
     const applet = await getApplet(input.appletId);
     if (!applet) return { ok: false as const, error: tMain("applet.notFound") };
+    if (applet.type === "web") return { ok: false as const, error: "web applets open in workspace only" };
     try {
       const result = await spawnAppletProcess(input.appletId);
       if (result.alreadyOpen) {

@@ -26,11 +26,18 @@
           >
             <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-elevated flex items-center justify-center">
               <img v-if="r.logo" :src="r.logo" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover" />
-              <UIcon v-else name="i-lucide-layout-grid" class="w-5 h-5 text-muted" />
+              <UIcon v-else :name="r.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="w-5 h-5 text-muted" />
             </div>
             <div class="min-w-0 flex-1 flex flex-col gap-0.5">
               <div class="flex items-center gap-2 min-w-0">
                 <div class="text-sm font-medium truncate">{{ r.name }}</div>
+                <UBadge
+                  :label="t(r.type === 'web' ? 'applet.type.web' : 'applet.type.applet')"
+                  variant="outline"
+                  color="neutral"
+                  size="sm"
+                  class="shrink-0"
+                />
                 <UBadge
                   v-if="r.id.startsWith('__builtin_')"
                   :label="t('applet.builtin')"
@@ -60,14 +67,31 @@
       </div>
     </section>
 
-    <UModal v-model:open="showInfoEditor" :title="editingId ? t('applet.editTitle') : t('applet.createTitle')" :ui="{ footer: 'justify-end' }">
+    <UModal
+      v-model:open="showInfoEditor"
+      :title="editingId ? t('applet.editTitle') : t('applet.createTitle')"
+      :ui="{ footer: 'justify-end' }"
+    >
       <template #body>
         <div class="flex flex-col gap-3">
+          <UFormField v-if="!editingId" :label="t('applet.form.type')" required>
+            <UTabs
+              v-model="form.type"
+              :items="appletTypeTabs"
+              :content="false"
+              color="neutral"
+              variant="pill"
+              class="w-full"
+            />
+          </UFormField>
           <UFormField :label="t('applet.form.name')" required>
             <UInput ref="nameInputRef" v-model.trim="form.name" :placeholder="t('applet.form.namePlaceholder')" class="w-full" />
           </UFormField>
           <UFormField :label="t('applet.form.description')">
             <UInput v-model="form.description" :placeholder="t('applet.form.descriptionPlaceholder')" class="w-full" />
+          </UFormField>
+          <UFormField v-if="form.type === 'web'" :label="t('applet.form.webUrl')" :error="webUrlError" required>
+            <UInput v-model.trim="form.webUrl" :placeholder="t('applet.form.webUrlPlaceholder')" class="w-full" />
           </UFormField>
           <UFormField :label="t('applet.form.logo')" :description="t('applet.form.logoDescription')" :error="logoError">
             <UFileUpload
@@ -81,7 +105,7 @@
                 @click="open()"
               >
                 <img v-if="logoPreviewBase64" :src="logoPreviewBase64" alt="" class="w-full h-full object-cover" />
-                <UIcon v-else name="i-lucide-layout-grid" class="w-6 h-6 text-muted" />
+                <UIcon v-else :name="form.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="w-6 h-6 text-muted" />
                 <button
                   v-if="logoPreviewBase64"
                   type="button"
@@ -97,7 +121,7 @@
       </template>
       <template #footer>
         <UButton variant="outline" color="neutral" @click="showInfoEditor = false">{{ t("common.cancel") }}</UButton>
-        <UButton :disabled="!form.name || !!logoError" @click="saveAppletInfo">{{ t("common.save") }}</UButton>
+        <UButton :disabled="isSaveDisabled()" @click="saveAppletInfo">{{ t("common.save") }}</UButton>
       </template>
     </UModal>
 
@@ -110,25 +134,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from "vue";
+import { computed, ref, onMounted, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { useConfirm } from "@/composables/useConfirm";
 import { useMyToast } from "@/composables/useMyToast";
 import AppletFileEditorModal from "@/components/applet/AppletFileEditorModal.vue";
 import UText from "@/components/UText.vue";
+import { useOpenedAppStore } from "@/stores/useOpenedAppStore";
 
-type Applet = { id: string; name: string; description?: string; entryFile: string; logo?: string; createdAt: number; updatedAt: number };
+type Applet = {
+  id: string;
+  type: "applet" | "web";
+  name: string;
+  description?: string;
+  entryFile: string;
+  webUrl?: string;
+  logo?: string;
+  createdAt: number;
+  updatedAt: number;
+};
 
 const applets = ref<Applet[]>([]);
 const showInfoEditor = ref(false);
 const editingId = ref<string | null>(null);
-const form = ref<{ name: string; description: string }>({
+const form = ref<{ type: "applet" | "web"; name: string; description: string; webUrl: string }>({
+  type: "applet",
   name: "",
   description: "",
+  webUrl: "",
 });
 const logoFile = ref<File | null>(null);
 const logoPreviewBase64 = ref("");
 const logoError = ref<string | undefined>(undefined);
+const webUrlError = ref<string | undefined>(undefined);
 const logoTouched = ref(false);
 const nameInputRef = ref<{ $el?: HTMLElement } | null>(null);
 
@@ -138,9 +177,28 @@ const editingAppletForFiles = ref<Applet | null>(null);
 const { confirm } = useConfirm();
 const toast = useMyToast();
 const { t } = useI18n();
+const router = useRouter();
+const openedAppStore = useOpenedAppStore();
 
 const LOGO_ACCEPTED_TYPES = ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"];
 const LOGO_MAX_SIZE = 1024 * 1024; // 1MB
+const appletTypeTabs = computed(() => [
+  { label: t("applet.type.applet"), icon: "i-lucide-app-window", value: "applet" },
+  { label: t("applet.type.web"), icon: "i-lucide-globe", value: "web" },
+]);
+
+function normalizeWebUrlInput(input: string): string | undefined {
+  const raw = input.trim();
+  if (!raw) return undefined;
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
 
 function validateLogoFile(file: File): string | undefined {
   if (!LOGO_ACCEPTED_TYPES.includes(file.type)) {
@@ -167,6 +225,13 @@ watch(showFileEditor, (open) => {
     editingAppletForFiles.value = null;
   }
 });
+
+watch(
+  () => [form.value.type, form.value.webUrl],
+  () => {
+    webUrlError.value = undefined;
+  }
+);
 
 watch(logoFile, async (next, prev) => {
   if (!next) {
@@ -210,8 +275,9 @@ function openNew() {
   logoFile.value = null;
   logoPreviewBase64.value = "";
   logoError.value = undefined;
+  webUrlError.value = undefined;
   logoTouched.value = false;
-  form.value = { name: "", description: "" };
+  form.value = { type: "applet", name: "", description: "", webUrl: "" };
   showInfoEditor.value = true;
 }
 
@@ -222,12 +288,14 @@ function getMenuItems(r: Applet) {
       icon: "i-lucide-pencil",
       onClick: () => editAppletInfo(r),
     },
-    {
+  ];
+  if (r.type !== "web") {
+    items.push({
       label: t("applet.menu.editCode"),
       icon: "i-lucide-code",
       onClick: () => openFileEditor(r),
-    },
-  ];
+    });
+  }
   if (!r.id.startsWith("__builtin_")) {
     items.push({
       label: t("common.delete"),
@@ -244,14 +312,26 @@ function editAppletInfo(r: Applet) {
   logoFile.value = null;
   logoPreviewBase64.value = r.logo ?? "";
   logoError.value = undefined;
+  webUrlError.value = undefined;
   logoTouched.value = false;
-  form.value = { name: r.name, description: r.description ?? "" };
+  form.value = { type: r.type, name: r.name, description: r.description ?? "", webUrl: r.webUrl ?? "" };
   showInfoEditor.value = true;
+}
+
+function isSaveDisabled() {
+  if (!form.value.name.trim() || logoError.value) return true;
+  if (form.value.type === "web" && !form.value.webUrl.trim()) return true;
+  return false;
 }
 
 async function saveAppletInfo() {
   if (logoError.value) return;
   const name = form.value.name.trim();
+  const webUrl = form.value.type === "web" ? normalizeWebUrlInput(form.value.webUrl) : undefined;
+  if (form.value.type === "web" && !webUrl) {
+    webUrlError.value = t("applet.webUrl.invalid");
+    return;
+  }
   let logo: string | undefined;
   if (logoFile.value) {
     logo = await fileToBase64(logoFile.value);
@@ -262,42 +342,48 @@ async function saveAppletInfo() {
   }
 
   if (editingId.value) {
-    await window.ipc("applet:update", {
+    const updated = await window.ipc("applet:update", {
       id: editingId.value,
       name,
       description: form.value.description || undefined,
       logo,
+      webUrl,
     });
+    if (updated) {
+      openedAppStore.upsertApplet(updated);
+    }
     showInfoEditor.value = false;
     await load();
     return;
   }
 
   const created = await window.ipc("applet:create", {
+    type: form.value.type,
     name,
     description: form.value.description || undefined,
     logo: logoFile.value ? logo : undefined,
     entryFile: "main.tsx",
+    webUrl,
   });
 
   showInfoEditor.value = false;
   await load();
 
-  if (created?.id) {
+  if (created?.id && created.type !== "web") {
     openFileEditor(created as Applet);
   }
 }
 
 function openFileEditor(applet: Applet) {
+  if (applet.type === "web") return;
   editingAppletForFiles.value = applet;
   showFileEditor.value = true;
 }
 
 async function openApplet(id: string) {
-  const res = await window.ipc("applet:open", { appletId: id });
-  if (res?.ok === false && res?.error) {
-    console.error(res.error);
-  }
+  const applet = await openedAppStore.openApplet(id);
+  if (!applet) return;
+  await router.push({ name: "app-workspace", params: { id } });
 }
 
 async function deleteApplet(r: Applet) {
@@ -309,6 +395,7 @@ async function deleteApplet(r: Applet) {
     confirmColor: "error",
   });
   if (!confirmed) return;
+  await openedAppStore.closeApplet(r.id);
   await window.ipc("applet:delete", { id: r.id });
   await load();
 }

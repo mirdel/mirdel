@@ -280,6 +280,12 @@ export function initDb() {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS renderer_state (
+      key TEXT PRIMARY KEY,
+      valueJson TEXT NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );
+
     -- ===== 会话表（支持分支 - 扁平化方案）=====
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,

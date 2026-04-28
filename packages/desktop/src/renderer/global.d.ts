@@ -44,13 +44,38 @@ type TtsStreamEvent =
 type LogLevel = "error" | "warn" | "info" | "debug";
 type UpdateState = Awaited<ReturnType<Router["updates:getState"]>>;
 
+type RendererStateChangedEvent = {
+  key: string;
+  value?: unknown;
+  removed?: boolean;
+  updatedAt?: number;
+};
+
 type ImageInput = {
   src?: string;
   filePath?: string;
   name?: string;
 };
 
+type WebAppBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type WebAppState = {
+  appletId: string;
+  url: string;
+  title?: string;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  isLoading: boolean;
+  loadError: string | null;
+};
+
 type AppletStateSchemaPayload = {
+  appletId?: string;
   state: Record<string, unknown>;
   schema: UINode;
   assetRunId?: string | null;
@@ -68,6 +93,9 @@ declare global {
      * 可直接跳转到 router.ts 的实现
      */
     ipc: ReturnType<typeof createIpcClient<Router>>;
+    rendererState: {
+      onChanged: (handler: (event: RendererStateChangedEvent) => void) => () => void;
+    };
     chat: {
       onStream: (handler: (evt: ChatStreamEvent) => void) => () => void;
       onTemporarySessionsDeleted: (handler: (evt: TemporarySessionsDeletedEvent) => void) => () => void;
@@ -114,14 +142,26 @@ declare global {
       loadURL: (url: string) => void;
       openInBrowser: (url: string) => Promise<{ ok: boolean; error?: string }>;
     };
+    appWebView: {
+      show: (input: { appletId: string; url: string; bounds: WebAppBounds }) => Promise<{ ok: boolean; error?: string }>;
+      setBounds: (input: { appletId: string; bounds: WebAppBounds }) => void;
+      hide: (appletId: string) => void;
+      close: (appletId: string) => void;
+      goBack: (appletId: string) => void;
+      goForward: (appletId: string) => void;
+      reload: (appletId: string) => void;
+      stop: (appletId: string) => void;
+      openInBrowser: (input: { appletId: string; url?: string }) => Promise<{ ok: boolean; error?: string }>;
+      onState: (handler: (state: WebAppState) => void) => () => void;
+    };
     devtoolsPreview: {
       open: (url: string) => void;
     };
     applet: {
       getInitialStateSchema: (appletId: string) => Promise<AppletStateSchemaPayload>;
       onStateSchema: (handler: (payload: AppletStateSchemaPayload) => void) => () => void;
-      onError: (handler: (message: string) => void) => () => void;
-      onToast: (handler: (payload: AppletToastInput) => void) => () => void;
+      onError: (handler: (payload: string | { appletId?: string; message?: string }) => void) => () => void;
+      onToast: (handler: (payload: AppletToastInput | { appletId?: string; input?: AppletToastInput }) => void) => () => void;
       dispatch: (appletId: string, action: unknown) => Promise<{ ok: boolean }>;
     };
   }

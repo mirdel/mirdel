@@ -8,6 +8,7 @@ const NotesView = () => import("@/views/NotesView.vue");
 const SettingsView = () => import("@/views/SettingsView.vue");
 const KnowledgeView = () => import("@/views/KnowledgeView.vue");
 const AppletView = () => import("@/views/AppletView.vue");
+const AppWorkspaceView = () => import("@/views/AppWorkspaceView.vue");
 const TranslateView = () => import("@/views/TranslateView.vue");
 const AiSearchView = () => import("@/views/AiSearchView.vue");
 const ModelServiceSettings = () => import("@/components/settings/ModelServiceSettings.vue");
@@ -42,6 +43,7 @@ export const router = createRouter({
         { path: "knowledge", name: "knowledge", component: KnowledgeView },  // 知识库
         { path: "knowledge/:kbId", name: "knowledge-detail", component: KnowledgeView },  // 知识库详情
         { path: "applet", name: "applet", component: AppletView },  // 轻应用工作台
+        { path: "apps/:id", name: "app-workspace", component: AppWorkspaceView, props: true },  // 应用工作区
         { path: "translate", name: "translate", component: TranslateView },  // 翻译
         { path: "ai-search", name: "ai-search", component: AiSearchView },  // 智搜
         {

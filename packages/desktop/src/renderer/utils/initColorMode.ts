@@ -1,15 +1,16 @@
 import { nextTick } from "vue";
+import { getPersistentValue, initPersistentState } from "@/utils/persistentState";
 
 /**
  * 子窗口主题初始化：读取主窗口的 theme 配置并应用到当前窗口
- * 含 storage 事件监听，主窗口切换 theme 时子窗口实时跟随
  * 与 GlobalSidebar 的 useColorMode 使用相同 storageKey，保持一致
  * 请在子窗口 App 的 onMounted 中调用
  */
 const STORAGE_KEY = "mirdel-color-scheme";
+type StoredTheme = "auto" | "light" | "dark";
 
 function getEffectiveTheme(): "light" | "dark" {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = getPersistentValue<StoredTheme>(STORAGE_KEY, "auto");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   if (stored === "dark") return "dark";
   if (stored === "light") return "light";
@@ -27,7 +28,8 @@ export function applyColorModeFromStorage() {
  */
 export function initColorModeForWindow() {
   nextTick(() => applyColorModeFromStorage());
-  window.addEventListener("storage", (e) => {
-    if (e.key === STORAGE_KEY) applyColorModeFromStorage();
+  void initPersistentState().then(() => applyColorModeFromStorage());
+  window.rendererState?.onChanged?.((event) => {
+    if (event.key === STORAGE_KEY) applyColorModeFromStorage();
   });
 }

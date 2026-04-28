@@ -914,6 +914,7 @@ import {
 } from "@/stores/useNoteAiStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { copyToClipboard } from "@/utils/clipboard";
+import { getPersistentValue, removePersistentValueSoon, setPersistentValueSoon, usePersistentState } from "@/utils/persistentState";
 import { formatFullTime, formatListUpdatedAt, formatMessageTime } from "@/utils/timeFormat";
 import { DEFAULT_COLOR, DEFAULT_ICON } from "@/config/project-icon-config";
 import { isMac } from "@/utils/platformUtils";
@@ -1066,16 +1067,16 @@ function getAiDraftKey(sessionId: string) {
 
 function loadAiDraft(sessionId: string) {
   if (!sessionId) return "";
-  return localStorage.getItem(getAiDraftKey(sessionId)) || "";
+  return getPersistentValue(getAiDraftKey(sessionId), "");
 }
 
 const saveAiDraftDebounced = useDebounceFn((sessionId: string, text: string) => {
   if (!sessionId) return;
   const key = getAiDraftKey(sessionId);
   if (text.trim()) {
-    localStorage.setItem(key, text);
+    setPersistentValueSoon(key, text);
   } else {
-    localStorage.removeItem(key);
+    removePersistentValueSoon(key);
   }
 }, 500);
 
@@ -1083,15 +1084,15 @@ function saveAiDraftImmediate(sessionId: string, text: string) {
   if (!sessionId) return;
   const key = getAiDraftKey(sessionId);
   if (text.trim()) {
-    localStorage.setItem(key, text);
+    setPersistentValueSoon(key, text);
   } else {
-    localStorage.removeItem(key);
+    removePersistentValueSoon(key);
   }
 }
 
 function removeAiDraft(sessionId: string) {
   if (!sessionId) return;
-  localStorage.removeItem(getAiDraftKey(sessionId));
+  removePersistentValueSoon(getAiDraftKey(sessionId));
 }
 
 function getAiSelectionDraftKey(sessionId: string) {
@@ -1100,23 +1101,21 @@ function getAiSelectionDraftKey(sessionId: string) {
 
 function loadAiSelectionDraft(sessionId: string): NoteAiSelectionContext | null {
   if (!sessionId) return null;
-  const saved = localStorage.getItem(getAiSelectionDraftKey(sessionId));
-  if (!saved) return null;
-  try { return JSON.parse(saved); } catch { return null; }
+  return getPersistentValue<NoteAiSelectionContext | null>(getAiSelectionDraftKey(sessionId), null);
 }
 
 function saveAiSelectionDraft(sessionId: string, selection: NoteAiSelectionContext | null) {
   if (!sessionId) return;
   const key = getAiSelectionDraftKey(sessionId);
   if (selection) {
-    localStorage.setItem(key, JSON.stringify(selection));
+    setPersistentValueSoon(key, selection);
   } else {
-    localStorage.removeItem(key);
+    removePersistentValueSoon(key);
   }
 }
 
-const isListPanelCollapsed = ref(localStorage.getItem(LIST_PANEL_COLLAPSE_KEY) === "true");
-const isNotePanelCollapsed = ref(localStorage.getItem(NOTE_PANEL_COLLAPSE_KEY) === "true");
+const isListPanelCollapsed = usePersistentState(LIST_PANEL_COLLAPSE_KEY, false);
+const isNotePanelCollapsed = usePersistentState(NOTE_PANEL_COLLAPSE_KEY, false);
 
 const {
   width: listPanelWidth,
@@ -1172,12 +1171,10 @@ const aiSidebarWidthStyle = aiSidebarResize.widthStyle;
 
 function toggleListPanel() {
   isListPanelCollapsed.value = !isListPanelCollapsed.value;
-  localStorage.setItem(LIST_PANEL_COLLAPSE_KEY, String(isListPanelCollapsed.value));
 }
 
 function toggleNotePanel() {
   isNotePanelCollapsed.value = !isNotePanelCollapsed.value;
-  localStorage.setItem(NOTE_PANEL_COLLAPSE_KEY, String(isNotePanelCollapsed.value));
 }
 
 defineShortcuts({
@@ -2243,7 +2240,7 @@ function getListDisplayColor(listId: string | null) {
 }
 
 function restoreNoteEditorMode(): NoteEditorMode {
-  const raw = localStorage.getItem(NOTE_EDITOR_MODE_KEY);
+  const raw = getPersistentValue(NOTE_EDITOR_MODE_KEY, "visual");
   return raw === "source" ? "source" : "visual";
 }
 
@@ -2723,7 +2720,7 @@ watch(selectedListKey, () => {
 });
 
 watch(editorMode, (mode) => {
-  localStorage.setItem(NOTE_EDITOR_MODE_KEY, mode);
+  setPersistentValueSoon(NOTE_EDITOR_MODE_KEY, mode);
   if (mode !== "visual") {
     pageFindOpen.value = false;
   }

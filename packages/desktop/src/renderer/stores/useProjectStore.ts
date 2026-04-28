@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getPersistentValue, setPersistentValueSoon } from '@/utils/persistentState'
 
 export type Project = {
   id: string
@@ -27,7 +28,7 @@ export const useProjectStore = defineStore('project', () => {
       projects.value = await window.ipc('projects:list')
 
       // 读取上次选择的项目
-      const lastSelected = localStorage.getItem(LAST_SELECTED_PROJECT_KEY)
+      const lastSelected = getPersistentValue<string | null>(LAST_SELECTED_PROJECT_KEY, null)
       if (lastSelected) {
         currentProjectId.value = lastSelected
       } else {
@@ -41,7 +42,7 @@ export const useProjectStore = defineStore('project', () => {
   // 选择项目
   function selectProject(id: string | '__all__' | '__uncategorized__') {
     currentProjectId.value = id
-    localStorage.setItem(LAST_SELECTED_PROJECT_KEY, id)
+    setPersistentValueSoon(LAST_SELECTED_PROJECT_KEY, id)
   }
 
   // 创建项目

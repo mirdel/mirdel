@@ -103,18 +103,19 @@ onMounted(async () => {
       : [];
     applyAppletStyles(payload.assetRunId);
   });
-  unsubError = applet.onError((message: string) => {
-    errorMsg.value = message;
+  unsubError = applet.onError((message) => {
+    errorMsg.value = typeof message === "string" ? message : message.message || "";
   });
   unsubToast = applet.onToast((payload) => {
+    const input = payload && typeof payload === "object" && "input" in payload ? payload.input : payload;
     toast.add({
-      title: payload?.title,
-      description: payload?.description,
-      icon: payload?.icon,
-      color: payload?.color,
-      duration: payload?.duration,
-      close: payload?.close,
-      progress: payload?.progress,
+      title: input?.title,
+      description: input?.description,
+      icon: input?.icon,
+      color: input?.color,
+      duration: input?.duration,
+      close: input?.close,
+      progress: input?.progress,
     });
   });
 

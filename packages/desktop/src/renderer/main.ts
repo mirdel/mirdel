@@ -6,6 +6,7 @@ import { loggerServiceRenderer } from "@shared";
 import App from "@/App.vue";
 import { applyRendererLocalePreference, i18n } from "@/i18n";
 import { router } from "@/router";
+import { initPersistentState } from "@/utils/persistentState";
 import ui from "@nuxt/ui/vue-plugin";
 import { MotionPlugin } from '@vueuse/motion';
 import "@/assets/main.css";
@@ -16,6 +17,7 @@ loggerServiceRenderer.initWindowSource("main");
 const pinia = createPinia();
 
 async function bootstrap() {
+  await initPersistentState();
   await applyRendererLocalePreference();
 
   createApp(App)

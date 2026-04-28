@@ -11,7 +11,11 @@
     <main class="flex-1 min-w-0 py-[6px] pr-[6px]">
       <div class="h-full overflow-x-auto rounded-xl">
         <div class="h-full min-w-[1024px]">
-          <RouterView />
+          <RouterView v-slot="{ Component, route }">
+            <KeepAlive include="AppWorkspaceView">
+              <component :is="Component" :key="route.name === 'app-workspace' ? route.fullPath : route.name || route.fullPath" />
+            </KeepAlive>
+          </RouterView>
         </div>
       </div>
     </main>

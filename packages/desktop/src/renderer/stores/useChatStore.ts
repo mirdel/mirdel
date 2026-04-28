@@ -7,6 +7,7 @@ import { useSettingsStore } from './useSettingsStore'
 import { useMyToast } from '@/composables/useMyToast'
 import { i18n } from '@/i18n'
 import emitter from '@/utils/emitter'
+import { getPersistentValue, setPersistentValueSoon } from '@/utils/persistentState'
 import { parseMessageContent, extractAnswerTextFromContent, extractImagesFromContent, extractNoteContextFromContent, serializeMessageContent, AUTO_GENERATED_IMAGE_PROMPT, upsertQuotePart, upsertKbPart } from '@/utils/messageContentUtils'
 
 const logger = loggerServiceRenderer.withContext('useChatStore')
@@ -377,9 +378,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function loadCompletedUnreadSessionIds(): Set<string> {
     try {
-      const raw = localStorage.getItem(COMPLETED_UNREAD_STORAGE_KEY)
-      if (!raw) return new Set()
-      const parsed = JSON.parse(raw)
+      const parsed = getPersistentValue<unknown>(COMPLETED_UNREAD_STORAGE_KEY, [])
       if (!Array.isArray(parsed)) return new Set()
       return new Set(parsed.filter((id): id is string => typeof id === 'string' && id.length > 0))
     } catch (error) {
@@ -390,7 +389,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function persistCompletedUnreadSessionIds(next: Set<string>) {
     try {
-      localStorage.setItem(COMPLETED_UNREAD_STORAGE_KEY, JSON.stringify([...next]))
+      setPersistentValueSoon(COMPLETED_UNREAD_STORAGE_KEY, [...next])
     } catch (error) {
       logger.warn('persistCompletedUnreadSessionIds failed', { error })
     }

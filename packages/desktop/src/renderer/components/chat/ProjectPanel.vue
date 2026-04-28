@@ -265,6 +265,7 @@ import { useChatStore } from '@/stores/useChatStore'
 import { useConfirm } from '@/composables/useConfirm'
 import { useMyToast } from '@/composables/useMyToast'
 import { useResizableWidth } from '@/composables/useResizableWidth'
+import { usePersistentState } from '@/utils/persistentState'
 import { DEFAULT_COLOR, DEFAULT_ICON } from '@/config/project-icon-config'
 import { buildProjectSessionStats } from './sessionCategoryViewModel'
 import ProjectFormModal from './ProjectFormModal.vue'
@@ -291,9 +292,7 @@ const { t } = useI18n()
 
 // 收起/展开状态
 const COLLAPSE_KEY = 'project-panel-collapsed'
-const isCollapsed = ref(
-  localStorage.getItem(COLLAPSE_KEY) === 'true'
-)
+const isCollapsed = usePersistentState(COLLAPSE_KEY, false)
 
 const {
   width,
@@ -319,7 +318,6 @@ const {
 
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
-  localStorage.setItem(COLLAPSE_KEY, String(isCollapsed.value))
 }
 
 const showCreateModal = ref(false)

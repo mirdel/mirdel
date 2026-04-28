@@ -28,6 +28,38 @@
           <UIcon :name="item.icon" class="text-md" />
           <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
         </div>
+
+        <div v-if="openedAppStore.openedApplets.length > 0" class="w-8 h-px my-2 bg-neutral-400/40 shrink-0"></div>
+
+        <div
+          v-for="applet in openedAppStore.openedApplets"
+          :key="applet.id"
+          class="group relative flex flex-col items-center justify-center gap-0.5 w-14 h-11 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
+          :class="isActiveApplet(applet.id) ? 'bg-neutral-500' : 'hover:bg-neutral-500/70'"
+          @click="openApplet(applet.id)"
+        >
+          <div class="size-4 overflow-hidden flex items-center justify-center">
+            <img
+              v-if="applet.logo"
+              :src="applet.logo"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              class="size-full rounded-sm object-cover"
+            />
+            <UIcon v-else :name="applet.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="text-md" />
+          </div>
+          <span class="max-w-12 truncate text-center text-[11px] font-medium mt-0.5 leading-none">{{ applet.name }}</span>
+          <UTooltip :text="t('nav.closeApplet', { name: applet.name })" :content="{ side: 'right' }">
+            <button
+              type="button"
+              class="absolute top-0.5 right-0.5 size-4 rounded-full bg-neutral-500/95 text-neutral-50 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-neutral-400"
+              @click.stop="closeOpenedApplet(applet.id)"
+            >
+              <UIcon name="i-lucide-x" class="mx-auto size-3" />
+            </button>
+          </UTooltip>
+        </div>
       </div>
     </div>
 
@@ -81,11 +113,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAppColorModeState } from "@/composables/useAppColorModeState";
 import { useRouteMemory } from "@/composables/useRouteMemory";
+import { useOpenedAppStore } from "@/stores/useOpenedAppStore";
 import { useUpdateStore } from "@/stores/useUpdateStore";
 import mirdelLogoSvgRaw from "@/assets/mirdel.svg?raw";
 
@@ -153,6 +186,7 @@ type NavItem = {
 const route = useRoute();
 const router = useRouter();
 const { resolve } = useRouteMemory();
+const openedAppStore = useOpenedAppStore();
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 const searchShortcutKbds = computed(() => (isMac ? ["meta", "K"] : ["ctrl", "K"]));
 
@@ -176,10 +210,28 @@ const isActive = (to?: string) => {
   return route.path === to || route.path.startsWith(`${to}/`);
 };
 
+const isActiveApplet = (appletId: string) => route.name === "app-workspace" && route.params.id === appletId;
+
 const onClick = async (item: NavItem) => {
   if (item.disabled || !item.to) return;
   const target = resolve(item.to);
   if (route.path === target) return;
   await router.push(target);
 };
+
+async function openApplet(appletId: string) {
+  await router.push({ name: "app-workspace", params: { id: appletId } });
+}
+
+async function closeOpenedApplet(appletId: string) {
+  const wasActive = isActiveApplet(appletId);
+  await openedAppStore.closeApplet(appletId);
+  if (wasActive) {
+    await router.push({ name: "applet" });
+  }
+}
+
+onMounted(() => {
+  void openedAppStore.restoreOpenedApplets();
+});
 </script>

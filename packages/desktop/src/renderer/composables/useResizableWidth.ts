@@ -1,5 +1,6 @@
-import { computed, onScopeDispose, ref, toValue, type CSSProperties, type MaybeRefOrGetter } from 'vue'
-import { useEventListener, useStorage } from '@vueuse/core'
+import { computed, onScopeDispose, ref, toValue, watch, type CSSProperties, type MaybeRefOrGetter } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { usePersistentState } from '@/utils/persistentState'
 
 type ResizeSide = 'left' | 'right'
 
@@ -33,7 +34,8 @@ function getDirectionalCursor(side: ResizeSide, direction: 'increase' | 'decreas
 }
 
 export function useResizableWidth(options: UseResizableWidthOptions) {
-  const storedWidth = useStorage(options.storageKey, options.defaultWidth)
+  const storedWidth = usePersistentState(options.storageKey, options.defaultWidth)
+  const draftWidth = ref(toFiniteNumber(storedWidth.value, options.defaultWidth))
   const isDragging = ref(false)
   const side = options.side ?? 'right'
   const step = options.step ?? 16
@@ -47,10 +49,14 @@ export function useResizableWidth(options: UseResizableWidthOptions) {
 
   const width = computed({
     get() {
-      return clamp(toFiniteNumber(storedWidth.value, options.defaultWidth), minWidth.value, maxWidth.value)
+      return clamp(toFiniteNumber(draftWidth.value, options.defaultWidth), minWidth.value, maxWidth.value)
     },
     set(value: number) {
-      storedWidth.value = clamp(value, minWidth.value, maxWidth.value)
+      const nextWidth = clamp(value, minWidth.value, maxWidth.value)
+      draftWidth.value = nextWidth
+      if (!isDragging.value) {
+        storedWidth.value = nextWidth
+      }
     }
   })
 
@@ -84,6 +90,10 @@ export function useResizableWidth(options: UseResizableWidthOptions) {
     width.value = options.defaultWidth
   }
 
+  function commitWidth() {
+    storedWidth.value = width.value
+  }
+
   function startResize(event: PointerEvent) {
     if (disabled.value || event.button !== 0) return
 
@@ -105,6 +115,7 @@ export function useResizableWidth(options: UseResizableWidthOptions) {
     let stopCancel: (() => void) | null = null
 
     const stopResize = () => {
+      commitWidth()
       isDragging.value = false
       document.body.style.cursor = previousCursor
       document.body.style.userSelect = previousUserSelect
@@ -126,6 +137,11 @@ export function useResizableWidth(options: UseResizableWidthOptions) {
     stopUp = useEventListener(document, 'pointerup', stopResize, { once: true })
     stopCancel = useEventListener(document, 'pointercancel', stopResize, { once: true })
   }
+
+  watch(storedWidth, (value) => {
+    if (isDragging.value) return
+    draftWidth.value = toFiniteNumber(value, options.defaultWidth)
+  })
 
   onScopeDispose(() => {
     stopActiveResize?.()

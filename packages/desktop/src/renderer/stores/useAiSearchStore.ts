@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { getPersistentValue, setPersistentValueSoon } from "@/utils/persistentState";
 
 export type AiSearchItem = {
   title: string;
@@ -52,8 +53,7 @@ export const useAiSearchStore = defineStore("aiSearch", () => {
 
   function loadVisitedResultUrls() {
     try {
-      const raw = localStorage.getItem(AI_SEARCH_VISITED_RESULTS_KEY);
-      const urls = raw ? JSON.parse(raw) : [];
+      const urls = getPersistentValue<unknown>(AI_SEARCH_VISITED_RESULTS_KEY, []);
       if (!Array.isArray(urls)) return;
       visitedResultUrls.value = Object.fromEntries(
         urls
@@ -68,10 +68,7 @@ export const useAiSearchStore = defineStore("aiSearch", () => {
 
   function persistVisitedResultUrls() {
     try {
-      localStorage.setItem(
-        AI_SEARCH_VISITED_RESULTS_KEY,
-        JSON.stringify(Object.keys(visitedResultUrls.value).slice(-MAX_VISITED_RESULT_URLS))
-      );
+      setPersistentValueSoon(AI_SEARCH_VISITED_RESULTS_KEY, Object.keys(visitedResultUrls.value).slice(-MAX_VISITED_RESULT_URLS));
     } catch {
       // Ignore storage failures.
     }

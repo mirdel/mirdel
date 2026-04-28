@@ -5,7 +5,7 @@ import { fork, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { clipboard, dialog, shell } from "electron";
-import type { BrowserWindow, OpenDialogOptions, SaveDialogOptions } from "electron";
+import type { BrowserWindow, OpenDialogOptions, SaveDialogOptions, WebContents } from "electron";
 import { loggerServiceMain } from "@shared";
 import { getApplet } from "./appletData";
 import { appletLlmGenerateText, appletLlmStreamText } from "./appletLlmService";
@@ -25,6 +25,7 @@ import type { AppletSearchResult, AppletModelOption } from "@mirdel/applet-core"
 const logger = loggerServiceMain.withContext("appletProcess");
 
 type StateSchemaPayload = {
+  appletId: string;
   state: Record<string, unknown>;
   schema: unknown;
   assetRunId?: string | null;
@@ -34,6 +35,7 @@ type StateSchemaPayload = {
 type RunEntry = {
   appletId: string;
   win: BrowserWindow | null;
+  subscribers: Set<WebContents>;
   child: ChildProcess;
   runtimeFile: string;
   cleanupPaths: string[];
@@ -47,7 +49,7 @@ type RunEntry = {
   } | null;
   /** 初始化阶段错误（ready 前发生），用于兜底给 getInitialStateSchema 返回失败 */
   initialError: string | null;
-  /** 缓存首次 ready 的 state/schema，供刷新后恢复初始状态（刷新=丢弃当前 state） */
+  /** 缓存当前最新 state/schema，供主工作区切换回来恢复状态 */
   initialStateSchema: StateSchemaPayload | null;
 };
 
@@ -55,6 +57,20 @@ const runByAppletId = new Map<string, RunEntry>();
 const appletIdByChild = new Map<ChildProcess, string>();
 const appletAssetRootByRunId = new Map<string, string>();
 const INITIAL_STATE_SCHEMA_TIMEOUT_MS = 15000;
+
+function sendToAppletRenderers(run: RunEntry, channel: string, payload: unknown): void {
+  if (run.win && !run.win.isDestroyed()) {
+    run.win.webContents.send(channel, payload);
+  }
+
+  for (const webContents of [...run.subscribers]) {
+    if (webContents.isDestroyed()) {
+      run.subscribers.delete(webContents);
+      continue;
+    }
+    webContents.send(channel, payload);
+  }
+}
 
 function normalizeModalities(modalities: unknown): string[] | undefined {
   if (!Array.isArray(modalities)) return undefined;
@@ -154,6 +170,9 @@ async function spawnAppletProcessWithEntry(input: {
       existing.win.focus();
       return { alreadyOpen: true, appletId };
     }
+    if (existing.child.connected) {
+      return { alreadyOpen: true, appletId };
+    }
     closeAppletRun(appletId); /* 清理无窗口的残留 */
   }
 
@@ -173,6 +192,7 @@ async function spawnAppletProcessWithEntry(input: {
   const entry: RunEntry = {
     appletId,
     win: null,
+    subscribers: new Set(),
     child,
     runtimeFile,
     cleanupPaths,
@@ -193,12 +213,13 @@ async function spawnAppletProcessWithEntry(input: {
     if (!run) return;
     if (msg.type === "ready") {
       const payload: StateSchemaPayload = {
+        appletId: aid,
         state: msg.state,
         schema: msg.schema,
         assetRunId: run.appletAssetRunId,
         streamingPaths: Array.isArray(msg.streamingPaths) ? msg.streamingPaths.map((item: unknown) => String(item)) : [],
       };
-      if (!run.initialStateSchema) run.initialStateSchema = payload; /* 仅首次设置，刷新时恢复 */
+      run.initialStateSchema = payload;
       run.initialError = null;
       run.pendingStateSchema = payload;
       if (run.pendingInitialRequest) {
@@ -207,9 +228,7 @@ async function spawnAppletProcessWithEntry(input: {
         pending.resolve(payload);
         run.pendingInitialRequest = null;
       }
-      if (run.win && !run.win.isDestroyed()) {
-        run.win.webContents.send("applet:state-schema", payload);
-      }
+      sendToAppletRenderers(run, "applet:state-schema", payload);
       return;
     }
     if (msg.type === "search:query") {
@@ -450,9 +469,7 @@ async function spawnAppletProcessWithEntry(input: {
       return;
     }
     if (msg.type === "toast:show") {
-      if (run.win && !run.win.isDestroyed()) {
-        run.win.webContents.send("applet:toast", msg.input);
-      }
+      sendToAppletRenderers(run, "applet:toast", { appletId: aid, input: msg.input });
       return;
     }
     if (msg.type === "llm:generateText") {
@@ -504,14 +521,14 @@ async function spawnAppletProcessWithEntry(input: {
     }
     if (msg.type === "state-schema") {
       const payload: StateSchemaPayload = {
+        appletId: aid,
         state: msg.state,
         schema: msg.schema,
         assetRunId: run.appletAssetRunId,
         streamingPaths: Array.isArray(msg.streamingPaths) ? msg.streamingPaths.map((item: unknown) => String(item)) : [],
       };
-      if (run.win && !run.win.isDestroyed()) {
-        run.win.webContents.send("applet:state-schema", payload);
-      }
+      run.initialStateSchema = payload;
+      sendToAppletRenderers(run, "applet:state-schema", payload);
       return;
     }
     if (msg.type === "error") {
@@ -522,9 +539,7 @@ async function spawnAppletProcessWithEntry(input: {
         pending.reject(new Error(msg.message));
         run.pendingInitialRequest = null;
       }
-      if (run.win && !run.win.isDestroyed()) {
-        run.win.webContents.send("applet:error", msg.message);
-      }
+      sendToAppletRenderers(run, "applet:error", { appletId: aid, message: msg.message });
       return;
     }
   });
@@ -558,6 +573,7 @@ export async function spawnAppletProcess(appletId: string): Promise<
 > {
   const applet = await getApplet(appletId);
   if (!applet) throw new Error(`轻应用不存在: ${appletId}`);
+  if (applet.type === "web") throw new Error("web applet does not use applet runtime");
   const build = await buildAppletSource(appletId, applet.entryFile);
   return spawnAppletProcessWithEntry({
     appletId,
@@ -575,10 +591,19 @@ export function registerAppletWindow(appletId: string, win: BrowserWindow): void
   run.win = win;
 }
 
+export function registerAppletWebContents(appletId: string, webContents: WebContents): void {
+  const run = runByAppletId.get(appletId);
+  if (!run) return;
+  run.subscribers.add(webContents);
+  webContents.once("destroyed", () => {
+    run.subscribers.delete(webContents);
+  });
+}
+
 /**
  * 渲染端就绪后主动拉取首帧，避免推送时序竞争（ready 可能在监听注册前就发出）。
  * 若 ready 已到则立即返回；否则返回 Promise，在收到 ready 时 resolve。
- * 刷新后返回 initialStateSchema（首次 ready 的快照），并通知子进程重置 state，实现「刷新=丢弃当前 state」。
+ * 再次进入时返回当前最新快照，保证主工作区切换回来不重新加载。
  */
 export function getInitialStateSchema(appletId: string): Promise<StateSchemaPayload> {
   const run = runByAppletId.get(appletId);
@@ -590,7 +615,6 @@ export function getInitialStateSchema(appletId: string): Promise<StateSchemaPayl
     return Promise.resolve(payload);
   }
   if (run.initialStateSchema) {
-    if (run.child.connected) run.child.send({ type: "reload" }); /* 子进程重置 state，与渲染端同步 */
     return Promise.resolve(run.initialStateSchema);
   }
   if (run.initialError) {

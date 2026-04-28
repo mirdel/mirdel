@@ -242,6 +242,7 @@ import { useMyToast } from '@/composables/useMyToast'
 import { useSessionDelete } from '@/composables/useSessionDelete'
 import { useResizableWidth } from '@/composables/useResizableWidth'
 import { formatCompactListUpdatedAt } from '@/utils/timeFormat'
+import { usePersistentState } from '@/utils/persistentState'
 import { useRouter } from 'vue-router'
 import { DEFAULT_COLOR } from '@/config/project-icon-config'
 import { buildSessionTree } from './sessionCategoryViewModel'
@@ -261,9 +262,7 @@ const hasAppliedDefaultExpand = ref(false)
 
 // 收起/展开状态
 const COLLAPSE_KEY = 'session-list-collapsed'
-const isCollapsed = ref(
-  localStorage.getItem(COLLAPSE_KEY) === 'true'
-)
+const isCollapsed = usePersistentState(COLLAPSE_KEY, false)
 
 const {
   width,
@@ -288,7 +287,6 @@ const {
 
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
-  localStorage.setItem(COLLAPSE_KEY, String(isCollapsed.value))
 }
 
 defineShortcuts({

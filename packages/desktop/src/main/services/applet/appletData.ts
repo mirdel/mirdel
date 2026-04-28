@@ -14,11 +14,15 @@ import {
   resolvePathUnderAppletRoot,
 } from "./appletPaths";
 
+export type AppletType = "applet" | "web";
+
 export type Applet = {
   id: string;
+  type: AppletType;
   name: string;
   description?: string;
   entryFile: string;
+  webUrl?: string;
   logo?: string;
   windowWidth?: number;
   windowHeight?: number;
@@ -33,9 +37,11 @@ export type AppletFsEntry = {
 
 type AppletManifest = {
   id: string;
+  type?: AppletType;
   name: string;
   description?: string;
   entryFile: string;
+  webUrl?: string;
   logo?: string;
   createdAt: number;
   updatedAt: number;
@@ -206,6 +212,23 @@ function normalizeAppletEntryFile(input: string | undefined): string {
   return normalized;
 }
 
+function normalizeAppletType(input: unknown): AppletType {
+  return input === "web" ? "web" : "applet";
+}
+
+function normalizeWebUrl(input: unknown): string | undefined {
+  const raw = typeof input === "string" ? input.trim() : "";
+  if (!raw) return undefined;
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
 function getBlankMainSource(): string {
   return `import { defineApplet, type ActionOf } from "@mirdel/applet-core";
 
@@ -252,18 +275,25 @@ function normalizeAppletManifest(raw: unknown): AppletManifest | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
   const id = typeof obj.id === "string" ? obj.id.trim() : "";
+  const type = normalizeAppletType(obj.type);
   const name = typeof obj.name === "string" ? obj.name : "";
-  const entryFile = normalizeAppletEntryFile(typeof obj.entryFile === "string" ? obj.entryFile : APPLET_DEFAULT_ENTRY_FILE);
+  const entryFile = type === "applet"
+    ? normalizeAppletEntryFile(typeof obj.entryFile === "string" ? obj.entryFile : APPLET_DEFAULT_ENTRY_FILE)
+    : APPLET_DEFAULT_ENTRY_FILE;
+  const webUrl = type === "web" ? normalizeWebUrl(obj.webUrl) : undefined;
   if (!id || !name) return null;
+  if (type === "web" && !webUrl) return null;
   const description = typeof obj.description === "string" ? obj.description : undefined;
   const logo = typeof obj.logo === "string" ? obj.logo.trim() || undefined : undefined;
   const createdAt = Number.isFinite(Number(obj.createdAt)) ? Math.round(Number(obj.createdAt)) : Date.now();
   const updatedAt = Number.isFinite(Number(obj.updatedAt)) ? Math.round(Number(obj.updatedAt)) : createdAt;
   return {
     id,
+    type,
     name,
     description,
     entryFile,
+    webUrl,
     logo,
     createdAt,
     updatedAt,
@@ -273,9 +303,11 @@ function normalizeAppletManifest(raw: unknown): AppletManifest | null {
 function manifestToApplet(manifest: AppletManifest, localState?: AppletLocalState): Applet {
   return {
     id: manifest.id,
+    type: manifest.type ?? "applet",
     name: manifest.name,
     description: manifest.description,
     entryFile: manifest.entryFile,
+    webUrl: manifest.webUrl,
     logo: toAppletLogoUrl(manifest.id, manifest.logo),
     windowWidth: localState?.windowWidth,
     windowHeight: localState?.windowHeight,
@@ -309,9 +341,11 @@ async function readAppletManifest(appletId: string): Promise<AppletManifest | nu
 async function writeAppletManifest(manifest: AppletManifest): Promise<void> {
   await writeJsonFile(getAppletManifestPath(manifest.id), {
     id: manifest.id,
+    type: manifest.type ?? "applet",
     name: manifest.name,
     description: manifest.description,
     entryFile: manifest.entryFile,
+    webUrl: manifest.webUrl,
     logo: manifest.logo,
     createdAt: manifest.createdAt,
     updatedAt: manifest.updatedAt,
@@ -450,21 +484,30 @@ export async function getApplet(id: string): Promise<Applet | null> {
 }
 
 export async function createApplet(input: {
+  type?: AppletType;
   name: string;
   description?: string;
   logo?: string;
   entryFile?: string;
+  webUrl?: string;
 }): Promise<Applet> {
   const id = nanoid();
   const now = Date.now();
-  const entryFile = normalizeAppletEntryFile(input.entryFile);
-  await ensureAppletSourceInitialized(id, entryFile);
+  const type = input.type === "web" ? "web" : "applet";
+  const entryFile = type === "applet" ? normalizeAppletEntryFile(input.entryFile) : APPLET_DEFAULT_ENTRY_FILE;
+  const webUrl = type === "web" ? normalizeWebUrl(input.webUrl) : undefined;
+  if (type === "web" && !webUrl) throw new Error("invalid web app url");
+  if (type === "applet") {
+    await ensureAppletSourceInitialized(id, entryFile);
+  }
   const persistedLogo = input.logo !== undefined ? await persistAppletLogo(id, input.logo) : undefined;
   const manifest: AppletManifest = {
     id,
+    type,
     name: input.name,
     description: input.description,
     entryFile,
+    webUrl,
     logo: persistedLogo,
     createdAt: now,
     updatedAt: now,
@@ -475,22 +518,27 @@ export async function createApplet(input: {
 
 export async function updateApplet(
   id: string,
-  updates: { name?: string; description?: string; logo?: string; entryFile?: string }
+  updates: { name?: string; description?: string; logo?: string; entryFile?: string; webUrl?: string }
 ): Promise<Applet | null> {
   const existing = await readAppletManifest(id);
   if (!existing) return null;
   const now = Date.now();
   const persistedLogo = updates.logo !== undefined ? await persistAppletLogo(id, updates.logo) : existing.logo;
-  const entryFile = updates.entryFile ? normalizeAppletEntryFile(updates.entryFile) : existing.entryFile;
-  if (entryFile !== existing.entryFile) {
+  const type = existing.type ?? "applet";
+  const entryFile = type === "applet" && updates.entryFile ? normalizeAppletEntryFile(updates.entryFile) : existing.entryFile;
+  const webUrl = type === "web" && updates.webUrl !== undefined ? normalizeWebUrl(updates.webUrl) : existing.webUrl;
+  if (type === "web" && !webUrl) throw new Error("invalid web app url");
+  if (type === "applet" && entryFile !== existing.entryFile) {
     await ensureAppletSourceInitialized(id, entryFile);
   }
 
   const nextManifest: AppletManifest = {
     id,
+    type,
     name: updates.name ?? existing.name,
     description: updates.description !== undefined ? updates.description : existing.description,
     entryFile,
+    webUrl,
     logo: persistedLogo,
     createdAt: existing.createdAt,
     updatedAt: now,

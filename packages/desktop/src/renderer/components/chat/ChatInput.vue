@@ -587,6 +587,7 @@ import UImage from '../UImage.vue'
 import emitter from '@/utils/emitter'
 import { fileToBase64 } from '@/utils/fileUtils'
 import { isMac } from '@/utils/platformUtils'
+import { getPersistentValue, removePersistentValueSoon, setPersistentValueSoon } from '@/utils/persistentState'
 import { type MessageContentPart } from '@/utils/messageContentUtils'
 import { estimateTokens } from '@/utils/estimateTokens'
 import { INTENT_GROUPS, INTENT_META } from '@/config/quick-intent-config'
@@ -823,7 +824,7 @@ const collapseOverlayStyle = computed(() => {
   }
 })
 
-// localStorage key 生成
+// 输入框持久化 key 生成
 const getExpandStateKey = (sessionId: string | null) => {
   return sessionId ? `chat-input-expand-${sessionId}` : 'chat-input-expand-new'
 }
@@ -832,36 +833,31 @@ const getDraftKey = (sessionId: string | null) => {
   return sessionId ? `chat-input-draft-${sessionId}` : 'chat-input-draft-new'
 }
 
-// 从 localStorage 读取展开状态
 const loadExpandState = (sessionId: string | null) => {
   const key = getExpandStateKey(sessionId)
-  const saved = localStorage.getItem(key)
-  return saved === 'true'
+  return getPersistentValue(key, false) === true
 }
 
-// 保存展开状态到 localStorage
 const saveExpandState = (sessionId: string | null, expanded: boolean) => {
   const key = getExpandStateKey(sessionId)
   if (expanded) {
-    localStorage.setItem(key, 'true')
+    setPersistentValueSoon(key, true)
   } else {
-    localStorage.removeItem(key)
+    removePersistentValueSoon(key)
   }
 }
 
-// 从 localStorage 读取草稿
 const loadDraft = (sessionId: string | null) => {
   const key = getDraftKey(sessionId)
-  return localStorage.getItem(key) || ''
+  return getPersistentValue(key, '')
 }
 
-// 保存草稿到 localStorage（带防抖）
 const saveDraftDebounced = useDebounceFn((sessionId: string | null, text: string) => {
   const key = getDraftKey(sessionId)
   if (text.trim()) {
-    localStorage.setItem(key, text)
+    setPersistentValueSoon(key, text)
   } else {
-    localStorage.removeItem(key)
+    removePersistentValueSoon(key)
   }
 }, 500)
 
@@ -869,16 +865,16 @@ const saveDraftDebounced = useDebounceFn((sessionId: string | null, text: string
 const saveDraftImmediate = (sessionId: string | null, text: string) => {
   const key = getDraftKey(sessionId)
   if (text.trim()) {
-    localStorage.setItem(key, text)
+    setPersistentValueSoon(key, text)
   } else {
-    localStorage.removeItem(key)
+    removePersistentValueSoon(key)
   }
 }
 
 // 删除草稿
 const removeDraft = (sessionId: string | null) => {
   const key = getDraftKey(sessionId)
-  localStorage.removeItem(key)
+  removePersistentValueSoon(key)
 }
 
 const getQuoteDraftKey = (sessionId: string | null) => {
@@ -887,17 +883,15 @@ const getQuoteDraftKey = (sessionId: string | null) => {
 
 const loadQuoteDraft = (sessionId: string | null) => {
   const key = getQuoteDraftKey(sessionId)
-  const saved = localStorage.getItem(key)
-  if (!saved) return null
-  try { return JSON.parse(saved) } catch { return null }
+  return getPersistentValue<unknown | null>(key, null)
 }
 
 const saveQuoteDraft = (sessionId: string | null, quote: unknown) => {
   const key = getQuoteDraftKey(sessionId)
   if (quote) {
-    localStorage.setItem(key, JSON.stringify(quote))
+    setPersistentValueSoon(key, quote)
   } else {
-    localStorage.removeItem(key)
+    removePersistentValueSoon(key)
   }
 }
 
@@ -1573,7 +1567,7 @@ onUnmounted(() => {
   }
 })
 
-// 监听展开状态变化，保存到 localStorage（包括新建会话）
+// 监听展开状态变化，保存持久状态（包括新建会话）
 watch(isExpanded, (val) => {
   saveExpandState(chatStore.currentSessionId, val)
 })

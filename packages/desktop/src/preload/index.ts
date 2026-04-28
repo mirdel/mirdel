@@ -51,6 +51,13 @@ type LogLevel = "error" | "warn" | "info" | "debug";
 
 type UpdateState = Awaited<ReturnType<Router["updates:getState"]>>;
 
+type RendererStateChangedEvent = {
+  key: string;
+  value?: unknown;
+  removed?: boolean;
+  updatedAt?: number;
+};
+
 /**
  * typed-electron-ipc client，自动推导类型
  */
@@ -68,6 +75,14 @@ contextBridge.exposeInMainWorld("log", {
 
 // 使用 typed-electron-ipc，自动推导参数和返回值类型
 contextBridge.exposeInMainWorld("ipc", ipcInvoke);
+
+contextBridge.exposeInMainWorld("rendererState", {
+  onChanged: (handler: (event: RendererStateChangedEvent) => void) => {
+    const listener = (_: unknown, event: RendererStateChangedEvent) => handler(event);
+    ipcRenderer.on("renderer-state:changed", listener);
+    return () => ipcRenderer.removeListener("renderer-state:changed", listener);
+  },
+});
 
 // chat 流式通道：仅用于订阅流式事件（send/abort 统一走 window.ipc("chat:*")）
 contextBridge.exposeInMainWorld("chat", {
@@ -157,6 +172,23 @@ type WebPreviewState = {
   loadError: string | null;
 };
 
+type WebAppBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type WebAppState = {
+  appletId: string;
+  url: string;
+  title?: string;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  isLoading: boolean;
+  loadError: string | null;
+};
+
 contextBridge.exposeInMainWorld("webPreview", {
   open: (url: string) => {
     ipcRenderer.send("web-preview:open", url);
@@ -176,6 +208,41 @@ contextBridge.exposeInMainWorld("webPreview", {
   }
 });
 
+contextBridge.exposeInMainWorld("appWebView", {
+  show: (input: { appletId: string; url: string; bounds: WebAppBounds }) => {
+    return ipcRenderer.invoke("web-app:show", input);
+  },
+  setBounds: (input: { appletId: string; bounds: WebAppBounds }) => {
+    ipcRenderer.send("web-app:set-bounds", input);
+  },
+  hide: (appletId: string) => {
+    ipcRenderer.send("web-app:hide", { appletId });
+  },
+  close: (appletId: string) => {
+    ipcRenderer.send("web-app:close", { appletId });
+  },
+  goBack: (appletId: string) => {
+    ipcRenderer.send("web-app:goBack", { appletId });
+  },
+  goForward: (appletId: string) => {
+    ipcRenderer.send("web-app:goForward", { appletId });
+  },
+  reload: (appletId: string) => {
+    ipcRenderer.send("web-app:reload", { appletId });
+  },
+  stop: (appletId: string) => {
+    ipcRenderer.send("web-app:stop", { appletId });
+  },
+  openInBrowser: (input: { appletId: string; url?: string }) => {
+    return ipcRenderer.invoke("web-app:open-in-browser", input);
+  },
+  onState: (handler: (state: WebAppState) => void) => {
+    const listener = (_: unknown, state: WebAppState) => handler(state);
+    ipcRenderer.on("web-app:state", listener);
+    return () => ipcRenderer.removeListener("web-app:state", listener);
+  }
+});
+
 // AI DevTools 独立预览窗口
 contextBridge.exposeInMainWorld("devtoolsPreview", {
   open: (url: string) => {
@@ -187,43 +254,71 @@ contextBridge.exposeInMainWorld("devtoolsPreview", {
 contextBridge.exposeInMainWorld("applet", {
   getInitialStateSchema: (appletId: string) => ipcInvoke("applet:getInitialStateSchema", { appletId }),
   onStateSchema: (
-    handler: (payload: { state: unknown; schema: unknown; assetRunId?: string | null; streamingPaths?: string[] }) => void
+    handler: (payload: { appletId?: string; state: unknown; schema: unknown; assetRunId?: string | null; streamingPaths?: string[] }) => void
   ) => {
     const listener = (
       _: unknown,
-      payload: { state: unknown; schema: unknown; assetRunId?: string | null; streamingPaths?: string[] }
+      payload: { appletId?: string; state: unknown; schema: unknown; assetRunId?: string | null; streamingPaths?: string[] }
     ) =>
       handler(payload);
     ipcRenderer.on("applet:state-schema", listener);
     return () => ipcRenderer.removeListener("applet:state-schema", listener);
   },
-  onError: (handler: (message: string) => void) => {
-    const listener = (_: unknown, message: string) => handler(message);
+  onError: (handler: (payload: string | { appletId?: string; message?: string }) => void) => {
+    const listener = (_: unknown, payload: string | { appletId?: string; message?: string }) => handler(payload);
     ipcRenderer.on("applet:error", listener);
     return () => ipcRenderer.removeListener("applet:error", listener);
   },
   onToast: (
-    handler: (payload: {
-      title?: string;
-      description?: string;
-      icon?: string;
-      color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
-      duration?: number;
-      close?: boolean;
-      progress?: boolean;
-    }) => void
+    handler: (
+      payload:
+        | {
+            title?: string;
+            description?: string;
+            icon?: string;
+            color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
+            duration?: number;
+            close?: boolean;
+            progress?: boolean;
+          }
+        | {
+            appletId?: string;
+            input?: {
+              title?: string;
+              description?: string;
+              icon?: string;
+              color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
+              duration?: number;
+              close?: boolean;
+              progress?: boolean;
+            };
+          }
+    ) => void
   ) => {
     const listener = (
       _: unknown,
-      payload: {
-        title?: string;
-        description?: string;
-        icon?: string;
-        color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
-        duration?: number;
-        close?: boolean;
-        progress?: boolean;
-      }
+      payload:
+        | {
+            title?: string;
+            description?: string;
+            icon?: string;
+            color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
+            duration?: number;
+            close?: boolean;
+            progress?: boolean;
+          }
+        | {
+            appletId?: string;
+            input?: {
+              title?: string;
+              description?: string;
+              icon?: string;
+              color?: "primary" | "secondary" | "success" | "info" | "warning" | "error" | "neutral";
+              duration?: number;
+              close?: boolean;
+              progress?: boolean;
+            };
+          }
     ) => handler(payload);
     ipcRenderer.on("applet:toast", listener);
     return () => ipcRenderer.removeListener("applet:toast", listener);

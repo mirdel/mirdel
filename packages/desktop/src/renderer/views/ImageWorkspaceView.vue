@@ -823,6 +823,7 @@ import UText from "@/components/UText.vue";
 import UImage from "@/components/UImage.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
 import { isMac } from "@/utils/platformUtils";
+import { getPersistentValue, setPersistentValueSoon } from "@/utils/persistentState";
 import {
   appendCreatedImageGroup,
   buildImageReuseComposerState,
@@ -1856,11 +1857,7 @@ async function ensureWorkspaceReady() {
 }
 
 function persistPromptCache() {
-  try {
-    localStorage.setItem(PROMPT_CACHE_KEY, JSON.stringify(promptCacheByWorkspaceId.value));
-  } catch {
-    // ignore
-  }
+  setPersistentValueSoon(PROMPT_CACHE_KEY, promptCacheByWorkspaceId.value);
 }
 
 function schedulePersistPromptCache() {
@@ -1893,9 +1890,7 @@ function getPromptDraft(workspaceId: string, task: ImageTaskType) {
 
 function loadPromptCache() {
   try {
-    const raw = localStorage.getItem(PROMPT_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, Partial<Record<ImageTaskType, string>>>;
+    const parsed = getPersistentValue<Record<string, Partial<Record<ImageTaskType, string>>>>(PROMPT_CACHE_KEY, {});
     if (!parsed || typeof parsed !== "object") return {};
     const normalized: Record<string, Partial<Record<ImageTaskType, string>>> = {};
     for (const [workspaceId, taskDrafts] of Object.entries(parsed)) {

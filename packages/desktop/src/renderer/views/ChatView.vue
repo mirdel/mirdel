@@ -445,6 +445,7 @@ import { useMyToast } from "@/composables/useMyToast";
 import { useSessionDelete } from "@/composables/useSessionDelete";
 import { useConfirm } from "@/composables/useConfirm";
 import { useResizableWidth } from "@/composables/useResizableWidth";
+import { getPersistentValue, removePersistentValueSoon, setPersistentValueSoon } from "@/utils/persistentState";
 import { useMotion } from "@vueuse/motion";
 import { useDebounceFn } from "@vueuse/core";
 import { DEFAULT_COLOR } from "@/config/project-icon-config";
@@ -518,31 +519,31 @@ const getNoteSidebarKey = (sessionId: string) => `chat-note-sidebar-${sessionId}
 
 const loadTocSidebarState = (sessionId: string | null) => {
   if (!sessionId) return false;
-  return localStorage.getItem(getTocSidebarKey(sessionId)) === 'true';
+  return getPersistentValue(getTocSidebarKey(sessionId), false) === true;
 };
 
 const saveTocSidebarState = (sessionId: string | null, open: boolean) => {
   if (!sessionId) return;
   const key = getTocSidebarKey(sessionId);
   if (open) {
-    localStorage.setItem(key, 'true');
+    setPersistentValueSoon(key, true);
   } else {
-    localStorage.removeItem(key);
+    removePersistentValueSoon(key);
   }
 };
 
 const loadNoteSidebarState = (sessionId: string | null) => {
   if (!sessionId) return false;
-  return localStorage.getItem(getNoteSidebarKey(sessionId)) === 'true';
+  return getPersistentValue(getNoteSidebarKey(sessionId), false) === true;
 };
 
 const saveNoteSidebarState = (sessionId: string | null, open: boolean) => {
   if (!sessionId) return;
   const key = getNoteSidebarKey(sessionId);
   if (open) {
-    localStorage.setItem(key, 'true');
+    setPersistentValueSoon(key, true);
   } else {
-    localStorage.removeItem(key);
+    removePersistentValueSoon(key);
   }
 };
 

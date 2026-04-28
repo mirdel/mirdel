@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useProjectStore } from "../useProjectStore";
+import { disposePersistentStateForTests, getPersistentValue, setPersistentValue } from "@/utils/persistentState";
 
 function installProjectWindowMocks(
   handler: (channel: string, payload?: any) => Promise<any> | any
@@ -19,7 +20,7 @@ function installProjectWindowMocks(
 describe("useProjectStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    window.localStorage.clear();
+    disposePersistentStateForTests();
   });
 
   it("initializes from ipc and restores the last selected category", async () => {
@@ -32,7 +33,7 @@ describe("useProjectStore", () => {
         updatedAt: 2,
       },
     ];
-    localStorage.setItem("last-selected-project", "project-1");
+    await setPersistentValue("last-selected-project", "project-1");
     installProjectWindowMocks(async (channel) => {
       if (channel === "projects:list") return projects;
       return null;
@@ -83,7 +84,7 @@ describe("useProjectStore", () => {
     expect(created).toEqual(createdProject);
     expect(projectStore.projects[0]).toEqual(createdProject);
     expect(projectStore.currentProjectId).toBe("project-created");
-    expect(localStorage.getItem("last-selected-project")).toBe("project-created");
+    expect(getPersistentValue("last-selected-project", null)).toBe("project-created");
 
     const updated = await projectStore.updateProject(createdProject.id, {
       name: "Created Updated",
@@ -95,7 +96,7 @@ describe("useProjectStore", () => {
 
     projectStore.selectProject("__uncategorized__");
     expect(projectStore.currentProjectId).toBe("__uncategorized__");
-    expect(localStorage.getItem("last-selected-project")).toBe("__uncategorized__");
+    expect(getPersistentValue("last-selected-project", null)).toBe("__uncategorized__");
 
     projectStore.selectProject(createdProject.id);
     await projectStore.deleteProject(createdProject.id);

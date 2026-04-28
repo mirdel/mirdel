@@ -605,6 +605,7 @@ import { useConfirm } from "@/composables/useConfirm";
 import { useResizableWidth } from "@/composables/useResizableWidth";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { isMac } from "@/utils/platformUtils";
+import { getPersistentValue, setPersistentValueSoon } from "@/utils/persistentState";
 import {
   buildVideoRetryRunInput,
   buildVideoReuseComposerState,
@@ -992,9 +993,7 @@ async function syncWorkspaceRoute(workspaceId: string) {
 
 function loadPromptCache() {
   try {
-    const raw = localStorage.getItem(PROMPT_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, string>;
+    const parsed = getPersistentValue<Record<string, string>>(PROMPT_CACHE_KEY, {});
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     return Object.entries(parsed).reduce<Record<string, string>>((acc, [workspaceId, value]) => {
       if (typeof workspaceId !== "string" || !workspaceId) return acc;
@@ -1008,11 +1007,7 @@ function loadPromptCache() {
 }
 
 function persistPromptCache() {
-  try {
-    localStorage.setItem(PROMPT_CACHE_KEY, JSON.stringify(promptCacheByWorkspaceId.value));
-  } catch {
-    // ignore
-  }
+  setPersistentValueSoon(PROMPT_CACHE_KEY, promptCacheByWorkspaceId.value);
 }
 
 let promptPersistTimer: ReturnType<typeof setTimeout> | null = null;

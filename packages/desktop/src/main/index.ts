@@ -42,6 +42,32 @@ let aiDevToolsWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let temporarySessionCleanupTimer: NodeJS.Timeout | null = null;
 
+type WebAppBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type WebAppState = {
+  appletId: string;
+  url: string;
+  title?: string;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  isLoading: boolean;
+  loadError: string | null;
+};
+
+type WebAppViewEntry = {
+  appletId: string;
+  view: WebContentsView;
+  lastState: WebAppState;
+};
+
+const webAppViews = new Map<string, WebAppViewEntry>();
+let activeWebAppViewId: string | null = null;
+
 function broadcastModelServerStatus(status: ServerStatusSnapshot) {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
@@ -159,6 +185,7 @@ async function createMainWindow() {
   });
 
   mainWindow.on("closed", () => {
+    closeAllWebAppViews();
     mainWindow = null;
   });
 
@@ -415,6 +442,186 @@ function normalizeUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+function normalizeHttpUrl(url: string): string | null {
+  const raw = String(url || "").trim();
+  if (!raw) return null;
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(withProtocol);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function clampWebAppBounds(bounds: WebAppBounds): WebAppBounds {
+  return {
+    x: Math.max(0, Math.round(Number(bounds.x) || 0)),
+    y: Math.max(0, Math.round(Number(bounds.y) || 0)),
+    width: Math.max(0, Math.round(Number(bounds.width) || 0)),
+    height: Math.max(0, Math.round(Number(bounds.height) || 0)),
+  };
+}
+
+function sendWebAppState(entry: WebAppViewEntry) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("web-app:state", entry.lastState);
+}
+
+function updateWebAppState(entry: WebAppViewEntry, patch: Partial<WebAppState>) {
+  const content = entry.view.webContents;
+  entry.lastState = {
+    appletId: entry.appletId,
+    url: content.getURL() || entry.lastState.url,
+    title: content.getTitle() || entry.lastState.title,
+    canGoBack: content.canGoBack(),
+    canGoForward: content.canGoForward(),
+    isLoading: content.isLoading(),
+    loadError: null,
+    ...patch,
+  };
+  sendWebAppState(entry);
+}
+
+function hideInactiveWebAppViews(activeAppletId?: string | null) {
+  for (const entry of webAppViews.values()) {
+    if (activeAppletId && entry.appletId === activeAppletId) continue;
+    entry.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+  }
+}
+
+function setupWebAppViewListeners(entry: WebAppViewEntry) {
+  const content = entry.view.webContents;
+  content.on("did-start-loading", () => {
+    updateWebAppState(entry, { isLoading: true, loadError: null });
+  });
+  content.on("did-stop-loading", () => {
+    updateWebAppState(entry, { isLoading: false, loadError: null });
+  });
+  content.on("did-navigate", () => {
+    updateWebAppState(entry, { loadError: null });
+  });
+  content.on("did-navigate-in-page", () => {
+    updateWebAppState(entry, { loadError: null });
+  });
+  content.on("page-title-updated", (_event, title) => {
+    updateWebAppState(entry, { title });
+  });
+  content.on("did-fail-load", (_event, errorCode, errorDescription) => {
+    if (errorCode === -3) return;
+    updateWebAppState(entry, {
+      isLoading: false,
+      loadError: errorDescription || tMain("web.loadFailed", { errorCode }),
+    });
+  });
+  content.setWindowOpenHandler(({ url }) => {
+    const normalized = normalizeHttpUrl(url);
+    if (normalized) {
+      content.loadURL(normalized).catch((error) => logger.warn("failed to load web app popup url", { error }));
+    }
+    return { action: "deny" };
+  });
+}
+
+function ensureWebAppView(appletId: string, url: string): WebAppViewEntry {
+  const existing = webAppViews.get(appletId);
+  if (existing && !existing.view.webContents.isDestroyed()) {
+    return existing;
+  }
+
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    throw new Error("main window is not available");
+  }
+
+  const view = new WebContentsView({
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      partition: "persist:web-apps",
+    },
+  });
+  view.setBorderRadius(12);
+  view.webContents.setUserAgent(CHROME_USER_AGENT);
+  mainWindow.contentView.addChildView(view);
+
+  const entry: WebAppViewEntry = {
+    appletId,
+    view,
+    lastState: {
+      appletId,
+      url,
+      canGoBack: false,
+      canGoForward: false,
+      isLoading: false,
+      loadError: null,
+    },
+  };
+  webAppViews.set(appletId, entry);
+  setupWebAppViewListeners(entry);
+  return entry;
+}
+
+async function showWebAppView(input: { appletId: string; url: string; bounds: WebAppBounds }) {
+  const appletId = String(input.appletId || "").trim();
+  const url = normalizeHttpUrl(input.url);
+  if (!appletId || !url) return { ok: false as const, error: "invalid web app url" };
+
+  const entry = ensureWebAppView(appletId, url);
+  activeWebAppViewId = appletId;
+  hideInactiveWebAppViews(appletId);
+  entry.view.setBounds(clampWebAppBounds(input.bounds));
+
+  const content = entry.view.webContents;
+  const currentUrl = content.getURL();
+  if (!currentUrl || currentUrl === "about:blank") {
+    updateWebAppState(entry, { url, isLoading: true, loadError: null });
+    await content.loadURL(url);
+  }
+
+  updateWebAppState(entry, { loadError: null });
+  return { ok: true as const };
+}
+
+function setWebAppViewBounds(input: { appletId: string; bounds: WebAppBounds }) {
+  if (activeWebAppViewId !== input.appletId) return;
+  const entry = webAppViews.get(input.appletId);
+  if (!entry || entry.view.webContents.isDestroyed()) return;
+  entry.view.setBounds(clampWebAppBounds(input.bounds));
+}
+
+function hideWebAppView(appletId: string) {
+  const entry = webAppViews.get(appletId);
+  if (!entry) return;
+  entry.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+  if (activeWebAppViewId === appletId) activeWebAppViewId = null;
+}
+
+function closeWebAppView(appletId: string) {
+  const entry = webAppViews.get(appletId);
+  if (!entry) return;
+  hideWebAppView(appletId);
+  try {
+    mainWindow?.contentView.removeChildView(entry.view);
+  } catch {
+    // Electron already detaches views when the owner is closing.
+  }
+  entry.view.webContents.close();
+  webAppViews.delete(appletId);
+}
+
+function closeAllWebAppViews() {
+  for (const appletId of [...webAppViews.keys()]) {
+    closeWebAppView(appletId);
+  }
+}
+
+function getWebAppContent(appletId: string) {
+  const entry = webAppViews.get(appletId);
+  if (!entry || entry.view.webContents.isDestroyed()) return null;
+  return entry.view.webContents;
 }
 
 async function createOrShowWebPreviewWindow(url: string) {
@@ -1076,6 +1283,66 @@ function registerIpc() {
       return { ok: true };
     } catch (error) {
       logger.error("failed to open in browser", { error });
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.removeHandler("web-app:show");
+  ipcMain.handle("web-app:show", async (_evt, input: { appletId: string; url: string; bounds: WebAppBounds }) => {
+    try {
+      return await showWebAppView(input);
+    } catch (error) {
+      logger.error("failed to show web app view", { error });
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.removeAllListeners("web-app:set-bounds");
+  ipcMain.on("web-app:set-bounds", (_evt, input: { appletId: string; bounds: WebAppBounds }) => {
+    setWebAppViewBounds(input);
+  });
+
+  ipcMain.removeAllListeners("web-app:hide");
+  ipcMain.on("web-app:hide", (_evt, input: { appletId: string }) => {
+    hideWebAppView(input.appletId);
+  });
+
+  ipcMain.removeAllListeners("web-app:close");
+  ipcMain.on("web-app:close", (_evt, input: { appletId: string }) => {
+    closeWebAppView(input.appletId);
+  });
+
+  ipcMain.removeAllListeners("web-app:goBack");
+  ipcMain.on("web-app:goBack", (_evt, input: { appletId: string }) => {
+    const content = getWebAppContent(input.appletId);
+    if (content?.canGoBack()) content.goBack();
+  });
+
+  ipcMain.removeAllListeners("web-app:goForward");
+  ipcMain.on("web-app:goForward", (_evt, input: { appletId: string }) => {
+    const content = getWebAppContent(input.appletId);
+    if (content?.canGoForward()) content.goForward();
+  });
+
+  ipcMain.removeAllListeners("web-app:reload");
+  ipcMain.on("web-app:reload", (_evt, input: { appletId: string }) => {
+    getWebAppContent(input.appletId)?.reload();
+  });
+
+  ipcMain.removeAllListeners("web-app:stop");
+  ipcMain.on("web-app:stop", (_evt, input: { appletId: string }) => {
+    getWebAppContent(input.appletId)?.stop();
+  });
+
+  ipcMain.removeHandler("web-app:open-in-browser");
+  ipcMain.handle("web-app:open-in-browser", async (_evt, input: { appletId: string; url?: string }) => {
+    try {
+      const targetUrl = input.url || getWebAppContent(input.appletId)?.getURL();
+      if (!targetUrl) return { ok: false, error: "missing url" };
+      await shell.openExternal(targetUrl);
+      return { ok: true };
+    } catch (error) {
+      logger.error("failed to open web app in browser", { error });
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
