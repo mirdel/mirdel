@@ -1,6 +1,6 @@
 <template>
   <div class="h-full min-h-0 flex flex-col bg-default">
-    <div class="h-11 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2 border-b border-default bg-default">
+    <div class="h-11 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2 bg-default">
       <div class="flex items-center gap-1">
         <UButton
           icon="i-lucide-arrow-left"

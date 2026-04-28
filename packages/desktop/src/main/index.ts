@@ -890,7 +890,7 @@ function registerAppletAssetProtocol() {
   });
 }
 
-async function handleDownloadImage(imageInfo: ImageInput, ownerWindow?: BrowserWindow | null) {
+async function handleDownloadImage(imageInfo: ImageInput, ownerWindow?: BaseWindow | null) {
   const { src, filePath: rawFilePath, name } = imageInfo;
   const sourceAsset = !rawFilePath && src ? resolveAssetFileByUrl(src) : null;
 
@@ -1121,35 +1121,220 @@ function setupApplicationMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+function isEmbeddedWebContents(contents: Electron.WebContents): boolean {
+  if (
+    webPreviewContentView &&
+    !webPreviewContentView.webContents.isDestroyed() &&
+    webPreviewContentView.webContents.id === contents.id
+  ) {
+    return true;
+  }
+  for (const entry of webAppViews.values()) {
+    if (!entry.view.webContents.isDestroyed() && entry.view.webContents.id === contents.id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function deriveImageNameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const last = u.pathname.split("/").filter(Boolean).pop();
+    if (last) {
+      const decoded = decodeURIComponent(last);
+      const sanitized = decoded.replace(/[<>:"/\\|?*]+/g, "_").trim();
+      if (sanitized) return sanitized;
+    }
+  } catch {
+    // ignore parse error, fall through
+  }
+  return "image";
+}
+
+function buildRendererContextMenu(
+  params: Electron.ContextMenuParams
+): Electron.MenuItemConstructorOptions[] {
+  const template: Electron.MenuItemConstructorOptions[] = [];
+  const hasSelection = (params.selectionText || "").trim().length > 0;
+  if (params.isEditable) {
+    template.push(
+      { role: "undo" as const },
+      { role: "redo" as const },
+      { type: "separator" as const },
+      { role: "cut" as const },
+      { role: "copy" as const },
+      { role: "paste" as const },
+      { type: "separator" as const },
+      { role: "selectAll" as const }
+    );
+  } else if (hasSelection) {
+    template.push({ role: "copy" as const });
+  }
+  return template;
+}
+
+function buildEmbeddedContextMenu(
+  contents: Electron.WebContents,
+  params: Electron.ContextMenuParams
+): Electron.MenuItemConstructorOptions[] {
+  const template: Electron.MenuItemConstructorOptions[] = [];
+  const linkURL = params.linkURL || "";
+  const srcURL = params.srcURL || "";
+  const isLink = linkURL.length > 0;
+  const isImage = params.mediaType === "image" || params.hasImageContents;
+  const hasSelection = (params.selectionText || "").trim().length > 0;
+  const isEditable = params.isEditable;
+
+  if (isLink) {
+    template.push(
+      {
+        label: tMain("menu.context.openLinkInBrowser"),
+        click: () => {
+          shell.openExternal(linkURL).catch((error) => {
+            logger.warn("failed to open link in browser", { error });
+          });
+        },
+      },
+      {
+        label: tMain("menu.context.copyLinkAddress"),
+        click: () => {
+          clipboard.writeText(linkURL);
+        },
+      }
+    );
+  }
+
+  if (isImage && srcURL) {
+    if (template.length > 0) template.push({ type: "separator" as const });
+    template.push(
+      {
+        label: tMain("menu.context.copyImage"),
+        click: () => {
+          handleCopyImage({ src: srcURL }).catch((error) => {
+            logger.warn("failed to copy image from context menu", { error });
+          });
+        },
+      },
+      {
+        label: tMain("menu.context.copyImageAddress"),
+        click: () => {
+          clipboard.writeText(srcURL);
+        },
+      },
+      {
+        label: tMain("menu.context.saveImageAs"),
+        click: () => {
+          const dialogParent = resolveContextMenuOwnerWindow(contents);
+          handleDownloadImage(
+            { src: srcURL, name: deriveImageNameFromUrl(srcURL) },
+            dialogParent ?? null
+          ).catch((error) => {
+            logger.warn("failed to save image from context menu", { error });
+          });
+        },
+      },
+      {
+        label: tMain("menu.context.openImageInBrowser"),
+        click: () => {
+          shell.openExternal(srcURL).catch((error) => {
+            logger.warn("failed to open image in browser", { error });
+          });
+        },
+      }
+    );
+  }
+
+  if (!isLink && !isImage && hasSelection) {
+    template.push({ role: "copy" as const });
+  }
+
+  if (isEditable) {
+    if (template.length > 0) template.push({ type: "separator" as const });
+    template.push(
+      { role: "undo" as const },
+      { role: "redo" as const },
+      { type: "separator" as const },
+      { role: "cut" as const },
+      { role: "copy" as const },
+      { role: "paste" as const },
+      { type: "separator" as const },
+      { role: "selectAll" as const }
+    );
+  }
+
+  if (!isLink && !isImage && !isEditable) {
+    if (template.length > 0) template.push({ type: "separator" as const });
+    template.push(
+      {
+        label: tMain("menu.context.back"),
+        enabled: contents.canGoBack(),
+        click: () => contents.goBack(),
+      },
+      {
+        label: tMain("menu.context.forward"),
+        enabled: contents.canGoForward(),
+        click: () => contents.goForward(),
+      },
+      {
+        label: tMain("menu.context.reload"),
+        click: () => contents.reload(),
+      },
+      { type: "separator" as const },
+      {
+        label: tMain("menu.context.openPageInBrowser"),
+        click: () => {
+          const url = contents.getURL();
+          if (!url) return;
+          shell.openExternal(url).catch((error) => {
+            logger.warn("failed to open current page in browser", { error });
+          });
+        },
+      },
+      {
+        label: tMain("menu.context.copyPageUrl"),
+        click: () => {
+          const url = contents.getURL();
+          if (url) clipboard.writeText(url);
+        },
+      }
+    );
+  }
+
+  return template;
+}
+
+function resolveContextMenuOwnerWindow(
+  contents: Electron.WebContents
+): BaseWindow | undefined {
+  if (
+    webPreviewContentView &&
+    !webPreviewContentView.webContents.isDestroyed() &&
+    webPreviewContentView.webContents.id === contents.id
+  ) {
+    return webPreviewWindow ?? undefined;
+  }
+  for (const entry of webAppViews.values()) {
+    if (!entry.view.webContents.isDestroyed() && entry.view.webContents.id === contents.id) {
+      return mainWindow ?? undefined;
+    }
+  }
+  return BrowserWindow.fromWebContents(contents) ?? undefined;
+}
+
 function registerContextMenu() {
   app.on("web-contents-created", (_event, contents) => {
     contents.on("context-menu", (event, params) => {
-      const selectedText = (params.selectionText || "").trim();
-      const hasSelection = selectedText.length > 0;
-      const isEditable = params.isEditable;
-      const template: Electron.MenuItemConstructorOptions[] = [];
-
-      if (isEditable) {
-        template.push(
-          { role: "undo" as const },
-          { role: "redo" as const },
-          { type: "separator" as const },
-          { role: "cut" as const },
-          { role: "copy" as const },
-          { role: "paste" as const },
-          { type: "separator" as const },
-          { role: "selectAll" as const }
-        );
-      } else if (hasSelection) {
-        template.push({ role: "copy" as const });
-      }
+      const template = isEmbeddedWebContents(contents)
+        ? buildEmbeddedContextMenu(contents, params)
+        : buildRendererContextMenu(params);
 
       if (template.length === 0) return;
 
       event.preventDefault();
       const menu = Menu.buildFromTemplate(template);
-      const ownerWindow = BrowserWindow.fromWebContents(contents) ?? undefined;
-      menu.popup({ window: ownerWindow });
+      const ownerWindow = resolveContextMenuOwnerWindow(contents);
+      menu.popup(ownerWindow ? { window: ownerWindow } : {});
     });
   });
 }
