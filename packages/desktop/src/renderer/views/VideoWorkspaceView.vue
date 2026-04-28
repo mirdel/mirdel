@@ -413,6 +413,7 @@
                 </div>
               </div>
               <UTextarea
+                ref="videoPromptTextareaRef"
                 v-model="composer.prompt"
                 :placeholder="t('video.workspace.form.promptPlaceholder')"
                 size="lg"
@@ -427,22 +428,39 @@
                 @blur="isInputFocused = false"
               />
               <div class="flex items-center justify-between p-2">
-                <UDropdownMenu
-                  v-if="supportsReferenceImages"
-                  :items="composerAttachmentMenuItems"
-                  size="sm"
-                  :content="{ side: 'top', align: 'start' }"
-                >
-                  <UButton
-                    icon="i-lucide-plus"
-                    color="neutral"
+                <div class="flex items-center gap-1 min-w-0">
+                  <UDropdownMenu
+                    v-if="supportsReferenceImages"
+                    :items="composerAttachmentMenuItems"
                     size="sm"
-                    square
-                    variant="ghost"
-                    class="rounded-full"
-                  />
-                </UDropdownMenu>
-                <div v-else />
+                    :content="{ side: 'top', align: 'start' }"
+                  >
+                    <UButton
+                      icon="i-lucide-plus"
+                      color="neutral"
+                      size="sm"
+                      square
+                      variant="ghost"
+                      class="rounded-full"
+                    />
+                  </UDropdownMenu>
+                  <PromptLibraryInsertPopover
+                    v-model:open="videoPromptLibraryInsertOpen"
+                    @before-open="captureVideoPromptInsertSelection"
+                    @insert="handleInsertPromptIntoVideoComposer"
+                  >
+                    <UTooltip :text="t('chat.input.insertPrompt')">
+                      <UButton
+                        icon="i-lucide-book-marked"
+                        color="neutral"
+                        size="sm"
+                        square
+                        variant="ghost"
+                        class="rounded-full"
+                      />
+                    </UTooltip>
+                  </PromptLibraryInsertPopover>
+                </div>
                 <UTooltip :text="t('video.workspace.submit')">
                   <UButton
                     icon="i-lucide-arrow-up"
@@ -599,6 +617,7 @@ import UList from "@/components/UList.vue";
 import UText from "@/components/UText.vue";
 import UImage from "@/components/UImage.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
+import PromptLibraryInsertPopover from "@/components/chat/PromptLibraryInsertPopover.vue";
 import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
 import { useMyToast } from "@/composables/useMyToast";
 import { useConfirm } from "@/composables/useConfirm";
@@ -760,6 +779,68 @@ const composer = reactive({
   providerOptions: {} as Record<string, unknown>,
   prompt: "",
 });
+
+const videoPromptTextareaRef = ref<{ textareaRef?: HTMLTextAreaElement | null } | null>(null);
+const videoPromptLibraryInsertOpen = ref(false);
+const videoPromptInsertSavedSelection = ref<{ start: number; end: number } | null>(null);
+
+watch(videoPromptLibraryInsertOpen, (open) => {
+  if (!open) {
+    videoPromptInsertSavedSelection.value = null;
+  }
+});
+
+function getVideoPromptNativeTextarea(): HTMLTextAreaElement | null {
+  return videoPromptTextareaRef.value?.textareaRef ?? null;
+}
+
+function captureVideoPromptInsertSelection() {
+  const el = getVideoPromptNativeTextarea();
+  if (!el || document.activeElement !== el) {
+    videoPromptInsertSavedSelection.value = null;
+    return;
+  }
+  videoPromptInsertSavedSelection.value = {
+    start: el.selectionStart,
+    end: el.selectionEnd
+  };
+}
+
+function handleInsertPromptIntoVideoComposer(text: string) {
+  const el = getVideoPromptNativeTextarea();
+  const cur = composer.prompt;
+  let start: number;
+  let end: number;
+
+  if (el && document.activeElement === el) {
+    start = el.selectionStart;
+    end = el.selectionEnd;
+  } else if (videoPromptInsertSavedSelection.value) {
+    start = videoPromptInsertSavedSelection.value.start;
+    end = videoPromptInsertSavedSelection.value.end;
+    videoPromptInsertSavedSelection.value = null;
+  } else {
+    start = end = cur.length;
+  }
+
+  start = Math.max(0, Math.min(start, cur.length));
+  end = Math.max(0, Math.min(end, cur.length));
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+  }
+
+  composer.prompt = cur.slice(0, start) + text + cur.slice(end);
+  const caret = start + text.length;
+  videoPromptInsertSavedSelection.value = null;
+  videoPromptLibraryInsertOpen.value = false;
+  nextTick(() => {
+    const ta = getVideoPromptNativeTextarea();
+    ta?.focus();
+    ta?.setSelectionRange(caret, caret);
+  });
+}
 
 const activeWorkspace = computed(() => workspaces.value.find((item) => item.id === activeWorkspaceId.value) || null);
 const activeGroups = computed(() => activeWorkspace.value?.groups || []);

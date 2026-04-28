@@ -113,10 +113,15 @@
     </template>
   </UPopover>
 
+  <!-- overlay/content 需高于可能包裹本组件的父级 UModal（例如 ChatView 场景详情 z-[110]），否则变量弹窗会落在背后 -->
   <UModal
     v-model:open="variablesModalOpen"
     :title="t('chat.input.promptLibrary.fillVariablesTitle')"
-    :ui="{ footer: 'justify-end' }"
+    :ui="{
+      overlay: 'z-[200]',
+      content: 'z-[210]',
+      footer: 'justify-end'
+    }"
   >
     <template #body>
       <div class="flex flex-col gap-3 max-h-[min(60vh,420px)] overflow-y-auto">

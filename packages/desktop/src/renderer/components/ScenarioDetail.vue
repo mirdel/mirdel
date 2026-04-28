@@ -256,18 +256,43 @@
 
       <!-- 系统提示词 -->
       <div v-else-if="selectedConfigTab === 'prompt'" class="flex flex-col gap-4 flex-1 min-h-0">
-        <UFormField :ui="{
-              container: 'h-full',
-            }" class="flex flex-col flex-1 min-h-0">
+        <UFormField
+          :ui="{
+            container: 'h-full',
+            labelWrapper: 'w-full min-w-0',
+            label: 'min-w-0',
+            hint: 'shrink-0 text-default'
+          }"
+          class="flex flex-col flex-1 min-h-0"
+        >
           <template #label>
-            <div class="inline-flex items-center gap-1">
+            <div class="inline-flex items-center gap-1 min-w-0">
               <span>{{ t('scenario.form.systemPrompt') }}</span>
               <UTooltip :text="t('scenario.form.systemPromptDesc')">
                 <UIcon name="i-lucide-circle-question-mark" class="size-3.5 text-muted" />
               </UTooltip>
             </div>
           </template>
+          <template #hint>
+            <PromptLibraryInsertPopover
+              v-model:open="scenarioPromptLibraryInsertOpen"
+              @before-open="captureScenarioPromptInsertSelection"
+              @insert="handleInsertPromptIntoSystemPrompt"
+            >
+              <UTooltip :text="t('chat.input.insertPrompt')">
+                <UButton
+                  icon="i-lucide-book-marked"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  class="shrink-0"
+                />
+              </UTooltip>
+            </PromptLibraryInsertPopover>
+          </template>
           <UTextarea
+            ref="systemPromptTextareaRef"
             v-model="scenarioForm.systemPrompt"
             :placeholder="t('scenario.form.systemPromptPlaceholder')"
             class="w-full h-full resize-none"
@@ -515,7 +540,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { loggerServiceRenderer } from "@shared";
 import { useMyToast } from "@/composables/useMyToast";
@@ -527,6 +552,7 @@ import UList from "@/components/UList.vue";
 import UText from "@/components/UText.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
 import KbSelector from "@/components/chat/KbSelector.vue";
+import PromptLibraryInsertPopover from "@/components/chat/PromptLibraryInsertPopover.vue";
 
 const logger = loggerServiceRenderer.withContext("ScenarioDetail");
 const toast = useMyToast();
@@ -615,6 +641,70 @@ const scenarioForm = ref({
 
 // ===== 知识库配置 =====
 const kbSelectorOpen = ref(false);
+
+// ===== 系统提示词：从提示词库插入 =====
+const systemPromptTextareaRef = ref<{ textareaRef?: HTMLTextAreaElement | null } | null>(null);
+const scenarioPromptLibraryInsertOpen = ref(false);
+const scenarioPromptInsertSavedSelection = ref<{ start: number; end: number } | null>(null);
+
+watch(scenarioPromptLibraryInsertOpen, (open) => {
+  if (!open) {
+    scenarioPromptInsertSavedSelection.value = null;
+  }
+});
+
+function getSystemPromptNativeTextarea(): HTMLTextAreaElement | null {
+  return systemPromptTextareaRef.value?.textareaRef ?? null;
+}
+
+function captureScenarioPromptInsertSelection() {
+  const el = getSystemPromptNativeTextarea();
+  if (!el || document.activeElement !== el) {
+    scenarioPromptInsertSavedSelection.value = null;
+    return;
+  }
+  scenarioPromptInsertSavedSelection.value = {
+    start: el.selectionStart,
+    end: el.selectionEnd
+  };
+}
+
+function handleInsertPromptIntoSystemPrompt(text: string) {
+  const el = getSystemPromptNativeTextarea();
+  const cur = scenarioForm.value.systemPrompt;
+  let start: number;
+  let end: number;
+
+  if (el && document.activeElement === el) {
+    start = el.selectionStart;
+    end = el.selectionEnd;
+  } else if (scenarioPromptInsertSavedSelection.value) {
+    start = scenarioPromptInsertSavedSelection.value.start;
+    end = scenarioPromptInsertSavedSelection.value.end;
+    scenarioPromptInsertSavedSelection.value = null;
+  } else {
+    start = end = cur.length;
+  }
+
+  start = Math.max(0, Math.min(start, cur.length));
+  end = Math.max(0, Math.min(end, cur.length));
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+  }
+
+  scenarioForm.value.systemPrompt = cur.slice(0, start) + text + cur.slice(end);
+  const caret = start + text.length;
+  scenarioPromptInsertSavedSelection.value = null;
+  scenarioPromptLibraryInsertOpen.value = false;
+  handleFormChange();
+  nextTick(() => {
+    const ta = getSystemPromptNativeTextarea();
+    ta?.focus();
+    ta?.setSelectionRange(caret, caret);
+  });
+}
 const selectedKbs = computed(() =>
   scenarioForm.value.kbIds
     .map((id) => knowledgeBases.value.find((k) => k.id === id))

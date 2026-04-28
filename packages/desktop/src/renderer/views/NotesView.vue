@@ -684,6 +684,7 @@
               </Transition>
 
               <UTextarea
+                ref="noteAiPromptTextareaRef"
                 v-model="aiPromptInput"
                 :rows="3"
                 :maxrows="8"
@@ -714,6 +715,22 @@
                       <UIcon :name="aiContextModeIcon" class="w-4 h-4 shrink-0" />
                     </UButton>
                   </UDropdownMenu>
+                  <PromptLibraryInsertPopover
+                    v-model:open="noteAiPromptLibraryInsertOpen"
+                    @before-open="captureNoteAiPromptInsertSelection"
+                    @insert="handleInsertPromptIntoNoteAiInput"
+                  >
+                    <UTooltip :text="t('chat.input.insertPrompt')">
+                      <UButton
+                        icon="i-lucide-book-marked"
+                        color="neutral"
+                        size="sm"
+                        square
+                        variant="ghost"
+                        class="rounded-full"
+                      />
+                    </UTooltip>
+                  </PromptLibraryInsertPopover>
                 </div>
                 <div class="flex items-center gap-1">
                   <ModelSelector
@@ -925,6 +942,7 @@ import DocumentEditor from "@/components/editor/DocumentEditor.vue";
 import SourceEditor from "@/components/editor/SourceEditor.vue";
 import PageFindBar from "@/components/PageFindBar.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
+import PromptLibraryInsertPopover from "@/components/chat/PromptLibraryInsertPopover.vue";
 import ModelLogo from "@/components/ModelLogo.vue";
 import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
 import UList from "@/components/UList.vue";
@@ -1047,7 +1065,68 @@ const listForm = ref({
 const showAiSidebar = ref(true);
 const aiSelection = ref<NoteAiSelectionContext | null>(null);
 const aiPromptInput = ref("");
+const noteAiPromptTextareaRef = ref<{ textareaRef?: HTMLTextAreaElement | null } | null>(null);
+const noteAiPromptLibraryInsertOpen = ref(false);
+const noteAiPromptInsertSavedSelection = ref<{ start: number; end: number } | null>(null);
 const aiInputFocused = ref(false);
+
+watch(noteAiPromptLibraryInsertOpen, (open) => {
+  if (!open) {
+    noteAiPromptInsertSavedSelection.value = null;
+  }
+});
+
+function getNoteAiPromptNativeTextarea(): HTMLTextAreaElement | null {
+  return noteAiPromptTextareaRef.value?.textareaRef ?? null;
+}
+
+function captureNoteAiPromptInsertSelection() {
+  const el = getNoteAiPromptNativeTextarea();
+  if (!el || document.activeElement !== el) {
+    noteAiPromptInsertSavedSelection.value = null;
+    return;
+  }
+  noteAiPromptInsertSavedSelection.value = {
+    start: el.selectionStart,
+    end: el.selectionEnd
+  };
+}
+
+function handleInsertPromptIntoNoteAiInput(text: string) {
+  const el = getNoteAiPromptNativeTextarea();
+  const cur = aiPromptInput.value;
+  let start: number;
+  let end: number;
+
+  if (el && document.activeElement === el) {
+    start = el.selectionStart;
+    end = el.selectionEnd;
+  } else if (noteAiPromptInsertSavedSelection.value) {
+    start = noteAiPromptInsertSavedSelection.value.start;
+    end = noteAiPromptInsertSavedSelection.value.end;
+    noteAiPromptInsertSavedSelection.value = null;
+  } else {
+    start = end = cur.length;
+  }
+
+  start = Math.max(0, Math.min(start, cur.length));
+  end = Math.max(0, Math.min(end, cur.length));
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+  }
+
+  aiPromptInput.value = cur.slice(0, start) + text + cur.slice(end);
+  const caret = start + text.length;
+  noteAiPromptInsertSavedSelection.value = null;
+  noteAiPromptLibraryInsertOpen.value = false;
+  nextTick(() => {
+    const ta = getNoteAiPromptNativeTextarea();
+    ta?.focus();
+    ta?.setSelectionRange(caret, caret);
+  });
+}
 const noteAiModel = ref(NOTE_AI_DEFAULT_MODEL);
 const aiSendShortcutMode = ref<"enter" | "cmd-enter">("enter");
 const aiContextMode = ref<NoteAiContextMode>("full");

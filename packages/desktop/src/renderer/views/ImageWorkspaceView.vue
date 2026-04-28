@@ -577,6 +577,7 @@
                   </div>
                 </div>
                 <UTextarea
+                  ref="imagePromptTextareaRef"
                   v-model="composer.prompt"
                   :placeholder="t('image.workspace.form.promptPlaceholder')"
                   size="lg"
@@ -591,22 +592,39 @@
                   @blur="isInputFocused = false"
                 />
                 <div class="flex items-center justify-between p-2">
-                  <UDropdownMenu
-                    v-if="showComposerAttachmentMenu"
-                    :items="composerAttachmentMenuItems"
-                    size="sm"
-                    :content="{ side: 'top', align: 'start' }"
-                  >
-                    <UButton
-                      icon="i-lucide-plus"
-                      color="neutral"
+                  <div class="flex items-center gap-1 min-w-0">
+                    <UDropdownMenu
+                      v-if="showComposerAttachmentMenu"
+                      :items="composerAttachmentMenuItems"
                       size="sm"
-                      square
-                      variant="ghost"
-                      class="rounded-full"
-                    />
-                  </UDropdownMenu>
-                  <div v-else />
+                      :content="{ side: 'top', align: 'start' }"
+                    >
+                      <UButton
+                        icon="i-lucide-plus"
+                        color="neutral"
+                        size="sm"
+                        square
+                        variant="ghost"
+                        class="rounded-full"
+                      />
+                    </UDropdownMenu>
+                    <PromptLibraryInsertPopover
+                      v-model:open="imagePromptLibraryInsertOpen"
+                      @before-open="captureImagePromptInsertSelection"
+                      @insert="handleInsertPromptIntoImageComposer"
+                    >
+                      <UTooltip :text="t('chat.input.insertPrompt')">
+                        <UButton
+                          icon="i-lucide-book-marked"
+                          color="neutral"
+                          size="sm"
+                          square
+                          variant="ghost"
+                          class="rounded-full"
+                        />
+                      </UTooltip>
+                    </PromptLibraryInsertPopover>
+                  </div>
                   <UTooltip :text="t('image.workspace.submit')">
                     <UButton
                       icon="i-lucide-arrow-up"
@@ -822,6 +840,7 @@ import UList from "@/components/UList.vue";
 import UText from "@/components/UText.vue";
 import UImage from "@/components/UImage.vue";
 import ModelSelector from "@/components/ModelSelector.vue";
+import PromptLibraryInsertPopover from "@/components/chat/PromptLibraryInsertPopover.vue";
 import { isMac } from "@/utils/platformUtils";
 import { getPersistentValue, setPersistentValueSoon } from "@/utils/persistentState";
 import {
@@ -1010,6 +1029,68 @@ const composer = reactive<ComposerState>({
   referenceImages: [],
   maskImage: null,
 });
+
+const imagePromptTextareaRef = ref<{ textareaRef?: HTMLTextAreaElement | null } | null>(null);
+const imagePromptLibraryInsertOpen = ref(false);
+const imagePromptInsertSavedSelection = ref<{ start: number; end: number } | null>(null);
+
+watch(imagePromptLibraryInsertOpen, (open) => {
+  if (!open) {
+    imagePromptInsertSavedSelection.value = null;
+  }
+});
+
+function getImagePromptNativeTextarea(): HTMLTextAreaElement | null {
+  return imagePromptTextareaRef.value?.textareaRef ?? null;
+}
+
+function captureImagePromptInsertSelection() {
+  const el = getImagePromptNativeTextarea();
+  if (!el || document.activeElement !== el) {
+    imagePromptInsertSavedSelection.value = null;
+    return;
+  }
+  imagePromptInsertSavedSelection.value = {
+    start: el.selectionStart,
+    end: el.selectionEnd
+  };
+}
+
+function handleInsertPromptIntoImageComposer(text: string) {
+  const el = getImagePromptNativeTextarea();
+  const cur = composer.prompt;
+  let start: number;
+  let end: number;
+
+  if (el && document.activeElement === el) {
+    start = el.selectionStart;
+    end = el.selectionEnd;
+  } else if (imagePromptInsertSavedSelection.value) {
+    start = imagePromptInsertSavedSelection.value.start;
+    end = imagePromptInsertSavedSelection.value.end;
+    imagePromptInsertSavedSelection.value = null;
+  } else {
+    start = end = cur.length;
+  }
+
+  start = Math.max(0, Math.min(start, cur.length));
+  end = Math.max(0, Math.min(end, cur.length));
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+  }
+
+  composer.prompt = cur.slice(0, start) + text + cur.slice(end);
+  const caret = start + text.length;
+  imagePromptInsertSavedSelection.value = null;
+  imagePromptLibraryInsertOpen.value = false;
+  nextTick(() => {
+    const ta = getImagePromptNativeTextarea();
+    ta?.focus();
+    ta?.setSelectionRange(caret, caret);
+  });
+}
 
 function createDefaultTaskConfig(): ComposerTaskConfigState {
   return {
