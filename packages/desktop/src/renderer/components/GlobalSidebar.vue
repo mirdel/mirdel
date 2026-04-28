@@ -65,7 +65,12 @@
 
     <!-- 底部固定区域：搜索 + 主题切换 + 设置 -->
     <div class="flex flex-col items-center gap-1 shrink-0 mt-2">
-      <UTooltip v-if="updateStore.updateReady" :text="t('updates.sidebar.ready')" :content="{ side: 'right' }">
+      <UTooltip
+        v-if="updateStore.updateReady"
+        :disabled="disableBottomNavTooltips"
+        :text="t('updates.sidebar.ready')"
+        :content="{ side: 'right' }"
+      >
         <div
           class="size-8 flex items-center justify-center app-no-drag mb-2 rounded-full bg-primary hover:bg-primary/90 cursor-pointer shadow-sm"
           @click="updateStore.openRestartModal"
@@ -74,7 +79,12 @@
         </div>
       </UTooltip>
 
-      <UTooltip :text="t('tooltip.globalSearch')" :kbds="searchShortcutKbds" :content="{ side: 'right' }">
+      <UTooltip
+        :disabled="disableBottomNavTooltips"
+        :text="t('tooltip.globalSearch')"
+        :kbds="searchShortcutKbds"
+        :content="{ side: 'right' }"
+      >
         <div
           class="size-8 flex items-center justify-center app-no-drag mb-2 rounded-full bg-neutral-400/30 hover:bg-neutral-400/80 cursor-pointer"
           @click="emit('open-search')"
@@ -83,7 +93,11 @@
         </div>
       </UTooltip>
 
-      <UTooltip :text="themeTooltipText" :content="{ side: 'right' }">
+      <UTooltip
+        :disabled="disableBottomNavTooltips"
+        :text="themeTooltipText"
+        :content="{ side: 'right' }"
+      >
         <div
           ref="themeButtonRef"
           class="size-8 flex items-center justify-center app-no-drag mb-2 rounded-full bg-neutral-400/30 hover:bg-neutral-400/80 cursor-pointer"
@@ -211,6 +225,16 @@ const isActive = (to?: string) => {
 };
 
 const isActiveApplet = (appletId: string) => route.name === "app-workspace" && route.params.id === appletId;
+
+/** 网页应用工作区内嵌 BrowserView，悬停侧栏易误触 tooltip；此时关闭底部几项的 tooltip */
+const disableBottomNavTooltips = computed(() => {
+  if (route.name !== "app-workspace") return false;
+  const raw = route.params.id;
+  const id = typeof raw === "string" ? raw : Array.isArray(raw) ? (raw[0] ?? "") : "";
+  if (!id) return false;
+  const applet = openedAppStore.openedApplets.find((a) => a.id === id);
+  return applet?.type === "web";
+});
 
 const onClick = async (item: NavItem) => {
   if (item.disabled || !item.to) return;

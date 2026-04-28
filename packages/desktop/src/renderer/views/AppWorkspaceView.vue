@@ -5,29 +5,25 @@
       class="h-11 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2 border-b border-default bg-default"
     >
       <div class="flex items-center gap-1">
-        <UTooltip :text="t('applet.refresh')">
-          <UButton
-            icon="i-lucide-rotate-cw"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="refreshApplet"
-          />
-        </UTooltip>
+        <UButton
+          icon="i-lucide-rotate-cw"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="refreshApplet"
+        />
       </div>
       <div class="min-w-0 max-w-96 truncate text-sm font-medium text-default">
         {{ appInfo.name }}
       </div>
       <div class="flex items-center justify-end gap-1">
-        <UTooltip :text="t('applet.close')">
-          <UButton
-            icon="i-lucide-x"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="closeCurrentApplet"
-          />
-        </UTooltip>
+        <UButton
+          icon="i-lucide-x"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="closeCurrentApplet"
+        />
       </div>
     </div>
     <div v-if="errorMsg" class="flex-1 min-h-0 flex items-center justify-center p-8">

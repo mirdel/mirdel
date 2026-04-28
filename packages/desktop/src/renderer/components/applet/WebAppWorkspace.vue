@@ -2,67 +2,55 @@
   <div class="h-full min-h-0 flex flex-col bg-default">
     <div class="h-11 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2 border-b border-default bg-default">
       <div class="flex items-center gap-1">
-        <UTooltip :text="t('webApp.back')">
-          <UButton
-            icon="i-lucide-arrow-left"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            :disabled="!state.canGoBack"
-            @click="goBack"
-          />
-        </UTooltip>
-        <UTooltip :text="t('webApp.forward')">
-          <UButton
-            icon="i-lucide-arrow-right"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            :disabled="!state.canGoForward"
-            @click="goForward"
-          />
-        </UTooltip>
-        <UTooltip :text="t('webApp.reload')">
-          <UButton
-            icon="i-lucide-rotate-cw"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="reload"
-          />
-        </UTooltip>
+        <UButton
+          icon="i-lucide-arrow-left"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          :disabled="!state.canGoBack"
+          @click="goBack"
+        />
+        <UButton
+          icon="i-lucide-arrow-right"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          :disabled="!state.canGoForward"
+          @click="goForward"
+        />
+        <UButton
+          icon="i-lucide-rotate-cw"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="reload"
+        />
       </div>
       <div class="min-w-0 max-w-96 truncate text-sm font-medium text-default">
         {{ app.name }}
       </div>
       <div class="flex items-center justify-end gap-1">
-        <UTooltip :text="t('webApp.copyLink')">
-          <UButton
-            icon="i-lucide-link"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="copyLink"
-          />
-        </UTooltip>
-        <UTooltip :text="t('webApp.openInBrowser')">
-          <UButton
-            icon="i-lucide-compass"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="openInBrowser"
-          />
-        </UTooltip>
-        <UTooltip :text="t('applet.close')">
-          <UButton
-            icon="i-lucide-x"
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            @click="closeCurrentApplet"
-          />
-        </UTooltip>
+        <UButton
+          :icon="linkCopyFeedback ? 'i-lucide-check' : 'i-lucide-link'"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="copyLink"
+        />
+        <UButton
+          icon="i-lucide-compass"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="openInBrowser"
+        />
+        <UButton
+          icon="i-lucide-x"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          @click="closeCurrentApplet"
+        />
       </div>
     </div>
     <div ref="contentRef" class="relative flex-1 min-h-0 bg-default">
@@ -80,7 +68,6 @@
 import { nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { useMyToast } from "@/composables/useMyToast";
 import { useOpenedAppStore, type OpenedApplet } from "@/stores/useOpenedAppStore";
 import { copyToClipboard } from "@/utils/clipboard";
 
@@ -90,8 +77,8 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const router = useRouter();
-const toast = useMyToast();
 const openedAppStore = useOpenedAppStore();
+const linkCopyFeedback = ref(false);
 const contentRef = ref<HTMLElement | null>(null);
 const state = reactive({
   url: "",
@@ -104,6 +91,16 @@ const state = reactive({
 let resizeObserver: ResizeObserver | null = null;
 let unsubscribeState: (() => void) | null = null;
 let animationFrame = 0;
+let linkCopyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+const LINK_COPY_FEEDBACK_MS = 2000;
+
+function clearLinkCopyFeedbackTimer() {
+  if (linkCopyFeedbackTimer) {
+    clearTimeout(linkCopyFeedbackTimer);
+    linkCopyFeedbackTimer = null;
+  }
+}
 
 function getBounds() {
   const rect = contentRef.value?.getBoundingClientRect();
@@ -162,9 +159,13 @@ async function copyLink() {
   const url = state.url || props.app.webUrl || "";
   if (!url) return;
   const ok = await copyToClipboard(url);
-  if (ok) {
-    toast.success({ title: t("webApp.linkCopied") });
-  }
+  if (!ok) return;
+  linkCopyFeedback.value = true;
+  clearLinkCopyFeedbackTimer();
+  linkCopyFeedbackTimer = setTimeout(() => {
+    linkCopyFeedback.value = false;
+    linkCopyFeedbackTimer = null;
+  }, LINK_COPY_FEEDBACK_MS);
 }
 
 async function closeCurrentApplet() {
@@ -185,6 +186,8 @@ function subscribeState() {
 }
 
 function disconnect() {
+  clearLinkCopyFeedbackTimer();
+  linkCopyFeedback.value = false;
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
     animationFrame = 0;
