@@ -28,6 +28,7 @@ import { tMain } from "./i18n";
 import { applyProxySettings, installProxyAwareFetch } from "./services/network/proxyRuntime";
 import { getAppBehaviorSettings } from "./services/settings/settingsData";
 import { applyLaunchAtLoginSetting } from "./services/app/loginItemService";
+import { applyStoredAppColorModeToNativeTheme } from "./services/app/appearanceTheme";
 import { destroyTray, ensureTray } from "./services/app/trayService";
 import { initializeUpdateService, scheduleAutomaticUpdateCheck } from "./services/app/updateService";
 
@@ -1563,6 +1564,7 @@ app.on("ready", async () => {
   registerContextMenu();
   installProxyAwareFetch();
   initDb();
+  applyStoredAppColorModeToNativeTheme();
   await applyProxySettings();
   try {
     await ensureBuiltinApplets();

@@ -109,7 +109,7 @@
     "@vueuse/core": "^14.1.0",
     "@vueuse/motion": "^3.0.3",
     "cross-env": "^7.0.3",
-    "electron": "^41.1.0",
+    "electron": "^41.3.0",
     "electron-builder": "^26.0.0",
     "electron-devtools-installer": "^4.0.0",
     "electron-vite": "^5.0.0",

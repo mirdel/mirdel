@@ -9,6 +9,8 @@ import { getPersistentValue, initPersistentState } from "@/utils/persistentState
 const STORAGE_KEY = "mirdel-color-scheme";
 type StoredTheme = "auto" | "light" | "dark";
 
+let mediaQueryListenerInstalled = false;
+
 function getEffectiveTheme(): "light" | "dark" {
   const stored = getPersistentValue<StoredTheme>(STORAGE_KEY, "auto");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -32,4 +34,11 @@ export function initColorModeForWindow() {
   window.rendererState?.onChanged?.((event) => {
     if (event.key === STORAGE_KEY) applyColorModeFromStorage();
   });
+
+  if (!mediaQueryListenerInstalled) {
+    mediaQueryListenerInstalled = true;
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      applyColorModeFromStorage();
+    });
+  }
 }

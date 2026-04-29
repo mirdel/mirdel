@@ -7,7 +7,7 @@ import {
   type AppLanguagePreference
 } from "@shared";
 import { tMain } from "../i18n";
-import { app, BrowserWindow, dialog, screen, shell } from "electron";
+import { app, BrowserWindow, dialog, screen, shell, webContents } from "electron";
 import { markdownToPlain } from "@mirdel/markdown-to-plain";
 import {
   deleteProvider,
@@ -65,6 +65,7 @@ import {
 } from "../services/rendererStateData";
 import { searxngServerManager } from "../services/web-search/SearxngServerManager";
 import { applyLaunchAtLoginSetting } from "../services/app/loginItemService";
+import { applyRendererStateThemeChange } from "../services/app/appearanceTheme";
 import {
   listSessions,
   listMainSessions,
@@ -536,9 +537,9 @@ async function resolveMcpServerIdsForRequest(input: {
 }
 
 function broadcastRendererStateChanged(payload: { key: string; value?: unknown; removed?: boolean; updatedAt?: number }) {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send("renderer-state:changed", payload);
+  for (const contents of webContents.getAllWebContents()) {
+    if (!contents.isDestroyed()) {
+      contents.send("renderer-state:changed", payload);
     }
   }
 }
@@ -553,19 +554,23 @@ export const router = ipcRouter({
   },
   "rendererState:set": async (_event, input: { key: string; value: unknown }) => {
     const entry = setRendererStateValue(input.key, input.value);
-    broadcastRendererStateChanged({
+    const payload = {
       key: entry.key,
       value: entry.value,
       updatedAt: entry.updatedAt,
-    });
+    };
+    applyRendererStateThemeChange(payload);
+    broadcastRendererStateChanged(payload);
     return { ok: true, entry };
   },
   "rendererState:remove": async (_event, input: { key: string }) => {
     const result = removeRendererStateValue(input.key);
-    broadcastRendererStateChanged({
+    const payload = {
       key: result.key,
       removed: true,
-    });
+    };
+    applyRendererStateThemeChange(payload);
+    broadcastRendererStateChanged(payload);
     return { ok: true, ...result };
   },
 
