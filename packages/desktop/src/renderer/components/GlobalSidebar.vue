@@ -13,21 +13,81 @@
     <!-- 可滚动的导航区域 -->
     <div class="flex-1 min-h-0 overflow-y-auto mt-2 w-full scrollbar-hide app-no-drag">
       <div class="flex flex-col items-center gap-1">
-        <div
-          v-for="item in topItems"
+        <UContextMenu
+          v-for="item in visibleTopItems"
           :key="item.key"
-          class="flex flex-col items-center justify-center gap-0.5 w-14 h-11 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
-          :class="[
-            isActive(item.to)
-              ? 'bg-neutral-500'
-              : 'hover:bg-neutral-500/70',
-            item.disabled && 'opacity-40 cursor-not-allowed'
-          ]"
-          @click="onClick(item)"
+          :items="getNavContextMenuItems(item)"
+          :disabled="item.key === FIXED_NAV_KEY"
+          :modal="false"
+          :content="{ side: 'right', align: 'start' }"
+          size="sm"
         >
-          <UIcon :name="item.icon" class="text-md" />
-          <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
-        </div>
+          <div
+            class="relative w-14 shrink-0"
+            :draggable="item.key !== FIXED_NAV_KEY"
+            @dragstart="onNavDragStart($event, item)"
+            @dragover="onNavDragOver($event, item)"
+            @dragleave="onNavDragLeave(item)"
+            @drop="onNavDrop($event, item)"
+            @dragend="onNavDragEnd"
+          >
+            <div
+              v-if="getDropIndicator(item.key) === 'before'"
+              class="pointer-events-none absolute -top-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
+            ></div>
+            <div
+              class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag"
+              :class="[
+                isActive(item.to)
+                  ? 'bg-neutral-500'
+                  : 'hover:bg-neutral-500/70',
+                draggedNavKey === item.key && 'opacity-45',
+                item.disabled && 'opacity-40 cursor-not-allowed'
+              ]"
+              @click="onClick(item)"
+            >
+              <UIcon :name="item.icon" class="text-md" />
+              <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
+            </div>
+            <div
+              v-if="getDropIndicator(item.key) === 'after'"
+              class="pointer-events-none absolute -bottom-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
+            ></div>
+          </div>
+        </UContextMenu>
+
+        <template v-if="moreTopItems.length > 0">
+          <div
+            class="flex flex-col items-center justify-center gap-0.5 w-14 h-11 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
+            :class="isMoreActive || isMoreExpanded ? 'bg-neutral-500' : 'hover:bg-neutral-500/70'"
+            @click="toggleMoreExpanded"
+          >
+            <UIcon :name="isMoreExpanded ? 'i-lucide-circle-arrow-down' : 'i-lucide-ellipsis'" class="text-md" />
+            <span class="text-[11px] font-medium mt-0.5 leading-none">{{ t("nav.more") }}</span>
+          </div>
+
+          <Transition name="sidebar-more">
+            <div v-if="isMoreExpanded" class="flex flex-col items-center gap-1 overflow-hidden">
+              <UContextMenu
+                v-for="item in moreTopItems"
+                :key="item.key"
+                :items="getMoreNavContextMenuItems(item)"
+                :modal="false"
+                :content="{ side: 'right', align: 'start' }"
+                size="sm"
+              >
+                <div
+                  class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
+                  :class="isActive(item.to) ? 'bg-neutral-500' : 'hover:bg-neutral-500/70'"
+                  @click="onClick(item)"
+                >
+                  <UIcon :name="item.icon" class="text-md" />
+                  <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
+                </div>
+              </UContextMenu>
+            </div>
+          </Transition>
+        </template>
 
         <div v-if="openedAppStore.openedApplets.length > 0" class="w-8 h-px my-2 bg-neutral-400/40 shrink-0"></div>
 
@@ -130,10 +190,12 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import type { ContextMenuItem } from "@nuxt/ui";
 import { useAppColorModeState } from "@/composables/useAppColorModeState";
 import { useRouteMemory } from "@/composables/useRouteMemory";
 import { useOpenedAppStore } from "@/stores/useOpenedAppStore";
 import { useUpdateStore } from "@/stores/useUpdateStore";
+import { usePersistentState } from "@/utils/persistentState";
 import mirdelLogoSvgRaw from "@/assets/mirdel.svg?raw";
 
 const emit = defineEmits<{
@@ -197,10 +259,31 @@ type NavItem = {
   disabled?: boolean;
 };
 
+type SidebarNavLayout = {
+  visible: string[];
+  more: string[];
+};
+
+const FIXED_NAV_KEY = "chat";
+const SIDEBAR_NAV_LAYOUT_STORAGE_KEY = "mirdel.sidebarNavLayout";
+const DEFAULT_TOP_NAV_KEYS = ["chat", "images", "videos", "translate", "knowledge", "notes", "applet"];
+
+function createDefaultNavLayout(): SidebarNavLayout {
+  return {
+    visible: [...DEFAULT_TOP_NAV_KEYS],
+    more: [],
+  };
+}
+
 const route = useRoute();
 const router = useRouter();
 const { resolve } = useRouteMemory();
 const openedAppStore = useOpenedAppStore();
+const navLayout = usePersistentState<SidebarNavLayout>(SIDEBAR_NAV_LAYOUT_STORAGE_KEY, createDefaultNavLayout());
+const isMoreExpanded = ref(false);
+const draggedNavKey = ref<string | null>(null);
+const dragOverKey = ref<string | null>(null);
+const dragOverPosition = ref<"before" | "after">("before");
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 const searchShortcutKbds = computed(() => (isMac ? ["meta", "K"] : ["ctrl", "K"]));
 
@@ -218,6 +301,45 @@ const topItems = computed<NavItem[]>(() => [
 const bottomItems = computed<NavItem[]>(() => [
   { key: "settings", label: t("nav.settings"), icon: "i-lucide-settings-2", to: "/settings" }
 ]);
+
+const topItemMap = computed(() => new Map(topItems.value.map((item) => [item.key, item])));
+const normalizedNavLayout = computed(() => normalizeNavLayout(navLayout.value));
+const visibleTopItems = computed(() => mapNavKeysToItems(normalizedNavLayout.value.visible));
+const moreTopItems = computed(() => mapNavKeysToItems(normalizedNavLayout.value.more));
+const isMoreActive = computed(() => moreTopItems.value.some((item) => isActive(item.to)));
+
+function normalizeNavLayout(layout: SidebarNavLayout): SidebarNavLayout {
+  const knownKeys = topItems.value.map((item) => item.key);
+  const knownKeySet = new Set(knownKeys);
+  const rawVisible = Array.isArray(layout?.visible) ? layout.visible : [];
+  const rawMore = Array.isArray(layout?.more) ? layout.more : [];
+  const visible = dedupeNavKeys(rawVisible.filter((key) => key !== FIXED_NAV_KEY && knownKeySet.has(key)));
+  const more = dedupeNavKeys(rawMore.filter((key) => key !== FIXED_NAV_KEY && knownKeySet.has(key) && !visible.includes(key)));
+  const assigned = new Set([FIXED_NAV_KEY, ...visible, ...more]);
+  const newKeys = knownKeys.filter((key) => !assigned.has(key));
+
+  return {
+    visible: [FIXED_NAV_KEY, ...visible, ...newKeys],
+    more,
+  };
+}
+
+function dedupeNavKeys(keys: string[]) {
+  const seen = new Set<string>();
+  return keys.filter((key) => {
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mapNavKeysToItems(keys: string[]) {
+  return keys.map((key) => topItemMap.value.get(key)).filter((item): item is NavItem => Boolean(item));
+}
+
+function setNavLayout(layout: SidebarNavLayout) {
+  navLayout.value = normalizeNavLayout(layout);
+}
 
 const isActive = (to?: string) => {
   if (!to) return false;
@@ -243,6 +365,127 @@ const onClick = async (item: NavItem) => {
   await router.push(target);
 };
 
+function getNavContextMenuItems(item: NavItem): ContextMenuItem[][] {
+  return [
+    [
+      {
+        label: t("nav.moveToMore"),
+        icon: "i-lucide-ellipsis",
+        disabled: item.key === FIXED_NAV_KEY,
+        onSelect: () => moveToMore(item.key),
+      },
+    ],
+    [
+      {
+        label: t("nav.restoreDefault"),
+        icon: "i-lucide-rotate-ccw",
+        onSelect: restoreDefaultNavLayout,
+      },
+    ],
+  ];
+}
+
+function getMoreNavContextMenuItems(item: NavItem): ContextMenuItem[][] {
+  return [
+    [
+      {
+        label: t("nav.moveOutOfMore"),
+        icon: "i-lucide-log-out",
+        onSelect: () => moveOutOfMore(item.key),
+      },
+    ],
+  ];
+}
+
+function toggleMoreExpanded() {
+  isMoreExpanded.value = !isMoreExpanded.value;
+}
+
+function moveToMore(key: string) {
+  if (key === FIXED_NAV_KEY) return;
+  const layout = normalizedNavLayout.value;
+  if (!layout.visible.includes(key)) return;
+  setNavLayout({
+    visible: layout.visible.filter((itemKey) => itemKey !== key),
+    more: [...layout.more, key],
+  });
+}
+
+function moveOutOfMore(key: string) {
+  if (!key) return;
+  const layout = normalizedNavLayout.value;
+  if (!layout.more.includes(key)) return;
+  setNavLayout({
+    visible: [...layout.visible, key],
+    more: layout.more.filter((itemKey) => itemKey !== key),
+  });
+}
+
+function restoreDefaultNavLayout() {
+  setNavLayout(createDefaultNavLayout());
+}
+
+function getDropIndicator(key: string) {
+  if (dragOverKey.value !== key) return null;
+  return dragOverPosition.value;
+}
+
+function onNavDragStart(event: DragEvent, item: NavItem) {
+  if (item.key === FIXED_NAV_KEY) {
+    event.preventDefault();
+    return;
+  }
+  draggedNavKey.value = item.key;
+  event.dataTransfer?.setData("text/plain", item.key);
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+}
+
+function onNavDragOver(event: DragEvent, item: NavItem) {
+  if (!draggedNavKey.value || item.key === FIXED_NAV_KEY || item.key === draggedNavKey.value) return;
+  event.preventDefault();
+  const target = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+  const rect = target?.getBoundingClientRect();
+  dragOverKey.value = item.key;
+  dragOverPosition.value = rect && event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+
+function onNavDragLeave(item: NavItem) {
+  if (dragOverKey.value === item.key) {
+    dragOverKey.value = null;
+  }
+}
+
+function onNavDrop(event: DragEvent, item: NavItem) {
+  event.preventDefault();
+  const draggedKey = draggedNavKey.value ?? event.dataTransfer?.getData("text/plain");
+  if (!draggedKey || draggedKey === FIXED_NAV_KEY || item.key === FIXED_NAV_KEY || draggedKey === item.key) {
+    onNavDragEnd();
+    return;
+  }
+
+  const layout = normalizedNavLayout.value;
+  const nextVisible = layout.visible.filter((key) => key !== draggedKey);
+  const targetIndex = nextVisible.indexOf(item.key);
+  if (targetIndex === -1) {
+    onNavDragEnd();
+    return;
+  }
+
+  nextVisible.splice(targetIndex + (dragOverPosition.value === "after" ? 1 : 0), 0, draggedKey);
+  setNavLayout({
+    visible: nextVisible,
+    more: layout.more,
+  });
+  onNavDragEnd();
+}
+
+function onNavDragEnd() {
+  draggedNavKey.value = null;
+  dragOverKey.value = null;
+  dragOverPosition.value = "before";
+}
+
 async function openApplet(appletId: string) {
   await openedAppStore.markAppletOpened(appletId);
   await router.push({ name: "app-workspace", params: { id: appletId } });
@@ -260,3 +503,29 @@ onMounted(() => {
   void openedAppStore.restoreOpenedApplets();
 });
 </script>
+
+<style scoped>
+.sidebar-more-enter-active,
+.sidebar-more-leave-active {
+  max-height: 28rem;
+  overflow: hidden;
+  transition:
+    max-height 180ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.sidebar-more-enter-from,
+.sidebar-more-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.sidebar-more-enter-to,
+.sidebar-more-leave-from {
+  max-height: 28rem;
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
