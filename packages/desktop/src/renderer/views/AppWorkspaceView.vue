@@ -233,7 +233,11 @@ async function doStartApplet(id: string, version: number) {
 
 async function startApplet() {
   const id = appletId.value;
-  if (!id || startedAppletId.value === id) return;
+  if (!id) return;
+  if (startedAppletId.value === id) {
+    await openedAppStore.markAppletOpened(id);
+    return;
+  }
 
   if (startPromiseById?.id === id) {
     await startPromiseById.promise;

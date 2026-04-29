@@ -1,0 +1,9 @@
+{
+  "id": "__builtin_web_claude__",
+  "type": "web",
+  "name": "Claude",
+  "description": "Anthropic Claude web app",
+  "entryFile": "main.tsx",
+  "webUrl": "https://claude.ai/",
+  "logo": "logo.png"
+}

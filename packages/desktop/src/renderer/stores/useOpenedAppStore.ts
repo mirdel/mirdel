@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { getPersistentValue, setPersistentValue } from "@/utils/persistentState";
 
 const OPENED_APPLETS_STORAGE_KEY = "mirdel.openedAppletIds";
+const APPLET_LAST_OPENED_AT_STORAGE_KEY = "mirdel.appletLastOpenedAtById";
 
 export type OpenedApplet = {
   id: string;
@@ -52,13 +53,42 @@ async function writePersistedAppletIds(ids: string[]) {
   await setPersistentValue(OPENED_APPLETS_STORAGE_KEY, ids);
 }
 
+function readPersistedAppletLastOpenedAtById(): Record<string, number> {
+  try {
+    const parsed = getPersistentValue<unknown>(APPLET_LAST_OPENED_AT_STORAGE_KEY, {});
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const result: Record<string, number> = {};
+    for (const [id, value] of Object.entries(parsed)) {
+      const appletId = id.trim();
+      const ts = Number(value);
+      if (!appletId || !Number.isFinite(ts) || ts <= 0) continue;
+      result[appletId] = Math.round(ts);
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 export const useOpenedAppStore = defineStore("openedApps", () => {
   const openedApplets = ref<OpenedApplet[]>([]);
+  const appletLastOpenedAtById = ref<Record<string, number>>(readPersistedAppletLastOpenedAtById());
   const openedAppletIds = computed(() => new Set(openedApplets.value.map((item) => item.id)));
   let restorePromise: Promise<void> | null = null;
 
   async function persistOpenedAppletIds() {
     await writePersistedAppletIds(openedApplets.value.map((item) => item.id));
+  }
+
+  async function markAppletOpened(appletId: string): Promise<void> {
+    const id = appletId.trim();
+    if (!id) return;
+    const next = {
+      ...appletLastOpenedAtById.value,
+      [id]: Date.now(),
+    };
+    appletLastOpenedAtById.value = next;
+    await setPersistentValue(APPLET_LAST_OPENED_AT_STORAGE_KEY, next);
   }
 
   async function upsertApplet(applet: OpenedApplet) {
@@ -114,11 +144,15 @@ export const useOpenedAppStore = defineStore("openedApps", () => {
 
   async function openApplet(appletId: string): Promise<OpenedApplet | null> {
     const existing = openedApplets.value.find((item) => item.id === appletId);
-    if (existing) return existing;
+    if (existing) {
+      await markAppletOpened(appletId);
+      return existing;
+    }
 
     const applet = toOpenedApplet(await window.ipc("applet:get", { id: appletId }));
     if (!applet) return null;
     await upsertApplet(applet);
+    await markAppletOpened(applet.id);
     return applet;
   }
 
@@ -138,9 +172,11 @@ export const useOpenedAppStore = defineStore("openedApps", () => {
 
   return {
     openedApplets,
+    appletLastOpenedAtById,
     openedAppletIds,
     upsertApplet,
     restoreOpenedApplets,
+    markAppletOpened,
     openApplet,
     closeApplet,
     isAppletOpened,

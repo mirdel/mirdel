@@ -1121,6 +1121,14 @@ function setupApplicationMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+function isWebPreviewToolbarWebContents(contents: Electron.WebContents): boolean {
+  return (
+    !!webPreviewToolbarView &&
+    !webPreviewToolbarView.webContents.isDestroyed() &&
+    webPreviewToolbarView.webContents.id === contents.id
+  );
+}
+
 function isEmbeddedWebContents(contents: Electron.WebContents): boolean {
   if (
     webPreviewContentView &&
@@ -1325,6 +1333,12 @@ function resolveContextMenuOwnerWindow(
 function registerContextMenu() {
   app.on("web-contents-created", (_event, contents) => {
     contents.on("context-menu", (event, params) => {
+      // 网页预览顶栏是独立 WebContentsView；不展示任何右键菜单（否则会出现编辑菜单或 Chromium 默认菜单）
+      if (isWebPreviewToolbarWebContents(contents)) {
+        event.preventDefault();
+        return;
+      }
+
       const template = isEmbeddedWebContents(contents)
         ? buildEmbeddedContextMenu(contents, params)
         : buildRendererContextMenu(params);

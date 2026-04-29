@@ -1,5 +1,6 @@
 {
   "id": "__builtin_examples_docs__",
+  "type": "applet",
   "name": "Applet Examples and Docs",
   "description": "Built-in examples and API documentation for applet components and runtime methods",
   "entryFile": "main.tsx"

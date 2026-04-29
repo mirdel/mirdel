@@ -58,15 +58,20 @@ type AppletLocalStateFile = {
 
 type BuiltinAppletDefinition = {
   id: string;
+  fallbackType?: AppletType;
   fallbackName: string;
   fallbackDescription: string;
   fallbackEntryFile: string;
+  fallbackWebUrl?: string;
 };
 
 const BUILTIN_EXAMPLES_DOCS_APPLET_ID = "__builtin_examples_docs__";
 const BUILTIN_EXAMPLES_DOCS_ENTRY_FILE = "main.tsx";
 const BUILTIN_EXAMPLES_DOCS_NAME = "Applet Examples and Docs";
 const BUILTIN_EXAMPLES_DOCS_DESCRIPTION = "Built-in examples and API documentation for applet components and runtime methods";
+const BUILTIN_WEB_CHATGPT_APPLET_ID = "__builtin_web_chatgpt__";
+const BUILTIN_WEB_CLAUDE_APPLET_ID = "__builtin_web_claude__";
+const BUILTIN_WEB_GEMINI_APPLET_ID = "__builtin_web_gemini__";
 const APPLET_DEFAULT_ENTRY_FILE = "main.tsx";
 const APPLET_MANIFEST_FILE = "applet.json";
 const APPLET_LOCAL_STATE_FILE = "applet-local-state.json";
@@ -422,22 +427,40 @@ async function ensureBuiltinApplet(definition: BuiltinAppletDefinition): Promise
   if (existing) return;
 
   const now = Date.now();
+  const sourceManifest = normalizeAppletManifest(
+    await readJsonFile<unknown>(path.join(sourceDir, APPLET_MANIFEST_FILE))
+  );
+  const type = sourceManifest?.type ?? definition.fallbackType ?? "applet";
+  const webUrl = type === "web"
+    ? normalizeWebUrl(sourceManifest?.webUrl ?? definition.fallbackWebUrl)
+    : undefined;
+  if (type === "web" && !webUrl) {
+    throw new Error(`builtin web app url is invalid: ${definition.id}`);
+  }
+
   const appletRoot = getAppletRootDir(definition.id);
   await fs.mkdir(path.dirname(appletRoot), { recursive: true });
   await fs.cp(sourceDir, appletRoot, { recursive: true, force: true });
 
-  const copied = await readAppletManifest(definition.id);
-  const entryFile = normalizeAppletEntryFile(copied?.entryFile ?? definition.fallbackEntryFile);
-  await ensureAppletSourceInitialized(definition.id, entryFile);
+  let entryFile = APPLET_DEFAULT_ENTRY_FILE;
+  let logo = sourceManifest?.logo;
+  if (type === "applet") {
+    const copied = await readAppletManifest(definition.id);
+    entryFile = normalizeAppletEntryFile(copied?.entryFile ?? sourceManifest?.entryFile ?? definition.fallbackEntryFile);
+    logo = copied?.logo ?? logo;
+    await ensureAppletSourceInitialized(definition.id, entryFile);
+  }
 
   const nextManifest: AppletManifest = {
     id: definition.id,
-    name: copied?.name || definition.fallbackName,
-    description: copied?.description || definition.fallbackDescription,
+    type,
+    name: sourceManifest?.name || definition.fallbackName,
+    description: sourceManifest?.description || definition.fallbackDescription,
     entryFile,
-    logo: copied?.logo,
-    createdAt: copied?.createdAt ?? now,
-    updatedAt: copied?.updatedAt ?? now,
+    webUrl,
+    logo,
+    createdAt: sourceManifest?.createdAt ?? now,
+    updatedAt: sourceManifest?.updatedAt ?? now,
   };
   await writeAppletManifest(nextManifest);
 }
@@ -445,14 +468,45 @@ async function ensureBuiltinApplet(definition: BuiltinAppletDefinition): Promise
 export async function ensureBuiltinExamplesDocsApplet(): Promise<void> {
   await ensureBuiltinApplet({
     id: BUILTIN_EXAMPLES_DOCS_APPLET_ID,
+    fallbackType: "applet",
     fallbackName: BUILTIN_EXAMPLES_DOCS_NAME,
     fallbackDescription: BUILTIN_EXAMPLES_DOCS_DESCRIPTION,
     fallbackEntryFile: BUILTIN_EXAMPLES_DOCS_ENTRY_FILE,
   });
 }
 
+async function ensureBuiltinWebApplets(): Promise<void> {
+  await Promise.all([
+    ensureBuiltinApplet({
+      id: BUILTIN_WEB_CHATGPT_APPLET_ID,
+      fallbackType: "web",
+      fallbackName: "ChatGPT",
+      fallbackDescription: "OpenAI ChatGPT web app",
+      fallbackEntryFile: APPLET_DEFAULT_ENTRY_FILE,
+      fallbackWebUrl: "https://chatgpt.com/",
+    }),
+    ensureBuiltinApplet({
+      id: BUILTIN_WEB_CLAUDE_APPLET_ID,
+      fallbackType: "web",
+      fallbackName: "Claude",
+      fallbackDescription: "Anthropic Claude web app",
+      fallbackEntryFile: APPLET_DEFAULT_ENTRY_FILE,
+      fallbackWebUrl: "https://claude.ai/",
+    }),
+    ensureBuiltinApplet({
+      id: BUILTIN_WEB_GEMINI_APPLET_ID,
+      fallbackType: "web",
+      fallbackName: "Gemini",
+      fallbackDescription: "Google Gemini web app",
+      fallbackEntryFile: APPLET_DEFAULT_ENTRY_FILE,
+      fallbackWebUrl: "https://gemini.google.com/",
+    }),
+  ]);
+}
+
 export async function ensureBuiltinApplets(): Promise<void> {
   await ensureBuiltinExamplesDocsApplet();
+  await ensureBuiltinWebApplets();
 }
 
 export async function listApplets(): Promise<Applet[]> {

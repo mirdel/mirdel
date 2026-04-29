@@ -12,21 +12,57 @@
 
     <section v-else class="flex-1 min-w-0 h-full flex flex-col bg-default rounded-xl overflow-hidden p-5">
       <div class="flex items-center justify-between px-1 py-2">
-        <div class="text-md font-medium text-default">{{ t("applet.listTitle") }}</div>
-        <UButton icon="i-lucide-plus" size="md" variant="soft" color="neutral" @click="openNew">
-          {{ t("applet.new") }}
-        </UButton>
+        <div class="text-lg font-medium text-default">{{ t("applet.listTitle") }}</div>
+        <div class="flex items-center gap-2">
+          <UInput
+            v-model.trim="searchQuery"
+            icon="i-lucide-search"
+            :placeholder="t('applet.searchPlaceholder')"
+            size="md"
+            class="w-56"
+          />
+          <UButton icon="i-lucide-plus" size="md" variant="outline" color="neutral" @click="openNew">
+            {{ t("applet.new") }}
+          </UButton>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 px-1 pb-3">
+        <UTabs
+          v-model="typeFilter"
+          :items="typeFilterTabs"
+          :content="false"
+          color="neutral"
+          variant="pill"
+          size="sm"
+        />
+        <USelect
+          v-model="sortMode"
+          :items="sortItems"
+          icon="i-lucide-arrow-up-down"
+          color="neutral"
+          variant="soft"
+          size="md"
+          class="w-32"
+        />
       </div>
       <div class="flex-1 min-h-0 overflow-auto p-2">
-        <div class="grid grid-cols-3 gap-4">
+        <UEmpty
+          v-if="displayedApplets.length === 0"
+          icon="i-lucide-search-x"
+          :title="t('applet.emptyFilteredTitle')"
+          :description="t('applet.emptyFilteredDescription')"
+          size="lg"
+          class="h-full"
+        />
+        <div v-else class="grid grid-cols-3 gap-4">
           <div
-            v-for="r in applets"
+            v-for="r in displayedApplets"
             :key="r.id"
             class="flex min-w-0 rounded-xl border border-default hover:border-default bg-default p-4 flex-row items-center gap-3"
           >
-            <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-elevated flex items-center justify-center">
-              <img v-if="r.logo" :src="r.logo" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover" />
-              <UIcon v-else :name="r.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="w-5 h-5 text-muted" />
+            <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-neutral-600 dark:bg-neutral-800 flex items-center justify-center">
+              <img v-if="r.logo" :src="r.logo" alt="" loading="lazy" decoding="async" class="size-5 object-contain rounded" />
+              <UIcon v-else :name="r.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="size-5 text-neutral-50" />
             </div>
             <div class="min-w-0 flex-1 flex flex-col gap-0.5">
               <div class="flex items-center gap-2 min-w-0">
@@ -83,6 +119,7 @@
               variant="pill"
               class="w-full"
             />
+            <p class="text-xs text-muted mt-2">{{ typeDescription }}</p>
           </UFormField>
           <UFormField :label="t('applet.form.name')" required>
             <UInput ref="nameInputRef" v-model.trim="form.name" :placeholder="t('applet.form.namePlaceholder')" class="w-full" />
@@ -101,11 +138,11 @@
               :preview="false"
             >
               <div
-                class="relative w-20 h-20 flex items-center justify-center overflow-hidden rounded-lg bg-default border border-dashed border-default shrink-0 cursor-pointer hover:bg-elevated/25 transition-[background]"
+                class="relative w-20 h-20 flex items-center justify-center overflow-hidden rounded-lg bg-neutral-600 dark:bg-neutral-800 border border-dashed border-default shrink-0 cursor-pointer hover:bg-neutral-500 dark:hover:bg-neutral-700 transition-[background]"
                 @click="open()"
               >
-                <img v-if="logoPreviewBase64" :src="logoPreviewBase64" alt="" class="w-full h-full object-cover" />
-                <UIcon v-else :name="form.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="w-6 h-6 text-muted" />
+                <img v-if="logoPreviewBase64" :src="logoPreviewBase64" alt="" class="size-8 object-contain rounded" />
+                <UIcon v-else :name="form.type === 'web' ? 'i-lucide-globe' : 'i-lucide-app-window'" class="size-8 text-neutral-50" />
                 <button
                   v-if="logoPreviewBase64"
                   type="button"
@@ -121,7 +158,7 @@
       </template>
       <template #footer>
         <UButton variant="outline" color="neutral" @click="showInfoEditor = false">{{ t("common.cancel") }}</UButton>
-        <UButton :disabled="isSaveDisabled()" @click="saveAppletInfo">{{ t("common.save") }}</UButton>
+        <UButton :disabled="isSaveDisabled()" @click="saveAppletInfo">{{ saveButtonLabel }}</UButton>
       </template>
     </UModal>
 
@@ -155,7 +192,13 @@ type Applet = {
   updatedAt: number;
 };
 
+type AppletTypeFilter = "all" | "applet" | "web";
+type AppletSortMode = "last-opened" | "created" | "name";
+
 const applets = ref<Applet[]>([]);
+const typeFilter = ref<AppletTypeFilter>("all");
+const sortMode = ref<AppletSortMode>("last-opened");
+const searchQuery = ref("");
 const showInfoEditor = ref(false);
 const editingId = ref<string | null>(null);
 const form = ref<{ type: "applet" | "web"; name: string; description: string; webUrl: string }>({
@@ -186,6 +229,49 @@ const appletTypeTabs = computed(() => [
   { label: t("applet.type.applet"), icon: "i-lucide-app-window", value: "applet" },
   { label: t("applet.type.web"), icon: "i-lucide-globe", value: "web" },
 ]);
+const typeFilterTabs = computed(() => [
+  { label: t("applet.filter.all"), value: "all" },
+  { label: t("applet.type.applet"), icon: "i-lucide-app-window", value: "applet" },
+  { label: t("applet.type.web"), icon: "i-lucide-globe", value: "web" },
+]);
+const sortItems = computed(() => [
+  { label: t("applet.sort.lastOpened"), value: "last-opened" },
+  { label: t("applet.sort.created"), value: "created" },
+  { label: t("applet.sort.name"), value: "name" },
+]);
+
+const typeDescription = computed(() =>
+  form.value.type === "web" ? t("applet.type.webDescription") : t("applet.type.appletDescription")
+);
+
+const displayedApplets = computed(() => {
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  const keyword = searchQuery.value.trim().toLowerCase();
+  return applets.value
+    .filter((applet) => typeFilter.value === "all" || applet.type === typeFilter.value)
+    .filter((applet) => {
+      if (!keyword) return true;
+      return `${applet.name} ${applet.description ?? ""}`.toLowerCase().includes(keyword);
+    })
+    .slice()
+    .sort((a, b) => {
+      if (sortMode.value === "name") {
+        return collator.compare(a.name, b.name) || b.createdAt - a.createdAt;
+      }
+      if (sortMode.value === "created") {
+        return b.createdAt - a.createdAt || collator.compare(a.name, b.name);
+      }
+      const aLastOpenedAt = openedAppStore.appletLastOpenedAtById[a.id] ?? 0;
+      const bLastOpenedAt = openedAppStore.appletLastOpenedAtById[b.id] ?? 0;
+      return bLastOpenedAt - aLastOpenedAt || b.createdAt - a.createdAt || collator.compare(a.name, b.name);
+    });
+});
+
+const saveButtonLabel = computed(() => {
+  if (editingId.value) return t("common.save");
+  if (form.value.type === "applet") return t("applet.action.next");
+  return t("applet.action.create");
+});
 
 function normalizeWebUrlInput(input: string): string | undefined {
   const raw = input.trim();

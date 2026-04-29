@@ -1,0 +1,9 @@
+{
+  "id": "__builtin_web_gemini__",
+  "type": "web",
+  "name": "Gemini",
+  "description": "Google Gemini web app",
+  "entryFile": "main.tsx",
+  "webUrl": "https://gemini.google.com/",
+  "logo": "logo.png"
+}

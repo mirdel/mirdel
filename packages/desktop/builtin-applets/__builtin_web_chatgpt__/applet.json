@@ -1,0 +1,9 @@
+{
+  "id": "__builtin_web_chatgpt__",
+  "type": "web",
+  "name": "ChatGPT",
+  "description": "OpenAI ChatGPT web app",
+  "entryFile": "main.tsx",
+  "webUrl": "https://chatgpt.com/",
+  "logo": "logo.png"
+}

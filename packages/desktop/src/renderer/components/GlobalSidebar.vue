@@ -244,6 +244,7 @@ const onClick = async (item: NavItem) => {
 };
 
 async function openApplet(appletId: string) {
+  await openedAppStore.markAppletOpened(appletId);
   await router.push({ name: "app-workspace", params: { id: appletId } });
 }
 
