@@ -13,8 +13,10 @@ vi.mock("electron", () => {
 
   return {
     app: {
+      isPackaged: false,
       getPath: vi.fn(() => userDataDir),
       getAppPath: vi.fn(() => process.cwd()),
+      getVersion: vi.fn(() => "0.0.0-test"),
     },
     BrowserWindow: {
       fromWebContents: vi.fn(),
