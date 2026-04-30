@@ -53,7 +53,7 @@
             class="shrink-0"
           />
           <span class="flex-1 text-sm text-default truncate select-all">
-            {{ currentUrl || "about:blank" }}
+            {{ displayUrl || "about:blank" }}
           </span>
         </div>
 
@@ -82,25 +82,54 @@
         />
       </div>
 
+      <div
+        v-if="loadError"
+        class="flex-1 min-h-0 flex items-start justify-center px-8 pt-[18vh] bg-default"
+        style="-webkit-app-region: no-drag;"
+      >
+        <div class="w-full max-w-2xl">
+          <UIcon name="i-lucide-circle-alert" class="mb-5 size-12 text-muted" />
+          <h1 class="text-2xl font-semibold text-default">{{ t("web.openFailed") }}</h1>
+          <p class="mt-3 text-sm text-muted">{{ t("web.openFailedDescription") }}</p>
+          <div class="mt-5 space-y-2 rounded-lg border border-default bg-muted/40 p-4 text-sm">
+            <div class="truncate text-muted">{{ loadError.url }}</div>
+            <div class="text-toned">{{ t("web.errorDetail", { error: loadError.description }) }}</div>
+          </div>
+          <div class="mt-6 flex items-center gap-2">
+            <UButton icon="i-lucide-refresh-cw" color="neutral" @click="handleRefreshOrStop">
+              {{ t("webApp.reload") }}
+            </UButton>
+            <UButton icon="i-lucide-external-link" color="neutral" variant="outline" @click="handleOpenInBrowser">
+              {{ t("webPreview.openInBrowser") }}
+            </UButton>
+          </div>
+        </div>
+      </div>
+
     </div>
   </UApp>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useMyToast } from "@/composables/useMyToast";
 import { initColorModeForWindow } from "@/utils/initColorMode";
 
+type WebLoadError = {
+  code: number;
+  description: string;
+  url: string;
+};
+
 const { t } = useI18n();
-const toast = useMyToast();
 const currentUrl = ref("");
 const isLoading = ref(false);
 const loadingProgress = ref(0);
 const canGoBack = ref(false);
 const canGoForward = ref(false);
 const isSecure = ref(false);
-const loadError = ref<string | null>(null);
+const loadError = ref<WebLoadError | null>(null);
+const displayUrl = computed(() => currentUrl.value || loadError.value?.url || "");
 
 let progressInterval: ReturnType<typeof setInterval> | null = null;
 let removeStateListener: (() => void) | null = null;
@@ -122,9 +151,9 @@ function handleRefreshOrStop() {
 }
 
 async function handleOpenInBrowser() {
-  if (!currentUrl.value) return;
+  if (!displayUrl.value) return;
   try {
-    await window.webPreview?.openInBrowser(currentUrl.value);
+    await window.webPreview?.openInBrowser(displayUrl.value);
   } catch (error) {
     console.error("Failed to open in browser:", error);
   }
@@ -135,7 +164,7 @@ function handleStateUpdate(state: {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 }) {
   currentUrl.value = state.url;
   canGoBack.value = state.canGoBack;
@@ -164,10 +193,6 @@ function handleStateUpdate(state: {
     }, 300);
   }
 }
-
-watch(loadError, (err) => {
-  if (err) toast.error({ title: t("webPreview.loadFailed"), description: err, duration: 5000 });
-});
 
 onMounted(() => {
   if (window.webPreview?.onState) {

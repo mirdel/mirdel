@@ -1,6 +1,6 @@
 <template>
   <!-- app-drag: 让第一列整体可拖拽窗口；可点击元素需 app-no-drag -->
-  <div class="w-16 h-screen flex flex-col items-center py-1.5 app-drag">
+  <div class="w-16 h-screen flex flex-col items-center py-1.5 app-drag select-none">
     <!-- 顶部固定区域：traffic lights + Logo -->
     <div class="flex flex-col items-center gap-2 shrink-0">
       <div class="h-7 w-full"></div>
@@ -13,48 +13,41 @@
     <!-- 可滚动的导航区域 -->
     <div class="flex-1 min-h-0 overflow-y-auto mt-2 w-full scrollbar-hide app-no-drag">
       <div class="flex flex-col items-center gap-1">
-        <UContextMenu
+        <div
           v-for="item in visibleTopItems"
           :key="item.key"
-          :items="getNavContextMenuItems(item)"
-          :disabled="item.key === FIXED_NAV_KEY"
-          :modal="false"
-          :content="{ side: 'right', align: 'start' }"
-          size="sm"
+          class="relative w-14 shrink-0"
+          :draggable="item.key !== FIXED_NAV_KEY"
+          @contextmenu.stop.prevent="openVisibleNavContextMenu($event, item)"
+          @dragstart="onNavDragStart($event, item)"
+          @dragover="onNavDragOver($event, item)"
+          @dragleave="onNavDragLeave(item)"
+          @drop="onNavDrop($event, item)"
+          @dragend="onNavDragEnd"
         >
           <div
-            class="relative w-14 shrink-0"
-            :draggable="item.key !== FIXED_NAV_KEY"
-            @dragstart="onNavDragStart($event, item)"
-            @dragover="onNavDragOver($event, item)"
-            @dragleave="onNavDragLeave(item)"
-            @drop="onNavDrop($event, item)"
-            @dragend="onNavDragEnd"
+            v-if="getDropIndicator(item.key) === 'before'"
+            class="pointer-events-none absolute -top-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
+          ></div>
+          <div
+            class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag"
+            :class="[
+              isActive(item.to)
+                ? 'bg-neutral-500'
+                : 'hover:bg-neutral-500/70',
+              draggedNavKey === item.key && 'opacity-45',
+              item.disabled && 'opacity-40 cursor-not-allowed'
+            ]"
+            @click="onClick(item)"
           >
-            <div
-              v-if="getDropIndicator(item.key) === 'before'"
-              class="pointer-events-none absolute -top-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
-            ></div>
-            <div
-              class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag"
-              :class="[
-                isActive(item.to)
-                  ? 'bg-neutral-500'
-                  : 'hover:bg-neutral-500/70',
-                draggedNavKey === item.key && 'opacity-45',
-                item.disabled && 'opacity-40 cursor-not-allowed'
-              ]"
-              @click="onClick(item)"
-            >
-              <UIcon :name="item.icon" class="text-md" />
-              <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
-            </div>
-            <div
-              v-if="getDropIndicator(item.key) === 'after'"
-              class="pointer-events-none absolute -bottom-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
-            ></div>
+            <UIcon :name="item.icon" class="text-md" />
+            <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
           </div>
-        </UContextMenu>
+          <div
+            v-if="getDropIndicator(item.key) === 'after'"
+            class="pointer-events-none absolute -bottom-0.5 left-2 right-2 z-10 h-0.5 rounded-full bg-primary"
+          ></div>
+        </div>
 
         <template v-if="moreTopItems.length > 0">
           <div
@@ -68,23 +61,17 @@
 
           <Transition name="sidebar-more">
             <div v-if="isMoreExpanded" class="flex flex-col items-center gap-1 overflow-hidden">
-              <UContextMenu
+              <div
                 v-for="item in moreTopItems"
                 :key="item.key"
-                :items="getMoreNavContextMenuItems(item)"
-                :modal="false"
-                :content="{ side: 'right', align: 'start' }"
-                size="sm"
+                class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
+                :class="isActive(item.to) ? 'bg-neutral-500' : 'hover:bg-neutral-500/70'"
+                @click="onClick(item)"
+                @contextmenu.stop.prevent="openMoreNavContextMenu($event, item)"
               >
-                <div
-                  class="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-lg text-neutral-50 cursor-pointer transition-all app-no-drag shrink-0"
-                  :class="isActive(item.to) ? 'bg-neutral-500' : 'hover:bg-neutral-500/70'"
-                  @click="onClick(item)"
-                >
-                  <UIcon :name="item.icon" class="text-md" />
-                  <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
-                </div>
-              </UContextMenu>
+                <UIcon :name="item.icon" class="text-md" />
+                <span class="text-[11px] font-medium mt-0.5 leading-none">{{ item.label }}</span>
+              </div>
             </div>
           </Transition>
         </template>
@@ -190,7 +177,6 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { ContextMenuItem } from "@nuxt/ui";
 import { useAppColorModeState } from "@/composables/useAppColorModeState";
 import { useRouteMemory } from "@/composables/useRouteMemory";
 import { useOpenedAppStore } from "@/stores/useOpenedAppStore";
@@ -365,40 +351,34 @@ const onClick = async (item: NavItem) => {
   await router.push(target);
 };
 
-function getNavContextMenuItems(item: NavItem): ContextMenuItem[][] {
-  return [
-    [
-      {
-        label: t("nav.moveToMore"),
-        icon: "i-lucide-ellipsis",
-        disabled: item.key === FIXED_NAV_KEY,
-        onSelect: () => moveToMore(item.key),
-      },
-    ],
-    [
-      {
-        label: t("nav.restoreDefault"),
-        icon: "i-lucide-rotate-ccw",
-        onSelect: restoreDefaultNavLayout,
-      },
-    ],
-  ];
-}
-
-function getMoreNavContextMenuItems(item: NavItem): ContextMenuItem[][] {
-  return [
-    [
-      {
-        label: t("nav.moveOutOfMore"),
-        icon: "i-lucide-log-out",
-        onSelect: () => moveOutOfMore(item.key),
-      },
-    ],
-  ];
-}
-
 function toggleMoreExpanded() {
   isMoreExpanded.value = !isMoreExpanded.value;
+}
+
+async function openVisibleNavContextMenu(event: MouseEvent, item: NavItem) {
+  if (item.key === FIXED_NAV_KEY) return;
+  const result = await window.sidebarNavMenu.show({
+    x: event.clientX,
+    y: event.clientY,
+    items: [
+      { type: "item", id: "move-to-more", label: t("nav.moveToMore") },
+      { type: "separator" },
+      { type: "item", id: "restore-default", label: t("nav.restoreDefault") },
+    ],
+  });
+  if (result.action === "move-to-more") moveToMore(item.key);
+  if (result.action === "restore-default") restoreDefaultNavLayout();
+}
+
+async function openMoreNavContextMenu(event: MouseEvent, item: NavItem) {
+  const result = await window.sidebarNavMenu.show({
+    x: event.clientX,
+    y: event.clientY,
+    items: [
+      { type: "item", id: "move-out-of-more", label: t("nav.moveOutOfMore") },
+    ],
+  });
+  if (result.action === "move-out-of-more") moveOutOfMore(item.key);
 }
 
 function moveToMore(key: string) {

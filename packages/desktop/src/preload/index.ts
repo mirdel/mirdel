@@ -169,7 +169,7 @@ type WebPreviewState = {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 };
 
 type WebAppBounds = {
@@ -179,6 +179,12 @@ type WebAppBounds = {
   height: number;
 };
 
+type WebLoadError = {
+  code: number;
+  description: string;
+  url: string;
+};
+
 type WebAppState = {
   appletId: string;
   url: string;
@@ -186,8 +192,21 @@ type WebAppState = {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 };
+
+type SidebarNavMenuAction = "move-to-more" | "move-out-of-more" | "restore-default";
+
+type SidebarNavMenuItemInput =
+  | {
+      type: "item";
+      id: SidebarNavMenuAction;
+      label: string;
+      enabled?: boolean;
+    }
+  | {
+      type: "separator";
+    };
 
 contextBridge.exposeInMainWorld("webPreview", {
   open: (url: string) => {
@@ -218,6 +237,9 @@ contextBridge.exposeInMainWorld("appWebView", {
   hide: (appletId: string) => {
     ipcRenderer.send("web-app:hide", { appletId });
   },
+  setOccluded: (input: { appletId: string; occluded: boolean }) => {
+    ipcRenderer.send("web-app:set-occluded", input);
+  },
   close: (appletId: string) => {
     ipcRenderer.send("web-app:close", { appletId });
   },
@@ -241,6 +263,12 @@ contextBridge.exposeInMainWorld("appWebView", {
     ipcRenderer.on("web-app:state", listener);
     return () => ipcRenderer.removeListener("web-app:state", listener);
   }
+});
+
+contextBridge.exposeInMainWorld("sidebarNavMenu", {
+  show: (input: { x: number; y: number; items: SidebarNavMenuItemInput[] }) => {
+    return ipcRenderer.invoke("sidebar-nav-menu:show", input);
+  },
 });
 
 // AI DevTools 独立预览窗口

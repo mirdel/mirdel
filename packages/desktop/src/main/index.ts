@@ -50,6 +50,12 @@ type WebAppBounds = {
   height: number;
 };
 
+type WebLoadError = {
+  code: number;
+  description: string;
+  url: string;
+};
+
 type WebAppState = {
   appletId: string;
   url: string;
@@ -57,7 +63,7 @@ type WebAppState = {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 };
 
 type WebAppViewEntry = {
@@ -66,8 +72,23 @@ type WebAppViewEntry = {
   lastState: WebAppState;
 };
 
+type SidebarNavMenuAction = "move-to-more" | "move-out-of-more" | "restore-default";
+
+type SidebarNavMenuItemInput =
+  | {
+      type: "item";
+      id: SidebarNavMenuAction;
+      label: string;
+      enabled?: boolean;
+    }
+  | {
+      type: "separator";
+    };
+
 const webAppViews = new Map<string, WebAppViewEntry>();
 let activeWebAppViewId: string | null = null;
+let webPreviewLoadError: WebLoadError | null = null;
+let webPreviewErrorPageVisible = false;
 
 function broadcastModelServerStatus(status: ServerStatusSnapshot) {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -283,9 +304,53 @@ function sendWebPreviewStateToToolbar(state: {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 }) {
+  setWebPreviewErrorPageVisible(Boolean(state.loadError));
   webPreviewToolbarView?.webContents.send("web-preview:state", state);
+}
+
+function getWebPreviewContentSize() {
+  if (!webPreviewWindow || webPreviewWindow.isDestroyed()) return null;
+  const [width, height] = webPreviewWindow.getContentSize();
+  return { width, height };
+}
+
+function layoutWebPreviewViews() {
+  const size = getWebPreviewContentSize();
+  if (!size || !webPreviewToolbarView || !webPreviewContentView) return;
+
+  if (webPreviewErrorPageVisible) {
+    webPreviewContentView.setVisible(false);
+    webPreviewContentView.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    webPreviewToolbarView.setVisible(true);
+    webPreviewToolbarView.setBounds({ x: 0, y: 0, width: size.width, height: size.height });
+    return;
+  }
+
+  webPreviewToolbarView.setVisible(true);
+  webPreviewToolbarView.setBounds({ x: 0, y: 0, width: size.width, height: WEB_PREVIEW_TOOLBAR_HEIGHT });
+  webPreviewContentView.setVisible(true);
+  webPreviewContentView.setBounds({
+    x: 0,
+    y: WEB_PREVIEW_TOOLBAR_HEIGHT,
+    width: size.width,
+    height: Math.max(0, size.height - WEB_PREVIEW_TOOLBAR_HEIGHT)
+  });
+}
+
+function setWebPreviewErrorPageVisible(visible: boolean) {
+  if (webPreviewErrorPageVisible === visible) return;
+  webPreviewErrorPageVisible = visible;
+  layoutWebPreviewViews();
+}
+
+function createWebLoadError(errorCode: number, errorDescription: string, url: string): WebLoadError {
+  return {
+    code: errorCode,
+    description: errorDescription || tMain("web.loadFailed", { errorCode }),
+    url,
+  };
 }
 
 function setupWebPreviewContentListeners() {
@@ -293,6 +358,7 @@ function setupWebPreviewContentListeners() {
   if (!content) return;
 
   content.on("did-start-loading", () => {
+    webPreviewLoadError = null;
     sendWebPreviewStateToToolbar({
       url: content.getURL(),
       canGoBack: content.canGoBack(),
@@ -308,7 +374,7 @@ function setupWebPreviewContentListeners() {
       canGoBack: content.canGoBack(),
       canGoForward: content.canGoForward(),
       isLoading: false,
-      loadError: null
+      loadError: webPreviewLoadError
     });
   });
 
@@ -336,14 +402,15 @@ function setupWebPreviewContentListeners() {
     webPreviewWindow?.setTitle(title || tMain("window.webPreview"));
   });
 
-  content.on("did-fail-load", (_evt, errorCode, errorDescription) => {
+  content.on("did-fail-load", (_evt, errorCode, errorDescription, validatedURL) => {
     if (errorCode === -3) return; // ERR_ABORTED
+    webPreviewLoadError = createWebLoadError(errorCode, errorDescription, validatedURL || content.getURL());
     sendWebPreviewStateToToolbar({
       url: content.getURL(),
       canGoBack: content.canGoBack(),
       canGoForward: content.canGoForward(),
       isLoading: false,
-      loadError: errorDescription || tMain("web.loadFailed", { errorCode })
+      loadError: webPreviewLoadError
     });
   });
 
@@ -397,19 +464,10 @@ async function ensureWebPreviewWindow() {
     webPreviewWindow.contentView.addChildView(webPreviewToolbarView);
     webPreviewWindow.contentView.addChildView(webPreviewContentView);
 
-    const toolbarHeight = WEB_PREVIEW_TOOLBAR_HEIGHT;
-    webPreviewToolbarView.setBounds({ x: 0, y: 0, width: windowWidth, height: toolbarHeight });
-    webPreviewContentView.setBounds({
-      x: 0,
-      y: toolbarHeight,
-      width: windowWidth,
-      height: windowHeight - toolbarHeight
-    });
+    layoutWebPreviewViews();
 
     webPreviewWindow.on("resize", () => {
-      const [w, h] = webPreviewWindow!.getContentSize();
-      webPreviewToolbarView?.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight });
-      webPreviewContentView?.setBounds({ x: 0, y: toolbarHeight, width: w, height: h - toolbarHeight });
+      layoutWebPreviewViews();
     });
 
     webPreviewWindow.on("close", (event) => {
@@ -424,6 +482,8 @@ async function ensureWebPreviewWindow() {
       webPreviewToolbarView = null;
       webPreviewContentView = null;
       webPreviewWindow = null;
+      webPreviewLoadError = null;
+      webPreviewErrorPageVisible = false;
     });
 
     setupWebPreviewContentListeners();
@@ -481,7 +541,7 @@ function updateWebAppState(entry: WebAppViewEntry, patch: Partial<WebAppState>) 
     canGoBack: content.canGoBack(),
     canGoForward: content.canGoForward(),
     isLoading: content.isLoading(),
-    loadError: null,
+    loadError: entry.lastState.loadError,
     ...patch,
   };
   sendWebAppState(entry);
@@ -497,10 +557,11 @@ function hideInactiveWebAppViews(activeAppletId?: string | null) {
 function setupWebAppViewListeners(entry: WebAppViewEntry) {
   const content = entry.view.webContents;
   content.on("did-start-loading", () => {
+    entry.view.setVisible(true);
     updateWebAppState(entry, { isLoading: true, loadError: null });
   });
   content.on("did-stop-loading", () => {
-    updateWebAppState(entry, { isLoading: false, loadError: null });
+    updateWebAppState(entry, { isLoading: false });
   });
   content.on("did-navigate", () => {
     updateWebAppState(entry, { loadError: null });
@@ -511,11 +572,12 @@ function setupWebAppViewListeners(entry: WebAppViewEntry) {
   content.on("page-title-updated", (_event, title) => {
     updateWebAppState(entry, { title });
   });
-  content.on("did-fail-load", (_event, errorCode, errorDescription) => {
+  content.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
     if (errorCode === -3) return;
+    entry.view.setVisible(false);
     updateWebAppState(entry, {
       isLoading: false,
-      loadError: errorDescription || tMain("web.loadFailed", { errorCode }),
+      loadError: createWebLoadError(errorCode, errorDescription, validatedURL || content.getURL() || entry.lastState.url),
     });
   });
   content.setWindowOpenHandler(({ url }) => {
@@ -573,6 +635,7 @@ async function showWebAppView(input: { appletId: string; url: string; bounds: We
   const entry = ensureWebAppView(appletId, url);
   activeWebAppViewId = appletId;
   hideInactiveWebAppViews(appletId);
+  entry.view.setVisible(!entry.lastState.loadError);
   entry.view.setBounds(clampWebAppBounds(input.bounds));
 
   const content = entry.view.webContents;
@@ -582,7 +645,7 @@ async function showWebAppView(input: { appletId: string; url: string; bounds: We
     await content.loadURL(url);
   }
 
-  updateWebAppState(entry, { loadError: null });
+  updateWebAppState(entry, {});
   return { ok: true as const };
 }
 
@@ -596,8 +659,16 @@ function setWebAppViewBounds(input: { appletId: string; bounds: WebAppBounds }) 
 function hideWebAppView(appletId: string) {
   const entry = webAppViews.get(appletId);
   if (!entry) return;
+  entry.view.setVisible(true);
   entry.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
   if (activeWebAppViewId === appletId) activeWebAppViewId = null;
+}
+
+function setWebAppViewOccluded(input: { appletId: string; occluded: boolean }) {
+  if (activeWebAppViewId !== input.appletId) return;
+  const entry = webAppViews.get(input.appletId);
+  if (!entry || entry.view.webContents.isDestroyed()) return;
+  entry.view.setVisible(!input.occluded);
 }
 
 function closeWebAppView(appletId: string) {
@@ -644,6 +715,7 @@ async function createOrShowWebPreviewWindow(url: string) {
   webPreviewWindow.focus();
 
   await content.loadURL("about:blank");
+  webPreviewLoadError = null;
   sendWebPreviewStateToToolbar({
     url: "about:blank",
     canGoBack: false,
@@ -653,7 +725,6 @@ async function createOrShowWebPreviewWindow(url: string) {
   });
   content.navigationHistory?.clear?.();
 
-  await content.loadURL(url);
   sendWebPreviewStateToToolbar({
     url,
     canGoBack: content.canGoBack(),
@@ -661,6 +732,24 @@ async function createOrShowWebPreviewWindow(url: string) {
     isLoading: true,
     loadError: null
   });
+
+  try {
+    await content.loadURL(url);
+  } catch (error) {
+    if (webPreviewLoadError) return;
+    webPreviewLoadError = createWebLoadError(
+      -1,
+      error instanceof Error ? error.message : String(error),
+      url
+    );
+    sendWebPreviewStateToToolbar({
+      url,
+      canGoBack: content.canGoBack(),
+      canGoForward: content.canGoForward(),
+      isLoading: false,
+      loadError: webPreviewLoadError
+    });
+  }
 }
 
 async function ensureAiDevToolsWindow() {
@@ -1354,6 +1443,39 @@ function registerContextMenu() {
   });
 }
 
+function showSidebarNavMenu(
+  ownerWindow: BrowserWindow | null,
+  input: { x: number; y: number; items: SidebarNavMenuItemInput[] }
+): Promise<{ action: SidebarNavMenuAction | null }> {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const done = (action: SidebarNavMenuAction | null) => {
+      if (resolved) return;
+      resolved = true;
+      resolve({ action });
+    };
+    const template: Electron.MenuItemConstructorOptions[] = input.items.map((item) => {
+      if (item.type === "separator") return { type: "separator" };
+      return {
+        label: item.label,
+        enabled: item.enabled !== false,
+        click: () => done(item.id),
+      };
+    });
+    if (template.length === 0) {
+      done(null);
+      return;
+    }
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({
+      window: ownerWindow ?? undefined,
+      x: Math.round(input.x),
+      y: Math.round(input.y),
+      callback: () => done(null),
+    });
+  });
+}
+
 function registerIpc() {
   // 防止重复注册：先移除所有旧的 handlers
   const channels = [
@@ -1451,17 +1573,23 @@ function registerIpc() {
   ipcMain.removeAllListeners("web-preview:goBack");
   ipcMain.on("web-preview:goBack", () => {
     if (webPreviewContentView?.webContents.canGoBack()) {
+      webPreviewLoadError = null;
+      setWebPreviewErrorPageVisible(false);
       webPreviewContentView.webContents.goBack();
     }
   });
   ipcMain.removeAllListeners("web-preview:goForward");
   ipcMain.on("web-preview:goForward", () => {
     if (webPreviewContentView?.webContents.canGoForward()) {
+      webPreviewLoadError = null;
+      setWebPreviewErrorPageVisible(false);
       webPreviewContentView.webContents.goForward();
     }
   });
   ipcMain.removeAllListeners("web-preview:reload");
   ipcMain.on("web-preview:reload", () => {
+    webPreviewLoadError = null;
+    setWebPreviewErrorPageVisible(false);
     webPreviewContentView?.webContents.reload();
   });
   ipcMain.removeAllListeners("web-preview:stop");
@@ -1471,7 +1599,25 @@ function registerIpc() {
   ipcMain.removeAllListeners("web-preview:loadURL");
   ipcMain.on("web-preview:loadURL", async (_evt, url: string) => {
     if (webPreviewContentView && url) {
-      await webPreviewContentView.webContents.loadURL(url);
+      webPreviewLoadError = null;
+      setWebPreviewErrorPageVisible(false);
+      try {
+        await webPreviewContentView.webContents.loadURL(url);
+      } catch (error) {
+        if (webPreviewLoadError) return;
+        webPreviewLoadError = createWebLoadError(
+          -1,
+          error instanceof Error ? error.message : String(error),
+          url
+        );
+        sendWebPreviewStateToToolbar({
+          url,
+          canGoBack: webPreviewContentView.webContents.canGoBack(),
+          canGoForward: webPreviewContentView.webContents.canGoForward(),
+          isLoading: false,
+          loadError: webPreviewLoadError
+        });
+      }
     }
   });
 
@@ -1507,6 +1653,11 @@ function registerIpc() {
     hideWebAppView(input.appletId);
   });
 
+  ipcMain.removeAllListeners("web-app:set-occluded");
+  ipcMain.on("web-app:set-occluded", (_evt, input: { appletId: string; occluded: boolean }) => {
+    setWebAppViewOccluded(input);
+  });
+
   ipcMain.removeAllListeners("web-app:close");
   ipcMain.on("web-app:close", (_evt, input: { appletId: string }) => {
     closeWebAppView(input.appletId);
@@ -1514,19 +1665,34 @@ function registerIpc() {
 
   ipcMain.removeAllListeners("web-app:goBack");
   ipcMain.on("web-app:goBack", (_evt, input: { appletId: string }) => {
+    const entry = webAppViews.get(input.appletId);
     const content = getWebAppContent(input.appletId);
-    if (content?.canGoBack()) content.goBack();
+    if (entry && content?.canGoBack()) {
+      entry.view.setVisible(true);
+      updateWebAppState(entry, { loadError: null });
+      content.goBack();
+    }
   });
 
   ipcMain.removeAllListeners("web-app:goForward");
   ipcMain.on("web-app:goForward", (_evt, input: { appletId: string }) => {
+    const entry = webAppViews.get(input.appletId);
     const content = getWebAppContent(input.appletId);
-    if (content?.canGoForward()) content.goForward();
+    if (entry && content?.canGoForward()) {
+      entry.view.setVisible(true);
+      updateWebAppState(entry, { loadError: null });
+      content.goForward();
+    }
   });
 
   ipcMain.removeAllListeners("web-app:reload");
   ipcMain.on("web-app:reload", (_evt, input: { appletId: string }) => {
-    getWebAppContent(input.appletId)?.reload();
+    const entry = webAppViews.get(input.appletId);
+    const content = getWebAppContent(input.appletId);
+    if (!entry || !content) return;
+    entry.view.setVisible(true);
+    updateWebAppState(entry, { isLoading: true, loadError: null });
+    content.reload();
   });
 
   ipcMain.removeAllListeners("web-app:stop");
@@ -1546,6 +1712,20 @@ function registerIpc() {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
+
+  ipcMain.removeHandler("sidebar-nav-menu:show");
+  ipcMain.handle(
+    "sidebar-nav-menu:show",
+    async (event, input: { x: number; y: number; items: SidebarNavMenuItemInput[] }) => {
+      try {
+        const ownerWindow = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
+        return await showSidebarNavMenu(ownerWindow, input);
+      } catch (error) {
+        logger.error("failed to show sidebar nav menu", { error });
+        return { action: null };
+      }
+    }
+  );
 
   // AI DevTools 独立预览窗口（不复用 webPreview）
   ipcMain.removeAllListeners("devtools-preview:open");

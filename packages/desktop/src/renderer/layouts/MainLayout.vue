@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 import GlobalSidebar from "@/components/GlobalSidebar.vue"
@@ -40,6 +40,7 @@ import GlobalSearchModal from "@/components/GlobalSearchModal.vue"
 import PromptLibraryCreateModal from "@/components/settings/PromptLibraryCreateModal.vue"
 import { useMyToast } from "@/composables/useMyToast"
 import { useChatStore } from "@/stores/useChatStore"
+import { useOpenedAppStore } from "@/stores/useOpenedAppStore"
 import emitter from "@/utils/emitter"
 
 const route = useRoute()
@@ -47,7 +48,9 @@ const router = useRouter()
 const { t } = useI18n()
 const toast = useMyToast()
 const chatStore = useChatStore()
+const openedAppStore = useOpenedAppStore()
 const searchOpen = ref(false)
+const rendererDialogOpen = ref(false)
 const searchPreset = ref<{
   scope?: "all" | "messages" | "sessions" | "translations" | "notes" | "knowledge";
   onlyCurrentSession?: boolean;
@@ -55,6 +58,23 @@ const searchPreset = ref<{
 } | null>(null)
 
 let unsubscribeStream: (() => void) | null = null
+let rendererDialogObserver: MutationObserver | null = null
+let rendererDialogCheckFrame = 0
+let occludedWebAppletId: string | null = null
+
+const activeWebAppletId = computed(() => {
+  if (route.name !== "app-workspace") return null
+  const raw = route.params.id
+  return typeof raw === "string" ? raw : Array.isArray(raw) ? (raw[0] ?? null) : null
+})
+
+const isActiveWebApplet = computed(() => {
+  const appletId = activeWebAppletId.value
+  if (!appletId) return false
+  return openedAppStore.openedApplets.some((applet) => applet.id === appletId && applet.type === "web")
+})
+
+const shouldOccludeActiveWebApplet = computed(() => searchOpen.value || rendererDialogOpen.value)
 
 function isViewingSession(sessionId: string): boolean {
   return route.name === 'chat' && route.params.sessionId === sessionId
@@ -85,7 +105,79 @@ defineShortcuts({
   }
 })
 
+function isRendererDialogVisible(element: Element) {
+  if (!(element instanceof HTMLElement)) return false
+  if (element.closest("[data-state='closed'], [aria-hidden='true']")) return false
+  const style = window.getComputedStyle(element)
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false
+  return element.getClientRects().length > 0
+}
+
+function hasVisibleRendererDialog() {
+  return [...document.querySelectorAll("[role='dialog'], [data-reka-dialog-content]")]
+    .some(isRendererDialogVisible)
+}
+
+function refreshRendererDialogOpen() {
+  rendererDialogOpen.value = hasVisibleRendererDialog()
+}
+
+function scheduleRendererDialogCheck() {
+  if (rendererDialogCheckFrame) return
+  rendererDialogCheckFrame = requestAnimationFrame(() => {
+    rendererDialogCheckFrame = 0
+    refreshRendererDialogOpen()
+  })
+}
+
+function startRendererDialogObserver() {
+  if (rendererDialogObserver) return
+  rendererDialogObserver = new MutationObserver(scheduleRendererDialogCheck)
+  rendererDialogObserver.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["class", "style", "role", "data-state", "aria-hidden"],
+  })
+  refreshRendererDialogOpen()
+}
+
+function stopRendererDialogObserver() {
+  rendererDialogObserver?.disconnect()
+  rendererDialogObserver = null
+  if (rendererDialogCheckFrame) {
+    cancelAnimationFrame(rendererDialogCheckFrame)
+    rendererDialogCheckFrame = 0
+  }
+}
+
+function restoreOccludedWebApplet() {
+  if (!occludedWebAppletId) return
+  window.appWebView.setOccluded({ appletId: occludedWebAppletId, occluded: false })
+  occludedWebAppletId = null
+}
+
+watch(
+  [activeWebAppletId, isActiveWebApplet, shouldOccludeActiveWebApplet],
+  ([appletId, isWebApplet, shouldOcclude]) => {
+    if (!appletId || !isWebApplet || !shouldOcclude) {
+      restoreOccludedWebApplet()
+      if (appletId && isWebApplet) {
+        window.appWebView.setOccluded({ appletId, occluded: false })
+      }
+      return
+    }
+
+    if (occludedWebAppletId && occludedWebAppletId !== appletId) {
+      window.appWebView.setOccluded({ appletId: occludedWebAppletId, occluded: false })
+    }
+    window.appWebView.setOccluded({ appletId, occluded: true })
+    occludedWebAppletId = appletId
+  }
+)
+
 onMounted(() => {
+  startRendererDialogObserver()
   emitter.on('global-search:open', openGlobalSearchWithPreset)
 
   unsubscribeStream = window.chat.onStream((evt) => {
@@ -106,6 +198,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopRendererDialogObserver()
+  restoreOccludedWebApplet()
   emitter.off('global-search:open', openGlobalSearchWithPreset)
   unsubscribeStream?.()
   unsubscribeStream = null

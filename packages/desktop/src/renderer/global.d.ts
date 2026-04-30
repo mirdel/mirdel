@@ -64,6 +64,12 @@ type WebAppBounds = {
   height: number;
 };
 
+type WebLoadError = {
+  code: number;
+  description: string;
+  url: string;
+};
+
 type WebAppState = {
   appletId: string;
   url: string;
@@ -71,8 +77,21 @@ type WebAppState = {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  loadError: string | null;
+  loadError: WebLoadError | null;
 };
+
+type SidebarNavMenuAction = "move-to-more" | "move-out-of-more" | "restore-default";
+
+type SidebarNavMenuItemInput =
+  | {
+      type: "item";
+      id: SidebarNavMenuAction;
+      label: string;
+      enabled?: boolean;
+    }
+  | {
+      type: "separator";
+    };
 
 type AppletStateSchemaPayload = {
   appletId?: string;
@@ -132,7 +151,7 @@ declare global {
           canGoBack: boolean;
           canGoForward: boolean;
           isLoading: boolean;
-          loadError: string | null;
+          loadError: WebLoadError | null;
         }) => void
       ) => () => void;
       goBack: () => void;
@@ -146,6 +165,7 @@ declare global {
       show: (input: { appletId: string; url: string; bounds: WebAppBounds }) => Promise<{ ok: boolean; error?: string }>;
       setBounds: (input: { appletId: string; bounds: WebAppBounds }) => void;
       hide: (appletId: string) => void;
+      setOccluded: (input: { appletId: string; occluded: boolean }) => void;
       close: (appletId: string) => void;
       goBack: (appletId: string) => void;
       goForward: (appletId: string) => void;
@@ -153,6 +173,9 @@ declare global {
       stop: (appletId: string) => void;
       openInBrowser: (input: { appletId: string; url?: string }) => Promise<{ ok: boolean; error?: string }>;
       onState: (handler: (state: WebAppState) => void) => () => void;
+    };
+    sidebarNavMenu: {
+      show: (input: { x: number; y: number; items: SidebarNavMenuItemInput[] }) => Promise<{ action: SidebarNavMenuAction | null }>;
     };
     devtoolsPreview: {
       open: (url: string) => void;

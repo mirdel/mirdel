@@ -54,8 +54,24 @@
       </div>
     </div>
     <div ref="contentRef" class="relative flex-1 min-h-0 bg-default">
-      <div v-if="!app.webUrl" class="absolute inset-0 flex items-center justify-center p-8">
-        <UEmpty icon="i-lucide-circle-alert" :title="t('webApp.invalidUrl')" size="lg" />
+      <div v-if="currentLoadError" class="absolute inset-0 flex items-start justify-center overflow-auto px-8 pt-[18vh]">
+        <div class="w-full max-w-2xl">
+          <UIcon name="i-lucide-circle-alert" class="mb-5 size-12 text-muted" />
+          <h1 class="text-2xl font-semibold text-default">{{ t("web.openFailed") }}</h1>
+          <p class="mt-3 text-sm text-muted">{{ t("web.openFailedDescription") }}</p>
+          <div class="mt-5 space-y-2 rounded-lg border border-default bg-muted/40 p-4 text-sm">
+            <div v-if="currentLoadError.url" class="truncate text-muted">{{ currentLoadError.url }}</div>
+            <div class="text-toned">{{ t("web.errorDetail", { error: currentLoadError.description }) }}</div>
+          </div>
+          <div class="mt-6 flex items-center gap-2">
+            <UButton icon="i-lucide-refresh-cw" color="neutral" :disabled="!app.webUrl" @click="reload">
+              {{ t("webApp.reload") }}
+            </UButton>
+            <UButton icon="i-lucide-compass" color="neutral" variant="outline" :disabled="!displayUrl" @click="openInBrowser">
+              {{ t("webApp.openInBrowser") }}
+            </UButton>
+          </div>
+        </div>
       </div>
       <div v-else-if="state.isLoading && !state.url" class="absolute inset-0 flex items-center justify-center text-muted">
         <UIcon name="i-lucide-loader" class="size-5 animate-spin" />
@@ -65,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useOpenedAppStore, type OpenedApplet } from "@/stores/useOpenedAppStore";
@@ -74,6 +90,12 @@ import { copyToClipboard } from "@/utils/clipboard";
 const props = defineProps<{
   app: OpenedApplet;
 }>();
+
+type WebLoadError = {
+  code: number;
+  description: string;
+  url: string;
+};
 
 const { t } = useI18n();
 const router = useRouter();
@@ -85,7 +107,17 @@ const state = reactive({
   canGoBack: false,
   canGoForward: false,
   isLoading: false,
-  loadError: null as string | null,
+  loadError: null as WebLoadError | null,
+});
+const displayUrl = computed(() => state.url || state.loadError?.url || props.app.webUrl || "");
+const currentLoadError = computed<WebLoadError | null>(() => {
+  if (state.loadError) return state.loadError;
+  if (props.app.webUrl) return null;
+  return {
+    code: 0,
+    description: t("webApp.invalidUrl"),
+    url: "",
+  };
 });
 
 let resizeObserver: ResizeObserver | null = null;
@@ -133,13 +165,22 @@ async function showWebView() {
     url: props.app.webUrl,
     bounds: getBounds(),
   });
+  if (!result.ok) {
+    state.loadError = {
+      code: 0,
+      description: result.error || t("webApp.invalidUrl"),
+      url: props.app.webUrl,
+    };
+    return;
+  }
   if (result.ok) updateBounds();
 }
 
 function openInBrowser() {
+  if (!displayUrl.value) return;
   void window.appWebView.openInBrowser({
     appletId: props.app.id,
-    url: state.url || props.app.webUrl,
+    url: displayUrl.value,
   });
 }
 
@@ -152,11 +193,15 @@ function goForward() {
 }
 
 function reload() {
+  state.loadError = null;
+  if (!state.url && props.app.webUrl) {
+    void showWebView();
+  }
   window.appWebView.reload(props.app.id);
 }
 
 async function copyLink() {
-  const url = state.url || props.app.webUrl || "";
+  const url = displayUrl.value;
   if (!url) return;
   const ok = await copyToClipboard(url);
   if (!ok) return;
