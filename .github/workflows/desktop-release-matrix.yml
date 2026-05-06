@@ -98,24 +98,13 @@ jobs:
       - name: Show packaged files
         run: ls -lah packages/desktop/release
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: desktop-${{ matrix.id }}
-          if-no-files-found: error
-          path: |
-            packages/desktop/release/*.dmg
-            packages/desktop/release/*.exe
-            packages/desktop/release/*.zip
-            packages/desktop/release/*.yml
-            packages/desktop/release/*.blockmap
-
       - name: Upload mac update feed fragment
         if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.runtime_target, 'darwin-')
         uses: actions/upload-artifact@v6
         with:
           name: mac-update-feed-${{ matrix.id }}
           if-no-files-found: error
+          retention-days: 1
           path: packages/desktop/release/latest-mac.yml
 
   merge-mac-update-feed:
