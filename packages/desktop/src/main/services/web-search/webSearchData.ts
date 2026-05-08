@@ -4,9 +4,10 @@
  */
 
 import { getDb } from '../db';
-import { loggerServiceMain } from '@shared';
+import { loggerServiceMain, resolveSystemLocale } from '@shared';
 import type { SearchProvider } from './types';
 import { tMain } from '../../i18n';
+import { getSystemLocale } from '../../i18n/systemLocale';
 
 const logger = loggerServiceMain.withContext('WebSearchData');
 
@@ -25,11 +26,14 @@ export type SearchTimeRange = 'none' | 'day' | 'month' | 'year';
 
 export const DEFAULT_SELECTED_ENGINES = [
   'google',
-  'bing',
   'duckduckgo',
-  'baidu',
+  'bing',
+];
+
+export const DEFAULT_ZH_CN_SELECTED_ENGINES = [
+  'bing',
+  'sogou',
   '360search',
-  'quark',
 ];
 
 /**
@@ -100,6 +104,12 @@ export const DEFAULT_WEB_SEARCH_CONFIG: WebSearchConfig = {
   contentMaxLength: 2000,
 };
 
+export function resolveDefaultSelectedEngines(systemLocale = getSystemLocale()): string[] {
+  return resolveSystemLocale(systemLocale) === 'zh-CN'
+    ? [...DEFAULT_ZH_CN_SELECTED_ENGINES]
+    : [...DEFAULT_SELECTED_ENGINES];
+}
+
 function resolveDefaultAiSearchModel(): string {
   return '__default__';
 }
@@ -118,10 +128,10 @@ function normalizeAiSearchConfig(input: unknown): AiSearchConfig {
   };
 }
 
-function cloneDefaultConfig(): WebSearchConfig {
+export function createDefaultWebSearchConfig(systemLocale?: string | null): WebSearchConfig {
   return {
     ...DEFAULT_WEB_SEARCH_CONFIG,
-    selectedEngines: [...DEFAULT_WEB_SEARCH_CONFIG.selectedEngines],
+    selectedEngines: resolveDefaultSelectedEngines(systemLocale ?? undefined),
   };
 }
 
@@ -131,7 +141,7 @@ export function ensureWebSearchConfig(): WebSearchConfig {
   if (row) {
     return getWebSearchConfig();
   }
-  const initial = cloneDefaultConfig();
+  const initial = createDefaultWebSearchConfig();
   db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
               ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(KEY_WEB_SEARCH_CONFIG, JSON.stringify(initial));
   return initial;
@@ -145,7 +155,7 @@ export function getWebSearchConfig(): WebSearchConfig {
   const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(KEY_WEB_SEARCH_CONFIG) as { value: string } | undefined;
   
   if (!row) {
-    return cloneDefaultConfig();
+    return createDefaultWebSearchConfig();
   }
   
   try {
@@ -159,10 +169,10 @@ export function getWebSearchConfig(): WebSearchConfig {
             .filter(Boolean)
         )
       )
-      : [...DEFAULT_WEB_SEARCH_CONFIG.selectedEngines];
+      : resolveDefaultSelectedEngines();
     return {
       resultLimit: parsed.resultLimit ?? DEFAULT_WEB_SEARCH_CONFIG.resultLimit,
-      selectedEngines: selectedEngines.length > 0 ? selectedEngines : [...DEFAULT_WEB_SEARCH_CONFIG.selectedEngines],
+      selectedEngines: selectedEngines.length > 0 ? selectedEngines : resolveDefaultSelectedEngines(),
       timeRange: parsed.timeRange ?? DEFAULT_WEB_SEARCH_CONFIG.timeRange,
       safeSearch: parsed.safeSearch ?? DEFAULT_WEB_SEARCH_CONFIG.safeSearch,
       searchTimeout: parsed.searchTimeout ?? DEFAULT_WEB_SEARCH_CONFIG.searchTimeout,
@@ -176,7 +186,7 @@ export function getWebSearchConfig(): WebSearchConfig {
       contentMaxLength: parsed.contentMaxLength ?? DEFAULT_WEB_SEARCH_CONFIG.contentMaxLength,
     };
   } catch {
-    return cloneDefaultConfig();
+    return createDefaultWebSearchConfig();
   }
 }
 
@@ -209,7 +219,7 @@ export function setWebSearchConfig(config: Partial<WebSearchConfig>): WebSearchC
   if (merged.selectedEngines.length === 0) {
     merged.selectedEngines = current.selectedEngines.length > 0
       ? [...current.selectedEngines]
-      : [...DEFAULT_WEB_SEARCH_CONFIG.selectedEngines];
+      : resolveDefaultSelectedEngines();
   }
   if (!['none', 'day', 'month', 'year'].includes(merged.timeRange)) {
     merged.timeRange = 'none';

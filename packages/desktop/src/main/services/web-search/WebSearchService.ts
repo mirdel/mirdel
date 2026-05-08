@@ -15,7 +15,7 @@ import {
   getSearchProvider,
   setWebSearchConfig,
   ensureWebSearchConfig,
-  DEFAULT_SELECTED_ENGINES,
+  resolveDefaultSelectedEngines,
   type WebSearchConfig
 } from './webSearchData';
 import { destroyPagePool } from './PagePool';
@@ -213,7 +213,7 @@ class WebSearchService {
       )
     );
 
-    const fallbackSelectedEngines = DEFAULT_SELECTED_ENGINES.filter((name) => availableEngineSet.has(name));
+    const fallbackSelectedEngines = resolveDefaultSelectedEngines().filter((name) => availableEngineSet.has(name));
     const finalSelectedEngines = normalizedSelectedEngines.length > 0
       ? normalizedSelectedEngines
       : fallbackSelectedEngines.length > 0

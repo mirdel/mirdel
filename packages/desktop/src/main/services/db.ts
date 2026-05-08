@@ -6,7 +6,7 @@ import { app } from "electron";
 import { loggerServiceMain } from "@shared";
 import * as sqliteVec from "sqlite-vec";
 import { tMain } from "../i18n";
-import { DEFAULT_WEB_SEARCH_CONFIG } from "./web-search/webSearchData";
+import { createDefaultWebSearchConfig } from "./web-search/webSearchData";
 
 let db: Database.Database | null = null;
 let dbPathOverride: string | null = process.env.AI_CLIENT_X_TEST_DB_PATH?.trim() || null;
@@ -898,7 +898,7 @@ export function initDb() {
   // 确保有默认的网络搜索配置
   const webSearchConfig = d.prepare('SELECT value FROM settings WHERE key = ?').get('webSearch:config');
   if (!webSearchConfig) {
-    const defaultConfig = JSON.stringify(DEFAULT_WEB_SEARCH_CONFIG);
+    const defaultConfig = JSON.stringify(createDefaultWebSearchConfig());
     d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('webSearch:config', defaultConfig);
   }
 

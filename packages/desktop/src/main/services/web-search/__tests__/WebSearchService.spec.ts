@@ -70,8 +70,9 @@ vi.mock("../PageFetcher", () => ({
 }));
 
 vi.mock("../webSearchData", () => ({
-  DEFAULT_SELECTED_ENGINES: ["google", "bing", "duckduckgo", "baidu", "360search", "quark"],
+  DEFAULT_SELECTED_ENGINES: ["google", "duckduckgo", "bing"],
   DEFAULT_WEB_SEARCH_CONFIG: currentConfig,
+  resolveDefaultSelectedEngines: vi.fn(() => ["google", "duckduckgo", "bing"]),
   ensureWebSearchConfig: vi.fn(() => currentConfig),
   getSearchProvider: getSearchProviderMock,
   getActiveProvider: getActiveProviderMock,
