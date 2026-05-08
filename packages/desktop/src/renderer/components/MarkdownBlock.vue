@@ -6,6 +6,7 @@
       :mode="mode"
       :node-renderers="nodeRenderers"
       :is-dark="isDark"
+      v-bind="$attrs"
     />
   </div>
 </template>
@@ -18,6 +19,8 @@ import 'vue-stream-markdown/theme.css'
 import { useAppColorModeState } from '@/composables/useAppColorModeState'
 import StreamMarkdownLink from './StreamMarkdownLink.vue'
 import StreamMarkdownImage from './StreamMarkdownImage.vue'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
   content: string
