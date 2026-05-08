@@ -2,6 +2,30 @@
   <div ref="rootRef" class="py-2 bg-default" :style="rootPlaceholderStyle">
     <!-- 与消息列表相同的宽度限制 -->
     <div class="w-4xl max-w-full mx-auto px-4 md:px-8">
+      <Transition
+        enter-active-class="transition-opacity duration-150 ease-out"
+        leave-active-class="transition-opacity duration-100 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showNoAvailableModelHint"
+          class="mb-2 mx-auto flex items-center gap-1.5 rounded-full border border-default px-2.5 py-1.5 text-xs text-muted w-fit"
+        >
+          <UIcon name="i-lucide-circle-alert" class="size-3.5 shrink-0 text-warning" />
+          <span>{{ t('chat.input.noAvailableModels') }}</span>
+          <UButton
+            :label="t('chat.input.configureModels')"
+            to="/settings/model-service"
+            size="xs"
+            color="primary"
+            variant="link"
+            trailing-icon="i-lucide-arrow-right"
+            class="p-0"
+          />
+        </div>
+      </Transition>
+
       <!-- 圆角边框阴影的外层容器 -->
       <div ref="inputPlaceholderRef" :style="inputPlaceholderStyle">
         <div 
@@ -589,6 +613,7 @@ import { fileToBase64 } from '@/utils/fileUtils'
 import { isMac } from '@/utils/platformUtils'
 import { getPersistentValue, removePersistentValueSoon, setPersistentValueSoon } from '@/utils/persistentState'
 import { type MessageContentPart } from '@/utils/messageContentUtils'
+import { hasAvailableModelSelectorModels } from '@/utils/modelSelectorOptions'
 import { estimateTokens } from '@/utils/estimateTokens'
 import { INTENT_GROUPS, INTENT_META } from '@/config/quick-intent-config'
 import type { Intent } from '@/config/quick-intent-config'
@@ -617,6 +642,13 @@ const manualSkillId = ref<string | null>(null)
 let pasteListenerTarget: HTMLTextAreaElement | null = null
 
 type AttachmentInputModality = 'image' | 'audio' | 'video' | 'file'
+
+const hasAvailableSessionModels = computed(() => hasAvailableModelSelectorModels(settingsStore.enabledProviders, {
+  modelType: 'chat',
+  getLocalModelRuntime: settingsStore.getLocalModelRuntime,
+  isProviderModelSelectable: settingsStore.isProviderModelSelectable
+}))
+const showNoAvailableModelHint = computed(() => !isExpanded.value && !hasAvailableSessionModels.value)
 
 interface SelectedAttachment {
   id: string

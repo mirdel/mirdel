@@ -1659,6 +1659,8 @@ export const rendererEn = {
     "chat.input.promptLibrary.fillVariablesTitle": "Fill in variables",
     "chat.input.promptLibrary.confirmInsert": "Insert",
     "chat.input.promptLibrary.variableValuePlaceholder": "Enter variable value",
+    "chat.input.noAvailableModels": "No available models",
+    "chat.input.configureModels": "Configure",
     "chat.input.selectModel": "Select a model",
     "chat.input.stop": "Stop",
     "chat.input.awaitingApproval": "Awaiting approval",

@@ -1661,6 +1661,8 @@ export const rendererZhCN = {
     "chat.input.promptLibrary.fillVariablesTitle": "填写变量",
     "chat.input.promptLibrary.confirmInsert": "插入",
     "chat.input.promptLibrary.variableValuePlaceholder": "请输入变量值",
+    "chat.input.noAvailableModels": "暂无可用模型",
+    "chat.input.configureModels": "去配置",
     "chat.input.selectModel": "请选择模型",
     "chat.input.stop": "停止生成",
     "chat.input.awaitingApproval": "等待审批",

@@ -300,14 +300,20 @@
 </template>
 
 <script setup lang="ts">
-import { resolveImageTaskCapabilities } from '@shared'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/useSettingsStore'
-import type { LocalModelRuntimeStatus } from '@/stores/useSettingsStore'
 import { DEFAULT_MODEL_PLACEHOLDER, SCENARIO_MODEL_PLACEHOLDER } from '@/stores/useChatStore'
 import emitter from '@/utils/emitter'
+import {
+  filterModelSelectorProviders,
+  isProviderModelVisibleInSelector,
+  listFavoriteModelSelectorItems,
+  LOCAL_PROVIDER_ID,
+  type ModelSelectorImageIntent,
+  type ModelSelectorModelType
+} from '@/utils/modelSelectorOptions'
 import ModelSelectItem from './ModelSelectItem.vue'
 import ModelLogo from './ModelLogo.vue'
 import ModelUnconfiguredLogo from './ModelUnconfiguredLogo.vue'
@@ -320,8 +326,8 @@ const props = withDefaults(defineProps<{
   showDefault?: boolean
   scenarioId?: string  // 用于显示场景模型选项
   ghost?: boolean  // 幽灵样式（透明背景）
-  modelType?: 'chat' | 'embedding' | 'rerank' | 'translate' | 'image-gen' | 'video-gen'  // 按模型类型筛选
-  imageIntent?: 'generate' | 'edit'
+  modelType?: ModelSelectorModelType  // 按模型类型筛选
+  imageIntent?: ModelSelectorImageIntent
 }>(), {
   placeholder: undefined,
   placement: 'bottom',
@@ -342,7 +348,6 @@ const settingsStore = useSettingsStore()
 const isOpen = ref(false)
 const searchQuery = ref('')
 const placeholderText = computed(() => props.placeholder || t('model.selector.placeholder'))
-const LOCAL_PROVIDER_ID = 'local'
 
 type SpecialModelInfo = {
   provider?: any
@@ -370,16 +375,13 @@ function resolveLocalModelTag(providerId?: string | null): string | undefined {
   return providerId === LOCAL_PROVIDER_ID ? t('model.selector.local.tag') : undefined
 }
 
-function getLocalRuntime(providerId: string, modelId: string): LocalModelRuntimeStatus | null {
+function getLocalRuntime(providerId: string, modelId: string) {
   if (providerId !== LOCAL_PROVIDER_ID) return null
   return settingsStore.getLocalModelRuntime(modelId)
 }
 
 function isProviderModelVisible(providerId: string, modelId: string): boolean {
-  if (providerId !== LOCAL_PROVIDER_ID) return true
-  const runtime = getLocalRuntime(providerId, modelId)
-  if (!runtime) return false
-  return runtime.state === 'downloaded' || runtime.state === 'loading' || runtime.state === 'loaded'
+  return isProviderModelVisibleInSelector(providerId, modelId, settingsStore.getLocalModelRuntime)
 }
 
 function isModelSelectable(providerId: string, modelId: string): boolean {
@@ -596,86 +598,27 @@ const selectedModelTag = computed(() => {
 
 const canClearModelSelection = computed(() => selectedModel.value != null)
 
-// 判断模型是否匹配类型筛选（基于 modelType）
-function normalizeImageTasks(model: any): Array<'text_to_image' | 'image_to_image' | 'image_edit' | 'inpaint'> {
-  const raw = Array.isArray(model?.imageTasks) ? model.imageTasks : []
-  const typed = raw.filter((item: unknown): item is 'text_to_image' | 'image_to_image' | 'image_edit' | 'inpaint' =>
-    item === 'text_to_image' || item === 'image_to_image' || item === 'image_edit' || item === 'inpaint'
-  )
-  if (typed.length > 0) return typed
-
-  const inputModalities: string[] = model?.inputModalities || ['text']
-  const outputModalities: string[] = model?.outputModalities || ['text']
-  const canOutputImage = outputModalities.includes('image')
-  if (!canOutputImage) return []
-
-  const tasks: Array<'text_to_image' | 'image_to_image' | 'image_edit' | 'inpaint'> = ['text_to_image']
-  if (inputModalities.includes('image')) {
-    tasks.push('image_to_image', 'image_edit')
-  }
-  const editCaps = resolveImageTaskCapabilities(model?.image, 'edit')
-  if (inputModalities.includes('mask') || !!editCaps?.mask?.enabled) {
-    tasks.push('inpaint')
-  }
-  return tasks
-}
-
-const matchesModelType = (model: any) => {
-  const modelType = model.modelType || 'generative'
-  const outputModalities = model.outputModalities || ['text']
-  if (props.modelType === 'image-gen') {
-    if (!(modelType === 'generative' && outputModalities.includes('image'))) return false
-    const imageTasks = normalizeImageTasks(model)
-    const canGenerate = imageTasks.includes('text_to_image') || imageTasks.includes('image_to_image')
-    const canEdit = imageTasks.includes('image_edit') || imageTasks.includes('inpaint')
-    return props.imageIntent === 'edit' ? canEdit : canGenerate
-  }
-  if (props.modelType === 'video-gen') {
-    return modelType === 'generative' && outputModalities.includes('video')
-  }
-  if (props.modelType === 'translate') return modelType === 'generative'
-  if (props.modelType === 'chat') return modelType === 'generative' && outputModalities.includes('text')
-  return modelType === props.modelType
-}
-
-// 判断模型是否匹配搜索
-const matchesSearch = (modelId: string, providerName: string) => {
-  if (!searchQuery.value.trim()) return true
-  
-  const query = searchQuery.value.toLowerCase()
-  return modelId.toLowerCase().includes(query) || providerName.toLowerCase().includes(query)
-}
-
 // 过滤后的供应商列表
 const filteredProviders = computed(() => {
-  return settingsStore.enabledProviders
-    .map(provider => {
-      const models = provider.models.filter(model => 
-        matchesModelType(model) &&
-        isProviderModelVisible(provider.id, model.id) &&
-        matchesSearch(model.id, provider.name)
-      ).sort((a, b) => a.id.localeCompare(b.id))
-      
-      return {
-        ...provider,
-        models
-      }
-    })
-    .filter(provider => provider.models.length > 0)
+  return filterModelSelectorProviders(settingsStore.enabledProviders, {
+    modelType: props.modelType,
+    imageIntent: props.imageIntent,
+    searchQuery: searchQuery.value,
+    getLocalModelRuntime: settingsStore.getLocalModelRuntime
+  })
 })
 
 const favoriteModels = computed(() => {
-  const list: Array<{ provider: any; model: any }> = []
-  for (const provider of settingsStore.enabledProviders) {
-    for (const model of provider.models) {
-      if (!settingsStore.isModelFavorite(provider.id, model.id)) continue
-      if (!matchesModelType(model)) continue
-      if (!isProviderModelVisible(provider.id, model.id)) continue
-      if (!matchesSearch(model.id, provider.name)) continue
-      list.push({ provider, model })
+  return listFavoriteModelSelectorItems(
+    settingsStore.enabledProviders,
+    settingsStore.isModelFavorite,
+    {
+      modelType: props.modelType,
+      imageIntent: props.imageIntent,
+      searchQuery: searchQuery.value,
+      getLocalModelRuntime: settingsStore.getLocalModelRuntime
     }
-  }
-  return list.sort((a, b) => a.model.id.localeCompare(b.model.id))
+  )
 })
 
 // 判断是否选中
