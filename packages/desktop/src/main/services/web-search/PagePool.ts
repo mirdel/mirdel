@@ -97,12 +97,20 @@ interface PooledPage {
   busy: boolean;
 }
 
+interface AcquireWaiter {
+  resolve: (page: WebContentsView) => void;
+  reject: (error: Error) => void;
+  timeoutId: NodeJS.Timeout | null;
+  abortSignal?: AbortSignal;
+  onAbort?: () => void;
+}
+
 export class PagePool {
   private hostWindow: BrowserWindow | null = null;
   private pages: PooledPage[] = [];
   private poolSize: number;
   private readonly timeout: number;
-  private waitQueue: Array<(page: WebContentsView) => void> = [];
+  private waitQueue: AcquireWaiter[] = [];
   private initialized = false;
   private initPromise: Promise<void> | null = null;
   private sessionHeadersHooked = false;
@@ -209,8 +217,15 @@ export class PagePool {
   /**
    * 获取一个空闲页面
    */
-  async acquire(): Promise<WebContentsView> {
+  async acquire(options: { timeout?: number; abortSignal?: AbortSignal } = {}): Promise<WebContentsView> {
     await this.initialize();
+
+    if (options.abortSignal?.aborted) {
+      throw new Error('Page acquire aborted');
+    }
+    if (options.timeout !== undefined && options.timeout <= 0) {
+      throw new Error('Page acquire timeout');
+    }
 
     // 查找空闲页面
     const freePage = this.pages.find(p => !p.busy);
@@ -220,8 +235,50 @@ export class PagePool {
     }
 
     // 没有空闲页面，等待
-    return new Promise((resolve) => {
-      this.waitQueue.push(resolve);
+    return new Promise((resolve, reject) => {
+      let waiter: AcquireWaiter;
+      let settled = false;
+
+      const cleanup = () => {
+        if (waiter.timeoutId) {
+          clearTimeout(waiter.timeoutId);
+          waiter.timeoutId = null;
+        }
+        if (waiter.abortSignal && waiter.onAbort) {
+          waiter.abortSignal.removeEventListener('abort', waiter.onAbort);
+        }
+        const index = this.waitQueue.indexOf(waiter);
+        if (index >= 0) {
+          this.waitQueue.splice(index, 1);
+        }
+      };
+
+      const settleReject = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(error);
+      };
+
+      waiter = {
+        resolve: (page) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(page);
+        },
+        reject: settleReject,
+        timeoutId: null,
+        abortSignal: options.abortSignal,
+      };
+
+      waiter.onAbort = () => settleReject(new Error('Page acquire aborted'));
+      waiter.abortSignal?.addEventListener('abort', waiter.onAbort, { once: true });
+      if (options.timeout !== undefined) {
+        waiter.timeoutId = setTimeout(() => settleReject(new Error('Page acquire timeout')), options.timeout);
+      }
+
+      this.waitQueue.push(waiter);
     });
   }
 
@@ -237,7 +294,7 @@ export class PagePool {
       const waiting = this.waitQueue.shift();
       if (waiting) {
         page.busy = true;
-        waiting(page.view);
+        waiting.resolve(page.view);
       }
     }
   }
@@ -245,12 +302,18 @@ export class PagePool {
   /**
    * 加载页面并等待完成
    */
-  async loadPage(view: WebContentsView, url: string): Promise<void> {
+  async loadPage(view: WebContentsView, url: string, timeout?: number): Promise<void> {
     return new Promise((resolve, reject) => {
+      const effectiveTimeout = Math.max(1, timeout ?? this.timeout);
       const timer = setTimeout(() => {
+        try {
+          view.webContents.stop();
+        } catch {
+          // ignore stop failure
+        }
         cleanup();
         reject(new Error('Page load timeout'));
-      }, this.timeout);
+      }, effectiveTimeout);
 
       const cleanup = () => {
         clearTimeout(timer);
@@ -511,6 +574,9 @@ export class PagePool {
     logger.info('Destroying PagePool');
 
     // 清空等待队列
+    for (const waiter of this.waitQueue) {
+      waiter.reject(new Error('Page pool destroyed'));
+    }
     this.waitQueue = [];
 
     // 销毁所有页面

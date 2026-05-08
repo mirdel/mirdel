@@ -108,6 +108,8 @@ export default defineConfig({
           main: path.join(__dirname, "src/renderer/index.html"),
           // 图片预览小窗口页面
           imagePreview: path.join(__dirname, "src/renderer/image-preview.html"),
+          // 网页预览工具栏页面
+          webPreview: path.join(__dirname, "src/renderer/web-preview.html"),
           // 轻应用运行窗口
           appletRunner: path.join(__dirname, "src/renderer/applet-runner.html")
         }

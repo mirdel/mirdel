@@ -402,6 +402,19 @@ async function fetchWithBrowserWindow(
   let isTimedOut = false;
   let isAborted = false;
   let timeoutTimer: NodeJS.Timeout | null = null;
+  const deadline = timeout && timeout > 0 ? Date.now() + timeout : null;
+  const getRemainingTimeout = () => {
+    if (!deadline) return undefined;
+    return Math.max(0, deadline - Date.now());
+  };
+  const assertHasTimeRemaining = () => {
+    const remaining = getRemainingTimeout();
+    if (remaining !== undefined && remaining <= 0) {
+      isTimedOut = true;
+      throw new TimeoutError('Browser Window fetch timeout');
+    }
+    return remaining;
+  };
   const stopPage = () => {
     if (!page) return;
     try {
@@ -421,11 +434,15 @@ async function fetchWithBrowserWindow(
   
   try {
     // 从池中获取一个页面
-    page = await pool.acquire();
+    page = await pool.acquire({
+      timeout: getRemainingTimeout(),
+      abortSignal,
+    });
     abortSignal?.addEventListener('abort', onAbort, { once: true });
     
     // 设置超时：超时后停止页面加载
-    if (timeout) {
+    const loadTimeout = assertHasTimeRemaining();
+    if (loadTimeout !== undefined) {
       timeoutTimer = setTimeout(() => {
         isTimedOut = true;
         stopPage();
@@ -433,11 +450,11 @@ async function fetchWithBrowserWindow(
           url, 
           elapsed: Date.now() - startTime 
         });
-      }, timeout);
+      }, loadTimeout);
     }
     
     // 加载页面
-    await pool.loadPage(page, url);
+    await pool.loadPage(page, url, loadTimeout);
     
     // 检查是否已超时
     if (isTimedOut) {
@@ -478,6 +495,12 @@ async function fetchWithBrowserWindow(
     };
     
   } catch (error) {
+    if (
+      error instanceof Error
+      && (error.message === 'Page acquire timeout' || error.message === 'Page load timeout')
+    ) {
+      isTimedOut = true;
+    }
     if (isAborted || abortSignal?.aborted) {
       throw new Error(tMain("common.cancelled"));
     }

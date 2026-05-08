@@ -156,7 +156,7 @@ const updateStatusText = computed(() => {
     return t("updates.status.available", { version: updateStore.targetVersion || "" });
   }
   if (updateStore.state.status === "error" && updateStore.state.error) {
-    return updateStore.state.error;
+    return t("updates.checkFailed");
   }
   if (!updateStore.state.isPackaged) return t("updates.status.devMode");
   return "";
@@ -190,7 +190,6 @@ async function handleUpdateAction() {
   } catch (error) {
     toast.error({
       title: t("updates.checkFailed"),
-      description: error instanceof Error ? error.message : String(error),
     });
   }
 }
