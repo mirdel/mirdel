@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { app } from "electron";
 import fg from "fast-glob";
 import { getAppletDistDir, getAppletSourceDir, resolvePathUnderAppletRoot } from "./appletPaths";
 
@@ -18,6 +20,7 @@ const APPLET_JSX_INJECT_FILE = "__applet_jsx_inject.ts";
 const APPLET_CORE_RUNTIME_GLOBAL_KEY = "__MIRDEL_APPLET_CORE__";
 const APPLET_CORE_VIRTUAL_NAMESPACE = "applet-core-virtual";
 const APPLET_CORE_VIRTUAL_PATH = "__applet_core_virtual__";
+const ESBUILD_BINARY_ENV_KEY = "ESBUILD_BINARY_PATH";
 
 const APPLET_CORE_VIRTUAL_SOURCE = `const runtimeKey = ${JSON.stringify(APPLET_CORE_RUNTIME_GLOBAL_KEY)};
 const runtime = (globalThis as Record<string, unknown>)[runtimeKey] as
@@ -109,6 +112,33 @@ function createRunId(appletId: string): string {
 function ensureTsxEntry(entryRelativePath: string): void {
   if (!entryRelativePath.toLowerCase().endsWith(APPLET_ENTRY_EXTENSION)) {
     throw new Error(`applet entry file must be ${APPLET_ENTRY_EXTENSION}`);
+  }
+}
+
+function getEsbuildBinaryName(): string {
+  return process.platform === "win32" ? "esbuild.exe" : "esbuild";
+}
+
+function resolvePreparedEsbuildBinaryPath(): string {
+  const binaryName = getEsbuildBinaryName();
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, ".runtime", "esbuild", binaryName);
+  }
+  return path.join(app.getAppPath(), ".runtime", "esbuild", `${process.platform}-${process.arch}`, binaryName);
+}
+
+function ensureEsbuildBinaryPath(): void {
+  const existing = String(process.env[ESBUILD_BINARY_ENV_KEY] || "").trim();
+  if (existing) return;
+
+  const binaryPath = resolvePreparedEsbuildBinaryPath();
+  if (fsSync.existsSync(binaryPath)) {
+    process.env[ESBUILD_BINARY_ENV_KEY] = binaryPath;
+    return;
+  }
+
+  if (app.isPackaged) {
+    throw new Error(`esbuild runtime binary not found: ${binaryPath}`);
   }
 }
 
@@ -262,6 +292,7 @@ export async function buildAppletSource(appletId: string, entryRelativePath: str
 
   const runId = createRunId(appletId);
 
+  ensureEsbuildBinaryPath();
   const esbuild = await import("esbuild");
   const appletCoreAliasPlugin: import("esbuild").Plugin = {
     name: "applet-core-virtual-module",

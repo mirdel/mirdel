@@ -32,6 +32,7 @@
     "prepare:model-server-runtime": "node ./scripts/prepare-model-server-runtime.mjs",
     "prepare:python-runtime": "node ./scripts/prepare-python-runtime.mjs",
     "prepare:sqlite-extension-runtime": "node ./scripts/prepare-sqlite-extension-runtime.mjs",
+    "prepare:esbuild-runtime": "node ./scripts/prepare-esbuild-runtime.mjs",
     "prepare:searxng-python-deps": "node ./scripts/install-searxng-python-deps.mjs",
     "prepare:searxng-python-deps:all": "node ./scripts/install-searxng-python-deps.mjs --all",
     "verify:sqlite-extension": "node ./scripts/verify-sqlite-extension.mjs",

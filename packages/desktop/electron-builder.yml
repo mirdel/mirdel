@@ -77,6 +77,10 @@ mac:
       to: .runtime/sqlite-extensions/darwin-${arch}
       filter:
         - "**/*"
+    - from: .runtime/esbuild/darwin-${arch}
+      to: .runtime/esbuild
+      filter:
+        - "**/*"
     - from: .runtime/python/darwin-${arch}
       to: .runtime/python/darwin-${arch}
       filter:
@@ -114,6 +118,10 @@ win:
     # 仅携带当前 windows 架构所需运行时，避免把 mac 资源打进 win 包
     - from: .runtime/sqlite-extensions/win32-${arch}
       to: .runtime/sqlite-extensions/win32-${arch}
+      filter:
+        - "**/*"
+    - from: .runtime/esbuild/win32-${arch}
+      to: .runtime/esbuild
       filter:
         - "**/*"
     - from: .runtime/python/win32-${arch}

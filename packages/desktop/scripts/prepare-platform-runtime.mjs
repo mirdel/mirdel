@@ -64,6 +64,7 @@ async function main() {
   await run(process.execPath, ["./scripts/prepare-model-server-runtime.mjs", `--target=${runtimeTarget}`]);
   await run(process.execPath, ["./scripts/prepare-python-runtime.mjs", `--target=${runtimeTarget}`]);
   await run(process.execPath, ["./scripts/prepare-sqlite-extension-runtime.mjs", `--target=${runtimeTarget}`]);
+  await run(process.execPath, ["./scripts/prepare-esbuild-runtime.mjs", `--target=${runtimeTarget}`]);
   await run(process.execPath, ["./scripts/install-searxng-python-deps.mjs", `--target=${runtimeTarget}`]);
   await run(process.execPath, ["./scripts/verify-sqlite-extension.mjs", `--target=${runtimeTarget}`]);
 
