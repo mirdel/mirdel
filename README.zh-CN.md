@@ -16,8 +16,6 @@
     <img alt="Local-first" src="https://img.shields.io/badge/local--first-yes-2f855a">
     <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey">
     <img alt="Electron" src="https://img.shields.io/badge/Electron-47848f">
-    <a href="https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml"><img alt="Desktop Tests" src="https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml/badge.svg?branch=main"></a>
-    <a href="https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml"><img alt="Desktop Release" src="https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml/badge.svg"></a>
   </p>
 
   <p>
