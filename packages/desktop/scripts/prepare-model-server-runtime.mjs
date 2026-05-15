@@ -15,6 +15,24 @@ const runtimeCacheRoot = path.join(desktopRoot, ".runtime", ".cache", "model-ser
 const LLAMA_CPP_REPO = "ggml-org/llama.cpp";
 const LLAMA_CPP_RELEASE = "b8179";
 
+const RUNTIME_SUPPORT_NAMES = new Set([
+  "rpc-server",
+  "rpc-server.exe",
+]);
+
+const RUNTIME_TEXT_NAMES = new Set([
+  "copying",
+  "copying.txt",
+  "license",
+  "license.md",
+  "license.txt",
+  "notice",
+  "notice.txt",
+  "readme",
+  "readme.md",
+  "readme.txt",
+]);
+
 const TARGET_ASSET_MAP = {
   "darwin-arm64": {
     assetName: `llama-${LLAMA_CPP_RELEASE}-bin-macos-arm64.tar.gz`,
@@ -200,6 +218,83 @@ async function extractArchive(archivePath, archiveType, outputDir) {
   throw new Error(`Unsupported archive type: ${archiveType}`);
 }
 
+function isDynamicLibraryName(name) {
+  const lowerName = name.toLowerCase();
+  return (
+    lowerName.endsWith(".dylib")
+    || lowerName.endsWith(".dll")
+    || /\.so(\.\d+)*$/.test(lowerName)
+  );
+}
+
+function isRuntimeSupportFile(filePath, executable) {
+  const name = path.basename(filePath);
+  const lowerName = name.toLowerCase();
+
+  if (name === executable) return true;
+  if (RUNTIME_SUPPORT_NAMES.has(lowerName)) return true;
+  if (RUNTIME_TEXT_NAMES.has(lowerName)) return true;
+  if (isDynamicLibraryName(name)) return true;
+
+  // Keep GPU/runtime data files that may be loaded by the shared libraries.
+  return lowerName.endsWith(".metal") || lowerName.endsWith(".metallib");
+}
+
+async function getDirectorySize(dir) {
+  let total = 0;
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(dir, entry.name);
+    const stat = await fs.promises.lstat(entryPath);
+
+    if (entry.isDirectory() && !entry.isSymbolicLink()) {
+      total += await getDirectorySize(entryPath);
+      continue;
+    }
+
+    total += stat.size;
+  }
+
+  return total;
+}
+
+async function pruneRuntimeDirectory(targetDir, executable) {
+  const removed = [];
+
+  async function pruneDir(currentDir) {
+    const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+      const relativePath = path.relative(targetDir, entryPath).replace(/\\/g, "/");
+
+      if (entry.isDirectory() && !entry.isSymbolicLink()) {
+        await pruneDir(entryPath);
+        const remaining = await fs.promises.readdir(entryPath);
+        if (remaining.length === 0) {
+          await fs.promises.rm(entryPath, { recursive: true, force: true });
+        }
+        continue;
+      }
+
+      if (isRuntimeSupportFile(entryPath, executable)) continue;
+
+      await fs.promises.rm(entryPath, { recursive: true, force: true });
+      removed.push(relativePath);
+    }
+  }
+
+  const beforeBytes = await getDirectorySize(targetDir);
+  await pruneDir(targetDir);
+  const afterBytes = await getDirectorySize(targetDir);
+
+  const savedMiB = (Math.max(0, beforeBytes - afterBytes) / 1024 / 1024).toFixed(1);
+  console.log(
+    `[llama-runtime] pruned runtime: removed ${removed.length} files, saved ${savedMiB} MiB`
+  );
+}
+
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
   const runtimeTarget = String(args.target || process.env.RUNTIME_TARGET || getDefaultRuntimeTarget()).trim();
@@ -256,6 +351,8 @@ async function main() {
   if (process.platform !== "win32") {
     await fs.promises.chmod(executablePath, 0o755);
   }
+
+  await pruneRuntimeDirectory(targetDir, executable);
 
   const manifestPath = path.join(targetDir, "runtime.manifest.json");
   await fs.promises.writeFile(

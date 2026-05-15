@@ -110,6 +110,11 @@ mac:
         - "!lib/itcl*/**"
         - "!lib/thread*/**"
 
+dmg:
+  # Bundled runtimes make the app large enough that dmgbuild's auto-sized
+  # temporary image can be too small on mac x64. The final image still shrinks.
+  size: 2g
+
 # Windows 配置
 win:
   target:
