@@ -1,29 +1,46 @@
-# Mirdel
+<div align="center">
+  <img src="packages/desktop/build/icon.png" alt="Mirdel" width="120" />
 
-**下一代 AI 工作台**  
-面向桌面的本地优先 AI 工作台，统一对话、知识库、笔记、翻译、图像/视频、本地模型与可扩展工作流。
+  <h1>Mirdel</h1>
 
-[![License: MIT](https://img.shields.io/github/license/mirdel/mirdel?color=blue)](https://github.com/mirdel/mirdel/blob/main/LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/mirdel/mirdel?include_prereleases&sort=semver)](https://github.com/mirdel/mirdel/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/mirdel/mirdel/total)](https://github.com/mirdel/mirdel/releases)
-[![Stars](https://img.shields.io/github/stars/mirdel/mirdel?style=flat)](https://github.com/mirdel/mirdel/stargazers)
-![Local-first](https://img.shields.io/badge/local--first-yes-2f855a)
-![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
-![Electron](https://img.shields.io/badge/Electron-47848f)
-[![Desktop Tests](https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml/badge.svg?branch=main)](https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml)
-[![Desktop Release](https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml/badge.svg)](https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml)
+  <p>
+    <strong>下一代 AI 工作台</strong><br/>
+    面向桌面的本地优先 AI 工作台，统一对话、知识库、笔记、翻译、图像/视频、本地模型与可扩展工作流。
+  </p>
 
-[English](./README.md) · [简体中文](./README.zh-CN.md)
+  <p>
+    <a href="https://github.com/mirdel/mirdel/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/mirdel/mirdel?color=blue"></a>
+    <a href="https://github.com/mirdel/mirdel/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/mirdel/mirdel?include_prereleases&sort=semver"></a>
+    <a href="https://github.com/mirdel/mirdel/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/mirdel/mirdel/total"></a>
+    <a href="https://github.com/mirdel/mirdel/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mirdel/mirdel?style=flat"></a>
+    <img alt="Local-first" src="https://img.shields.io/badge/local--first-yes-2f855a">
+    <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey">
+    <img alt="Electron" src="https://img.shields.io/badge/Electron-47848f">
+    <a href="https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml"><img alt="Desktop Tests" src="https://github.com/mirdel/mirdel/actions/workflows/desktop-tests.yml/badge.svg?branch=main"></a>
+    <a href="https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml"><img alt="Desktop Release" src="https://github.com/mirdel/mirdel/actions/workflows/desktop-release-matrix.yml/badge.svg"></a>
+  </p>
 
-[官网](https://www.mirdel.ai) · [下载](https://github.com/mirdel/mirdel/releases) · [反馈](https://github.com/mirdel/mirdel/issues)
+  <p>
+    <a href="./README.md">English</a> ·
+    <a href="./README.zh-CN.md">简体中文</a>
+  </p>
+
+  <p>
+    <a href="https://www.mirdel.ai">官网</a> ·
+    <a href="https://github.com/mirdel/mirdel/releases">下载</a> ·
+    <a href="https://github.com/mirdel/mirdel/issues">反馈</a>
+  </p>
+</div>
+
+<br/>
+
+![Mirdel 主界面截图](docs/images/hero.png)
 
 ## Mirdel 是什么？
 
 Mirdel 是一款开源、本地优先的桌面 AI 工作台。它把对话、知识库、笔记、翻译、图像/视频、本地模型和可扩展工作流放进一个长期可用的原生桌面应用中，让 AI 不只是一次性问答，而是可以持续沉淀、组织和复用的个人工作区。
 
 Mirdel 的核心理念是：数据尽量留在本地，模型选择交给用户，重复工作流可以被沉淀为可复用能力。你可以把它当作一个更强的 AI 客户端，也可以把它作为自己的桌面 AI 工作区长期使用。
-
-![Mirdel 主界面截图](docs/images/hero.png)
 
 ## 为什么选择 Mirdel？
 
