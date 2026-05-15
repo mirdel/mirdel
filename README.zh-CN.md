@@ -14,8 +14,8 @@
     <a href="https://github.com/mirdel/mirdel/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/mirdel/mirdel/total"></a>
     <a href="https://github.com/mirdel/mirdel/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mirdel/mirdel?style=flat"></a>
     <img alt="Local-first" src="https://img.shields.io/badge/local--first-yes-2f855a">
+    <img alt="Built with Electron" src="https://img.shields.io/badge/built%20with-Electron-47848f">
     <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey">
-    <img alt="Electron" src="https://img.shields.io/badge/Electron-47848f">
   </p>
 
   <p>
