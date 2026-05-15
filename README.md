@@ -5,15 +5,15 @@
 
   <p>
     <strong>Next-generation AI workspace</strong><br/>
-    Local-first · MIT-licensed · Built for your desktop
+    A local-first desktop AI workspace for conversations, knowledge, notes, translation, images/videos, local models, and extensible workflows.
   </p>
 
   <p>
     <a href="https://github.com/mirdel/mirdel/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/mirdel/mirdel?color=blue"></a>
     <a href="https://github.com/mirdel/mirdel/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/mirdel/mirdel?include_prereleases&sort=semver"></a>
     <a href="https://github.com/mirdel/mirdel/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/mirdel/mirdel/total"></a>
-    <a href="https://github.com/mirdel/mirdel/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/mirdel/mirdel?style=flat"></a>
-    <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-brightgreen">
+    <a href="https://github.com/mirdel/mirdel/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mirdel/mirdel?style=flat"></a>
+    <img alt="Local-first" src="https://img.shields.io/badge/local--first-yes-2f855a">
     <img alt="Built with Electron" src="https://img.shields.io/badge/built%20with-Electron-47848f">
     <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey">
   </p>
@@ -28,231 +28,240 @@
     <a href="https://github.com/mirdel/mirdel/releases">Downloads</a> ·
     <a href="https://github.com/mirdel/mirdel/issues">Feedback</a>
   </p>
-
-  <br/>
-
-  <!-- TODO: replace with an actual product screenshot -->
-  <img src="docs/images/hero.png" alt="Mirdel screenshot" width="860" />
 </div>
 
 <br/>
 
-## What is Mirdel?
+![Mirdel main window](docs/images/hero_en.png)
 
-Mirdel is an open-source, local-first AI workspace for your desktop. It brings conversations, knowledge, notes, translation, images and videos into a single native app, backed by a pluggable model layer that supports every mainstream cloud provider and fully on-device local models.
+## What Is Mirdel?
 
-Unlike browser-based AI clients, Mirdel runs as a true desktop application: your data stays on your disk, your local models are managed for you, and the whole platform is extensible through three first-class primitives — **Applets**, **Skills** and **MCP servers**.
+Mirdel is an open-source, local-first AI workspace for the desktop. It brings conversations, knowledge bases, notes, translation, images/videos, local models, and extensible workflows into one long-lived native app, so AI becomes a personal workspace you can organize, preserve, and reuse instead of a series of one-off chats.
 
-- **Local-first.** All chats, notes, knowledge and settings live in a local SQLite database with optional vector index.
-- **Model-agnostic.** OpenAI, Anthropic, Google, xAI, Alibaba, ByteDance, DeepSeek, Zhipu, Minimax, any OpenAI-compatible endpoint, plus built-in local models.
-- **Extensible.** Ship your own workflows as Applets, teach the agent new domains with Skills, connect external tools via MCP.
-- **Batteries included.** A bundled SearXNG gives you free web search out of the box. A bundled `llama-server` runtime lets you run local models with zero setup.
+Mirdel's core idea is simple: keep data local where possible, let users choose their models, and turn repeated workflows into reusable capabilities. You can use it as a stronger AI client, or as a long-term desktop AI workspace.
 
-## Key Features
+## Why Mirdel?
 
-### Conversations that go beyond one-shot chat
+- **Local-first**: conversations, notes, knowledge bases, settings, and indexes live in local SQLite databases; sensitive fields such as API keys are encrypted at rest.
+- **Unified model management**: use mainstream cloud providers, OpenAI/Anthropic/Google-compatible custom endpoints, and bundled local model runtime from one place.
+- **Built for long-term use**: projects, categories, stars, completion state, global search, layered memory, session notes, and knowledge bases keep AI history useful.
+- **Smooth at scale**: virtualized lists, streaming Markdown rendering, and shallow reactivity keep thousands of sessions and tens of thousands of messages responsive.
+- **Applets as AI mini-apps**: turn high-frequency AI workflows into small apps with UI, parameters, and interaction state, so complex tasks can move from "write the prompt again" to "open and run".
+- **Truly extensible**: Skills add procedural knowledge, MCP connects tools such as filesystem and shell, and Applets productize complex workflows.
+- **Batteries included, not locked in**: bundled free web search, local `llama-server`, document parsing, TTS, and an AI SDK DevTools launcher, with room for advanced configuration.
 
-- **Branch conversations** — fork any turn into parallel branches and manage them from a dedicated Branch Manager.
-- **Session Map** — visualize the full conversation tree (turns + branches) as an interactive node graph.
-- **Temporary Session** — throwaway conversations that never hit the session list.
-- **Quick Ask** — a floating overlay for one-off questions that can optionally read the current session as context, without triggering tools or being persisted.
-- **Session Notes** — a note surface attached to every session; append AI replies with one click.
-- **Projects & categories** — organize sessions into custom categories, with built-in All / Uncategorized / Starred / Completed groups.
-- **Scenarios** — reusable presets of model, parameters, system prompt, default knowledge bases, skill policy and MCP policy.
-- **Prompt library** — searchable, tagged, favoritable prompts with variable placeholders.
-- **In-page and global search** — find text inside a conversation (case / whole word / regex), or search across messages, sessions, translations, notes and knowledge with `Cmd/Ctrl+K`.
-- **Suggestions** — clickable follow-up suggestions are generated after each reply.
-- **Layered memory** — current context, session-state memory, cross-session memory, historical memory (local RAG), and long-term user preferences.
-- **Rich message blocks** — Markdown, code with syntax highlighting, LaTeX, Mermaid, Mind Map (markmap), thinking blocks with timing, tool-call blocks, source cards.
-- **Token and timing stats**, per-message debug panel, and optional reply-complete notifications.
+## Features
 
-### AI models — cloud and local
+### Conversations And Session Management
 
-- **First-class multi-provider support**: OpenAI, Anthropic, Google, xAI, Alibaba (DashScope / Qwen), ByteDance (Doubao), DeepSeek, Zhipu, Minimax, and any OpenAI-compatible / Anthropic-compatible / Google-compatible custom endpoint.
-- **Bundled local models** via an embedded `llama-server` runtime — download, memory-load/unload and RAM requirements are handled for you. The local service is exposed as an OpenAI-compatible HTTP endpoint with an auto-generated API key, so other apps on your machine can call it too.
-- **Capability-aware model configuration**: input / output modalities, vision, function calling, reasoning, streaming, image tasks, aspect ratios / sizes / custom parameter schemas, thinking presets, etc.
-- **Native search injection** with four fine-grained modes (`providerOptions` / `tools` / `sdkTools` / `sdkNative`) to match each provider's protocol.
-- **Per-purpose default models** for chat, light tasks, translation, embeddings, image generation, image editing and video.
-- **Global model search** across all providers with rich filtering.
-- **One-click model fetching**, health checks, test endpoints, custom headers and provider options.
+- **Branch conversations**: fork any turn into parallel paths for comparing models, prompts, or reasoning directions.
+- **Session Map**: visualize messages, branches, and context relationships as an interactive graph.
+- **Temporary sessions**: ask one-off questions without adding them to your session list.
+- **Quick Ask**: use a floating quick-reply surface that can optionally read the current session context without triggering tools or polluting chat history.
+- **Session notes**: attach a note surface to each session and append AI replies with one click.
+- **Projects and categories**: organize sessions with custom categories plus built-in All, Uncategorized, Starred, and Completed views.
+- **Scenarios**: package model, parameters, system prompt, default knowledge bases, Skill policy, and MCP policy into reusable presets.
+- **Prompt library**: maintain searchable, tagged, favoritable prompts with variable placeholders.
+- **Memory system**: use current context, session-state memory, cross-session memory, historical memory through local RAG, and long-term user preferences.
+- **Rich message blocks**: Markdown, syntax-highlighted code, LaTeX, Mermaid, mind maps, timed thinking blocks, tool-call blocks, and source cards.
 
-### Web search, built in
+### Models: Cloud, Local, And Compatible Endpoints
 
-- **Bundled SearXNG** with an embedded Python runtime — aggregates 10+ mainstream search engines, works offline-from-cloud and requires zero configuration.
-- Pluggable custom search services: point-and-click mapping of request URL, method, headers, query field, response path and content field.
-- **RAG-or-truncate** result processing, configurable concurrent page fetching, per-page timeouts and result chunking.
+- **Mainstream providers**: OpenAI, Anthropic, Google, xAI, Alibaba DashScope/Qwen, ByteDance Doubao, DeepSeek, Zhipu, Minimax, and more.
+- **Compatible endpoints**: connect any OpenAI-compatible, Anthropic-compatible, or Google-compatible custom endpoint.
+- **Bundled local model runtime**: use the embedded `llama-server` to download, load, unload, and run local models with automatic memory guidance.
+- **Local OpenAI-compatible service**: expose local models through an OpenAI-compatible HTTP endpoint with an auto-generated API key for other apps on the same machine.
+- **Capability-aware model configuration**: input/output modalities, vision, function calling, reasoning, streaming, image tasks, size/aspect-ratio settings, custom parameter schemas, and thinking presets.
+- **Native search injection**: choose among `providerOptions`, `tools`, `sdkTools`, and `sdkNative` modes to fit provider protocols.
 
-### Knowledge base with local RAG
+### Web Search
 
-- Four content sources: **text / file / directory (recursive) / URL**.
-- Built-in parsers for `.docx`, `.pdf`, `.pptx`, `.xlsx`, Markdown and code files.
-- Vector index backed by **SQLite + `sqlite-vec`**.
-- Configurable embedding model and dimension, with guided migration when you change them.
-- Incremental sync with per-item change detection and chunk-level refresh.
-- Built-in **recall test** panel.
+- **Bundled SearXNG**: ships with an embedded Python runtime and SearXNG, aggregating multiple mainstream search engines.
+- **Custom search services**: visually configure request URL, method, headers, query field, response path, and content field.
+- **Result processing**: choose RAG or truncation, with configurable concurrent fetching, per-page timeout, and chunking.
+
+### Knowledge Base And Local RAG
+
+- **Multiple sources**: text, files, recursive directories, and web URLs.
+- **Built-in parsers**: `.docx`, `.pdf`, `.pptx`, `.xlsx`, Markdown, and code files.
+- **Local vector index**: SQLite + `sqlite-vec`, with knowledge data and indexes managed locally.
+- **Configurable embeddings**: choose embedding model and dimension, with guided migration when they change.
+- **Incremental sync**: detect item-level changes and refresh only what changed.
+- **Recall testing**: built-in panel for checking whether retrieval hits the expected content.
 
 ### Notes
 
-- Dual-mode editor: **visual** (Tiptap) and **source** (Markdown).
-- AI assistant panel with its own session history per note — write, rewrite, and **diff-style edit proposals** that you explicitly accept.
-- Lists & groups, linked-session jump-back, word count, timestamps.
+- **Dual-mode editor**: Tiptap visual editing and Markdown source editing.
+- **AI assistant per note**: each note has its own assistant history for writing, rewriting, and organizing.
+- **Diff-style edit proposals**: AI edits are proposed as diffs and only applied after you accept them.
+- **Organization and traceability**: lists, groups, linked-session navigation, word count, and timestamps.
 
 ### Translation
 
-- Text translation and **whole-document translation** (docx / pdf / pptx / xlsx / txt / md).
-- **Dictionary-style breakdowns**: pronunciations, parts of speech, senses, synonyms, antonyms, common phrases, examples, etymology, notes.
-- Independent translation model, so it can be cheaper/faster than your chat model.
+- **Text translation**: for short text, snippets, and quick translation.
+- **Whole-document translation**: supports docx, pdf, pptx, xlsx, txt, and md.
+- **Dictionary-style breakdowns**: pronunciation, part of speech, meanings, synonyms/antonyms, phrases, examples, etymology, and notes.
+- **Dedicated translation model**: use a separate model for faster or lower-cost translation.
 
-### Image workspace
+### Image Workspace
 
-- Unified UI over DashScope, Doubao, Minimax, Zhipu and the AI SDK image providers.
-- Text-to-image, image-to-image, image editing, inpaint (mask), outpaint, super-resolution, colorization, stylization (full / local), watermark removal.
-- Size / aspect-ratio / both modes, negative prompts, prompt expansion, seed-based reproduction.
-- **Reuse parameters**, **use this result as edit input**, **generate again** with one click.
-- Custom parameter schemas persisted at the model level.
+- **Unified image UI**: DashScope, Doubao, Minimax, Zhipu, and AI SDK image providers.
+- **Multiple image tasks**: text-to-image, image-to-image, image editing, inpaint, outpaint, super-resolution, colorization, stylization, and watermark removal.
+- **Reproducible parameters**: size, aspect ratio, negative prompt, prompt expansion, seed, and model-level custom parameter schemas.
+- **Result reuse**: reuse parameters, use a result as edit input, or generate again with one click.
 
-### Video workspace
+### Video Workspace
 
-- Zhipu + AI SDK video providers.
-- Resolution, duration, FPS, seed, reference images, negative prompt, provider options.
-- Model-aware toggles: prompt expansion, single/multi shot, generate audio, camera-fixed, service tier, draft mode, quality mode, person-generation policy.
+- **Video providers**: Zhipu and AI SDK video providers.
+- **Generation parameters**: resolution, duration, FPS, seed, reference images, negative prompt, and provider options.
+- **Model-level toggles**: prompt expansion, single/multi shot, audio generation, fixed camera, service tier, draft mode, quality mode, and person-generation policy.
 
-### Applets — your workflows as code
+### Applets: Programmable Workflows With UI And Interaction
 
-- A small, typed runtime (`@mirdel/applet-core`) with `defineApplet` + `createEngine` and a schema-based UI DSL.
-- Each applet runs in an isolated subprocess with its own process manager.
-- In-app file tree editor (Monaco) for authoring applets, with auto-save and binary-safe reads.
-- Ship your own logo; open applets in standalone windows.
-- Built-in playground and example applets.
+Applets are one of Mirdel's core extension primitives. Think of them as Skills with UI and interaction: Skills are better for giving the agent procedural knowledge and operating instructions, while Applets turn stable AI workflows into real mini-apps. An Applet can have its own forms, parameters, interaction state, result display, and standalone window, turning complex flows from "write the prompt every time" into "open and use".
 
-### Skills — procedural knowledge for the agent
+- **Productized workflows**: package repeated AI flows into clickable, configurable, reusable mini-apps for personal or team workflows.
+- **UI and interaction built in**: describe inputs, parameters, and output structure with a schema-based UI DSL.
+- **Isolated runtime**: each Applet runs in an isolated subprocess managed by Mirdel.
+- **In-app development**: author and adjust Applets directly in Mirdel with a Monaco file-tree editor, auto-save, and binary-safe reads.
+- **Playground and examples**: validate ideas quickly and iterate on workflows.
 
-- Fully compatible with the Claude **Agent Skills** format (`SKILL.md` + frontmatter + scripts / references / assets).
-- **Five built-in skills** out of the box: `docx`, `pdf`, `pptx`, `xlsx`, `skill-creator`.
-- Synced to `userData/skills/.system` on first launch; user skills live under `userData/skills`.
-- **Create new skills through chat** via the `skill-creator` skill.
-- Per-message skill policy: `auto` / `manual` / `off`.
+### Skills: Procedural Knowledge For The Agent
 
-### MCP (Model Context Protocol) client
+- **Claude Agent Skills compatible**: `SKILL.md` + frontmatter + scripts / references / assets.
+- **Built-in system skills**: `docx`, `pdf`, `pptx`, `xlsx`, `skill-creator`, and more.
+- **Create skills through chat**: use `skill-creator` to turn new workflows into Skills.
+- **Per-message policy**: set Skill behavior to `auto`, `manual`, or `off` for each message.
 
-- Full MCP client implementation on top of `@modelcontextprotocol/sdk` and `@ai-sdk/mcp`.
-- Three transports supported: **stdio**, **Streamable HTTP**, **SSE**.
-- **Built-in servers**: `filesystem`, `shell` (always available).
-- Lazy manager with per-server enable / disable, capability inspection (tools / prompts / resources), runtime logs and `use cases`.
-- Per-message MCP policy: `auto` / `manual` / `off`.
+### MCP Client
 
-### Tool safety
+- **Three transports**: stdio, Streamable HTTP, and SSE.
+- **Built-in servers**: `filesystem` and `shell`, always available.
+- **Visual management**: enable/disable servers, inspect Tools / Prompts / Resources, view runtime logs, and manage Use Cases.
+- **Per-message policy**: set MCP behavior to `auto`, `manual`, or `off` for each message.
 
-- Built-in **allowlist** for shell commands and MCP tools.
-- Human-in-the-loop approval for sensitive tool calls, with explicit reject semantics.
+### Safety, Privacy, And System Features
 
-### Performance at scale
-
-- **Virtualized lists everywhere** — powered by `@tanstack/vue-virtual`, messages, sessions, table of contents and long lists only render what's in view. Thousands of sessions and tens of thousands of messages stay smooth to scroll.
-- **Streaming markdown rendering** — AI replies are rendered incrementally via `vue-stream-markdown`, so long answers never cause layout jank.
-- **Indexed search** — all text search (messages, sessions, notes, translations, historical memory) is backed by SQLite FTS5, so search stays instant even on a large history.
-- **Shallow reactivity for heavy objects** — knowledge base and note trees use `shallowRef` / `markRaw` to avoid deep reactive tracking on large data.
-
-### System & privacy
-
-- Three languages: English, 简体中文, 繁體中文. Follow-system is the default.
-- Theme: follow system / dark / light.
-- System tray, launch-at-login, minimize-to-tray-on-close.
-- Proxy: system / custom (with bypass rules) / direct.
-- **One-click export / import** of your entire app data as a ZIP archive, with automatic safety backups on import.
-- Sensitive fields (API keys) are encrypted at rest.
-- Standalone windows for image preview, web preview and applet runtime.
-- Built-in **Edge TTS**, and a one-click launcher for the official AI SDK DevTools.
-
-## Screenshots
-
-> Screenshots are placeholders for now and will be replaced before the first public release.
-
-<table>
-  <tr>
-    <td><img src="docs/images/screenshot-chat.png" alt="Chat" /></td>
-    <td><img src="docs/images/screenshot-session-map.png" alt="Session Map" /></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/screenshot-knowledge.png" alt="Knowledge" /></td>
-    <td><img src="docs/images/screenshot-applet.png" alt="Applets" /></td>
-  </tr>
-</table>
+- **Tool-call approval**: shell commands and MCP tools use allowlists; sensitive calls require human approval and support explicit rejection.
+- **Local data import/export**: export or import all app data as a ZIP archive, with automatic safety backups before import.
+- **Encrypted sensitive fields**: API keys and other sensitive settings are encrypted at rest.
+- **Languages**: English, Simplified Chinese, and Traditional Chinese, with follow-system as the default.
+- **Themes**: follow system, dark, and light.
 
 ## Download
 
-Mirdel is distributed via GitHub Releases. Pick the installer that matches your platform:
+- Latest release: [github.com/mirdel/mirdel/releases/latest](https://github.com/mirdel/mirdel/releases/latest)
+- All releases: [github.com/mirdel/mirdel/releases](https://github.com/mirdel/mirdel/releases)
 
-- **macOS (Apple Silicon)** — `Mirdel-*-arm64.dmg`
-- **macOS (Intel)** — `Mirdel-*-x64.dmg`
-- **Windows (x64)** — `Mirdel-*-setup.exe` (NSIS installer) or `Mirdel-*-portable.exe`
+| Platform | Architecture | Installer |
+| --- | --- | --- |
+| macOS | Apple Silicon | `Mirdel-<version>-mac-arm64.dmg` |
+| macOS | Intel | `Mirdel-<version>-mac-x64.dmg` |
+| Windows | x64 | `Mirdel-<version>-win-x64.exe` |
 
-Latest builds: [github.com/mirdel/mirdel/releases/latest](https://github.com/mirdel/mirdel/releases/latest)
+## First Run
 
-Once the official website at [mirdel.ai](https://www.mirdel.ai) goes live, its download buttons will route to these same artifacts.
+1. Download and install the build that matches your platform and architecture.
+2. Launch Mirdel and choose language and theme.
+3. Configure at least one model in Settings - Model Service: paste a cloud provider API key, or download and run a local model.
+4. Start a conversation. If you want AI to answer based on your own materials, create a knowledge base and import files, folders, or web pages.
+5. For repeated workflows, configure Scenarios, the prompt library, Skills, MCP, or Applets.
 
-### First run
+## Developer Guide
 
-1. Launch Mirdel.
-2. Configure at least one model provider — either paste an API key for a cloud provider, or download a local model from **Settings → Model Service**.
-3. Start a conversation.
+### Tech Stack
 
-## Development
+- **Desktop**: Electron + electron-vite
+- **Frontend**: Vue 3, Pinia, Vue Router, Vue I18n, Tailwind CSS, @nuxt/ui
+- **AI**: AI SDK, multi-provider model layer, MCP, Skills, local `llama-server`
+- **Data**: SQLite, FTS5, `sqlite-vec`, local files and runtime resources
+- **Editing and rendering**: Tiptap, Monaco, Mermaid, markmap, KaTeX, Shiki / highlight.js
+- **Tooling**: pnpm workspace, Vitest, GitHub Actions, electron-builder
+
+### Monorepo Layout
+
+```text
+.
+├── packages/
+│   ├── desktop/             # Electron desktop app
+│   ├── applet-core/         # Typed Applet runtime
+│   ├── shared/              # Shared code
+│   ├── markdown-to-plain/   # Markdown to plain-text utility
+│   └── tts-edge/            # Edge TTS support
+├── scripts/                 # Repository-level scripts
+├── .github/workflows/       # Test and release workflows
+├── RELEASE.md               # Release process
+├── TESTING.md               # Testing notes
+└── AGENTS.md                # Project collaboration and coding conventions
+```
 
 ### Requirements
 
 - **Node.js** `>=24 <25` (see [`.nvmrc`](./.nvmrc))
 - **pnpm** `9.15.0` (declared in `package.json` / `packageManager`)
-- macOS 13+ or Windows 10/11 for building desktop artifacts
+- macOS 13+ or Windows 10/11 for building desktop installers
 
-### Getting started
+### Local Development
 
 ```bash
 git clone https://github.com/mirdel/mirdel.git
 cd mirdel
 
 pnpm install
-
 pnpm dev
 ```
 
-`pnpm dev` runs the `@mirdel/desktop` package in Electron + Vite dev mode.
+`pnpm dev` runs `@mirdel/desktop` in Electron + Vite development mode.
 
-### Useful scripts
+### Useful Commands
 
-Run from the repo root:
+Development and build:
 
 ```bash
-pnpm build                 # Build renderer + main bundles
-pnpm preview               # Launch the built app without packaging
-pnpm release:local         # Package a local dmg (macOS arm64) for testing
-pnpm release               # Full platform-matched dist build
-
-pnpm test                  # Run the full test suite (all packages)
-pnpm test:desktop          # All tests for @mirdel/desktop
-pnpm test:desktop:data     # Data-layer tests only
-pnpm test:desktop:store    # Pinia store tests
-pnpm test:desktop:service  # Main-process service tests
-pnpm test:desktop:router   # IPC router tests
-
-pnpm applet:playground     # Run the applet development playground
+pnpm dev                  # Start desktop development mode
+pnpm build                # Build renderer + main bundles
+pnpm preview              # Preview the built app without packaging
+pnpm applet:playground    # Start the Applet development playground
 ```
 
-Releases are built on GitHub Actions with a three-way platform matrix — macOS arm64, macOS x64 and Windows x64 — triggered either manually (`workflow_dispatch`) or by pushing a `v*` tag. See [`.github/workflows/desktop-release-matrix.yml`](./.github/workflows/desktop-release-matrix.yml).
+Testing:
+
+```bash
+pnpm test                 # Run tests for all packages
+pnpm test:desktop         # Run all @mirdel/desktop tests
+pnpm test:desktop:data    # Data-layer tests
+pnpm test:desktop:store   # Pinia store tests
+pnpm test:desktop:service # Main-process service tests
+pnpm test:desktop:router  # IPC router tests
+```
+
+Release builds:
+
+```bash
+pnpm release:local        # Package a local macOS arm64 dmg for validation
+pnpm release              # Run a full desktop build for the current platform
+```
+
+See [TESTING.md](./TESTING.md) for testing notes and [RELEASE.md](./RELEASE.md) for the release process.
+
+### CI And Release
+
+- `Desktop Tests` runs on relevant pull requests and main-branch pushes, including Windows-compatible path checks and desktop core tests.
+- `Desktop Release Matrix` runs manually or when pushing a `v*` tag, building macOS arm64, macOS x64, and Windows x64 artifacts.
+- The tag version must match the desktop app version in `packages/desktop/package.json`.
 
 ## Contributing
 
-Contributions are welcome — issues, pull requests, ideas and bug reports alike.
+Issues, pull requests, ideas, and bug reports are welcome.
 
-- File bugs and feature requests at [github.com/mirdel/mirdel/issues](https://github.com/mirdel/mirdel/issues).
-- Before sending a pull request, please run `pnpm lint` and `pnpm test`.
-- Project-level conventions (pnpm, monorepo, Vue file layout, component library rules, etc.) are documented in [`AGENTS.md`](./AGENTS.md).
+- Bugs and feature requests: [github.com/mirdel/mirdel/issues](https://github.com/mirdel/mirdel/issues)
+- Before opening a pull request, please run `pnpm lint` and the relevant test commands.
 
 ## License
 
 Mirdel is released under the [MIT License](./LICENSE).
 
-Third-party components and their licenses are tracked in [`packages/desktop/THIRD_PARTY_NOTICES.md`](./packages/desktop/THIRD_PARTY_NOTICES.md).
+Third-party components and their licenses are tracked in [packages/desktop/THIRD_PARTY_NOTICES.md](./packages/desktop/THIRD_PARTY_NOTICES.md).
 
 ---
 
