@@ -66,6 +66,13 @@ mac:
   category: public.app-category.developer-tools
   icon: build/icon.icns
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # macOS 发布构建必须签名；避免证书配置缺失时静默产出 ad-hoc/unsigned 包。
+  forceCodeSigning: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  notarize: true
   extraResources:
     # 本地模型服务运行时（llama-server，可执行文件 + 动态库）
     - from: .runtime/model-server/darwin-${arch}

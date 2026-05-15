@@ -6,6 +6,7 @@ import type { SkillItem, SkillDetail } from "@shared";
 import { tMain } from "../../i18n";
 import { getSystemSkillsPath, getPublicSkillsPath, getBuiltinSkillsSourcePath } from "./skillPaths";
 import { parseSkillMd } from "./parseSkillMd";
+import { getPythonRuntimeEnv } from "../pythonRuntimeEnv";
 
 const INSTALL_TIMEOUT_MS = 120_000;
 
@@ -312,6 +313,7 @@ function ensurePipAvailableInVenv(
     cwd,
     timeout: INSTALL_TIMEOUT_MS,
     encoding: "utf8",
+    env: getPythonRuntimeEnv(),
   });
   if (pipCheck.status === 0) return { ok: true };
 
@@ -319,6 +321,7 @@ function ensurePipAvailableInVenv(
     cwd,
     timeout: INSTALL_TIMEOUT_MS,
     encoding: "utf8",
+    env: getPythonRuntimeEnv(),
   });
   if (ensurePipResult.status !== 0) {
     return {
@@ -330,6 +333,7 @@ function ensurePipAvailableInVenv(
     cwd,
     timeout: INSTALL_TIMEOUT_MS,
     encoding: "utf8",
+    env: getPythonRuntimeEnv(),
   });
   if (pipCheckAfterEnsure.status !== 0) {
     return {
@@ -374,6 +378,7 @@ function ensurePythonVenv(skillRoot: string): { pythonPath: string } | { error: 
     cwd: skillRoot,
     timeout: INSTALL_TIMEOUT_MS,
     encoding: "utf8",
+    env: getPythonRuntimeEnv(),
   });
   if (venvResult.status !== 0) {
     return { error: getSpawnFailureMessage(venvResult, tMain("skill.venvCreateFailed")) };
@@ -388,6 +393,7 @@ function ensurePythonVenv(skillRoot: string): { pythonPath: string } | { error: 
     cwd: path.dirname(reqPath),
     timeout: INSTALL_TIMEOUT_MS,
     encoding: "utf8",
+    env: getPythonRuntimeEnv(),
   });
   if (pipResult.status !== 0) {
     return { error: getSpawnFailureMessage(pipResult, tMain("skill.pipInstallFailed")) };
@@ -455,6 +461,7 @@ export async function runSkillScript(
     }
     cmd = bundledPython;
     execArgs = [fullPath, ...args];
+    Object.assign(env, getPythonRuntimeEnv(env));
   } else {
     const nodeRuntime = getNodeRuntimeCommand();
     cmd = nodeRuntime.cmd;
@@ -546,6 +553,7 @@ export async function runScriptByPath(
     }
     cmd = venvResult.pythonPath;
     execArgs = [resolved, ...args];
+    Object.assign(env, getPythonRuntimeEnv(env));
   } else {
     if (skillRoot) {
       const nodeResult = ensureNodeModules(skillRoot);

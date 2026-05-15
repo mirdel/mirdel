@@ -86,7 +86,41 @@ jobs:
             exit 1
           fi
 
-      - name: Package desktop app
+      - name: Package desktop app (macOS)
+        if: startsWith(matrix.runtime_target, 'darwin-')
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          RUNTIME_TARGET: ${{ matrix.runtime_target }}
+          ELECTRON_BUILDER_ARGS: ${{ matrix.electron_builder_args }}
+          ELECTRON_BUILDER_PUBLISH: ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+          GH_TOKEN: ${{ github.token }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm --filter @mirdel/desktop run release:target
+
+      - name: Verify macOS signature
+        if: startsWith(matrix.runtime_target, 'darwin-')
+        run: |
+          set -euo pipefail
+          RUNTIME_TARGET="${{ matrix.runtime_target }}"
+          ARCH="${RUNTIME_TARGET#darwin-}"
+          APP_PATH="packages/desktop/release/mac-${ARCH}/Mirdel.app"
+          codesign -dv --verbose=4 "$APP_PATH" 2>&1 | tee codesign.log
+          if grep -q "Signature=adhoc" codesign.log; then
+            echo "macOS app was signed ad-hoc, expected Developer ID Application"
+            exit 1
+          fi
+          if ! grep -q "Authority=Developer ID Application:" codesign.log; then
+            echo "macOS app is missing Developer ID Application authority"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+
+      - name: Package desktop app (Windows)
+        if: ${{ !startsWith(matrix.runtime_target, 'darwin-') }}
         env:
           NODE_OPTIONS: --max-old-space-size=4096
           RUNTIME_TARGET: ${{ matrix.runtime_target }}

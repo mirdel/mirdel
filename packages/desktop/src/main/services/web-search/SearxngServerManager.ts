@@ -15,6 +15,7 @@ import path from 'node:path';
 import { app } from 'electron';
 import { loggerServiceMain } from '@shared';
 import { getProxySettings } from '../settings/settingsData';
+import { getPythonRuntimeEnv } from '../pythonRuntimeEnv';
 
 const logger = loggerServiceMain.withContext('SearxngServerManager');
 
@@ -122,6 +123,7 @@ class SearxngServerManager {
     this.ensurePathExists(pythonExecutable, 'SearXNG bundled Python executable');
 
     const settingsPath = this.writeRuntimeSettingsFile(sourceSettingsPath);
+    const runtimeConfigRoot = this.resolveRuntimeConfigRoot();
 
     const port = await this.resolvePort(DEFAULT_PORT);
 
@@ -130,6 +132,7 @@ class SearxngServerManager {
       sourceRoot,
       webappPath,
       settingsPath,
+      runtimeConfigRoot,
       pythonExecutable,
       port,
       platform: process.platform,
@@ -157,18 +160,18 @@ class SearxngServerManager {
       }, STARTUP_TIMEOUT_MS);
 
       const child = spawn(pythonExecutable, ['-m', 'searx.webapp'], {
-        cwd: sourceRoot,
+        cwd: runtimeConfigRoot,
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
+        env: getPythonRuntimeEnv({
           ...process.env,
+          PYTHONPATH: sourceRoot,
           SEARXNG_SETTINGS_PATH: settingsPath,
           SEARXNG_BIND_ADDRESS: '127.0.0.1',
           SEARXNG_PORT: String(port),
           SEARXNG_LIMITER: 'false',
           SEARXNG_PUBLIC_INSTANCE: 'false',
           SEARXNG_SECRET: `mirdel-${randomUUID()}`,
-          PYTHONUTF8: '1',
-        },
+        }),
       });
 
       this.state.process = child;
