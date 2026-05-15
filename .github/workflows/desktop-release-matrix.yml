@@ -107,7 +107,22 @@ jobs:
           set -euo pipefail
           RUNTIME_TARGET="${{ matrix.runtime_target }}"
           ARCH="${RUNTIME_TARGET#darwin-}"
-          APP_PATH="packages/desktop/release/mac-${ARCH}/Mirdel.app"
+          APP_PATH=""
+          for candidate in \
+            "packages/desktop/release/mac-${ARCH}/Mirdel.app" \
+            "packages/desktop/release/mac/Mirdel.app"
+          do
+            if [[ -d "$candidate" ]]; then
+              APP_PATH="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$APP_PATH" ]]; then
+            echo "Could not find macOS app bundle for ${RUNTIME_TARGET}"
+            find packages/desktop/release -maxdepth 3 -name "*.app" -print || true
+            exit 1
+          fi
+          echo "Verifying macOS app bundle: $APP_PATH"
           codesign -dv --verbose=4 "$APP_PATH" 2>&1 | tee codesign.log
           if grep -q "Signature=adhoc" codesign.log; then
             echo "macOS app was signed ad-hoc, expected Developer ID Application"
