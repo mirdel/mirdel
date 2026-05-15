@@ -46,7 +46,7 @@ Mirdel's core idea is simple: keep data local where possible, let users choose t
 - **Unified model management**: use mainstream cloud providers, OpenAI/Anthropic/Google-compatible custom endpoints, and bundled local model runtime from one place.
 - **Built for long-term use**: projects, categories, stars, completion state, global search, layered memory, session notes, and knowledge bases keep AI history useful.
 - **Smooth at scale**: virtualized lists, streaming Markdown rendering, and shallow reactivity keep thousands of sessions and tens of thousands of messages responsive.
-- **Applets as AI mini-apps**: turn high-frequency AI workflows into small apps with UI, parameters, and interaction state, so complex tasks can move from "write the prompt again" to "open and run".
+- **Applets**: turn high-frequency AI workflows into Applets with UI, parameters, and interaction state, so complex tasks can move from "write the prompt again" to "open and run".
 - **Truly extensible**: Skills add procedural knowledge, MCP connects tools such as filesystem and shell, and Applets productize complex workflows.
 - **Batteries included, not locked in**: bundled free web search, local `llama-server`, document parsing, TTS, and an AI SDK DevTools launcher, with room for advanced configuration.
 
@@ -118,9 +118,9 @@ Mirdel's core idea is simple: keep data local where possible, let users choose t
 
 ### Applets: Programmable Workflows With UI And Interaction
 
-Applets are one of Mirdel's core extension primitives. Think of them as Skills with UI and interaction: Skills are better for giving the agent procedural knowledge and operating instructions, while Applets turn stable AI workflows into real mini-apps. An Applet can have its own forms, parameters, interaction state, result display, and standalone window, turning complex flows from "write the prompt every time" into "open and use".
+Applets are one of Mirdel's core extension primitives. Think of them as Skills with UI and interaction: Skills are better for giving the agent procedural knowledge and operating instructions, while Applets turn stable AI workflows into reusable interactive apps. An Applet can have its own forms, parameters, interaction state, result display, and standalone window, turning complex flows from "write the prompt every time" into "open and use".
 
-- **Productized workflows**: package repeated AI flows into clickable, configurable, reusable mini-apps for personal or team workflows.
+- **Productized workflows**: package repeated AI flows into clickable, configurable, reusable Applets for personal or team workflows.
 - **UI and interaction built in**: describe inputs, parameters, and output structure with a schema-based UI DSL.
 - **Isolated runtime**: each Applet runs in an isolated subprocess managed by Mirdel.
 - **In-app development**: author and adjust Applets directly in Mirdel with a Monaco file-tree editor, auto-save, and binary-safe reads.
