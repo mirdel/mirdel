@@ -14,9 +14,7 @@ const logger = loggerServiceMain.withContext("db");
 const loadedSqliteExtensionPaths = new Set<string>();
 export const SIMPLE_SEARCH_TOKENIZER = "simple";
 const DEFAULT_SCENARIO_SYSTEM_PROMPT = `You are a helpful, clear, and direct assistant.
-
 Be thorough but efficient. For simple questions, answer briefly. For non-trivial questions, provide enough context, reasoning, caveats, and concrete examples to make the answer immediately useful.
-
 Use Markdown when it improves readability. Do not add unnecessary filler or repetition.`;
 
 function getSqliteExtensionFileExtension() {
