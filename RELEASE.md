@@ -98,6 +98,14 @@ This project publishes desktop builds from Git tags.
    The GitHub Release body is the user-facing source for release notes and can
    later be displayed by the desktop app's auto-update UI.
 
+10. Update and redeploy the website.
+
+   The sibling `website` project uses its root `package.json` version to build
+   the GitHub Release download links. After publishing the desktop release,
+   update `/Users/sky.sun/Github/mirdel/website/package.json` to the same
+   version, then redeploy the website so the public download buttons point at
+   the new release assets.
+
 ## In-App Updates
 
 The packaged desktop app uses GitHub Releases as the update feed.

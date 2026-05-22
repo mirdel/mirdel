@@ -8,7 +8,7 @@
   >
     <template #header>
       <div class="flex items-center gap-3">
-        <UIcon name="i-lucide-download-check" class="size-5 text-primary" />
+        <UIcon name="i-lucide-circle-check" class="size-5 text-primary" />
         <div class="text-base font-semibold text-default">
           {{ t("updates.ready.title") }}
         </div>
